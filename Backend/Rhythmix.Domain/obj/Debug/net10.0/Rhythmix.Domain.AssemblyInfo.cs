@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Rhythmix.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+51de25f002dd77677dbc7a1ca96052d3af30acb4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b31fd302c7b4ae769165d15330ab6fa64e547717")]
 [assembly: System.Reflection.AssemblyProductAttribute("Rhythmix.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Rhythmix.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
