@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Bell, Heart, UserPlus, Music, Disc, Radio, Check, CheckCheck } from "lucide-react"
+import { Bell, UserPlus, Music, Disc, Radio, Check, CheckCheck } from "lucide-react"
 
 // 1. Đồng bộ cấu trúc dữ liệu: 4 loại thông báo theo đúng yêu cầu
 const mockNotifications = [
