@@ -46,7 +46,7 @@ Dự án sử dụng Dapper cho backend, AI & Cloud làm sau.
 
 ## Backend
 
-###  MINH: Foundation & Authentication 
+###  MINH: Foundation & Authentication (Viết code dapper tương ứng)
 - Thiết lập solution theo Clean Architecture 4 layer:
   - Domain
   - Application
@@ -63,7 +63,7 @@ Dự án sử dụng Dapper cho backend, AI & Cloud làm sau.
   - Profile view/update
 - Chuẩn bị SQL script tạo bảng và seed data mẫu.
 
-### QUỐC TUẤN: Upload và Streaming Media
+### QUỐC TUẤN: Upload và Streaming Media (Viết code dapper tương ứng)
 - Xây dựng feature upload media:
   - Multipart file upload
   - Validate extension/MIME audio và video
@@ -75,7 +75,7 @@ Dự án sử dụng Dapper cho backend, AI & Cloud làm sau.
   - Hỗ trợ Range header cho video
 - Tạo service lưu trữ file và repository Dapper cho `MediaItem`.
 
-### THÁI: Playlist / Search / Share
+### THÁI: Playlist / Search / Share (Viết code dapper tương ứng)
 - Xây dựng playlist CRUD:
   - Create playlist
   - Thêm/xóa track
@@ -88,7 +88,7 @@ Dự án sử dụng Dapper cho backend, AI & Cloud làm sau.
   - "Shared with me" / "Shared by me"
   - Validate receiver tồn tại, tránh share trùng nếu cần.
 
-### KHÔI: Notifications / History / API Docs
+### KHÔI: Notifications / History / API Docs (Viết code dapper tương ứng)
 - Xây dựng Notification + SignalR Hub:
   - Thông báo khi media được chia sẻ
   - Thông báo follow hoặc playlist share
