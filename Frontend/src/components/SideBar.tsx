@@ -9,7 +9,7 @@ type NavItem = {
 
 // ĐỒNG BỘ: Sửa đường dẫn nút Home từ "/" thành "/home" cho khớp với URL của bạn
 const primaryNav: NavItem[] = [
-  { path: "/home", label: "Home", icon: Home }, 
+  { path: "/home", label: "Home", icon: Home },
   { path: "/search", label: "Search", icon: Search },
   { path: "/library", label: "Your Library", icon: Library },
 ];
@@ -20,7 +20,7 @@ const secondaryNav: NavItem[] = [
   { path: "/profile", label: "Profile", icon: User },
 ];
 
-const SideBar = () => {
+const SideBar = ({ onOpenAuth }: { onOpenAuth: () => void }) => {
   // Gom hàm tạo CSS ra ngoài nhìn cho đỡ rối mắt
   const getLinkStyle = ({ isActive }: { isActive: boolean }) =>
     `flex w-full items-center gap-4 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
@@ -49,7 +49,7 @@ const SideBar = () => {
       </div>
 
       {/* Hộp 2: Menu phụ */}
-      <div className="flex flex-1 flex-col rounded-lg bg-zinc-900 p-3">
+      <div className="flex flex-1 flex-col justify-between rounded-lg bg-zinc-900 p-3">
         <nav className="flex flex-col gap-1">
           {secondaryNav.map(({ path, label, icon: Icon }) => (
             <NavLink key={path} to={path} className={getLinkStyle}>
@@ -58,9 +58,15 @@ const SideBar = () => {
             </NavLink>
           ))}
         </nav>
-        
-        <div className="mt-4 border-t border-zinc-800 pt-4 px-3 text-xs text-zinc-500">
-          <p>Bữa sau thêm login ở đây</p>
+
+        {/* Hộp 3: Menu logout/login/signup */}
+        <div className="border-t border-zinc-800/40 pt-4 px-2">
+          <button
+            onClick={onOpenAuth}
+            className="flex w-full cursor-pointer items-center justify-center rounded-full bg-green-500 py-2.5 text-sm font-bold text-black transition-transform hover:bg-green-400 active:scale-95"
+          >
+            <span>Log out</span> 
+          </button>
         </div>
       </div>
     </aside>
