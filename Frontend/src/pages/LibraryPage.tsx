@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Library, Music2, ListMusic, Play, Plus } from "lucide-react"; // Thêm ListMusic và Plus để làm nút Upload/Create
 import UploadMediaModal from "../components/UploadMediaModal"
+import { useNavigate } from "react-router-dom";
+import CreatePlaylistModal from "../components/CreatePlaylistModal";
+
 // 1. Dữ liệu giả lập chuẩn hóa theo Database (chia rõ loại playlists và albums)
 const libraryItems = [
   {
@@ -45,21 +48,17 @@ const libraryTabs = [
 ];
 
 const LibraryPage = () => {
+
+  const navigate = useNavigate();
   // Cập nhật lại kiểu dữ liệu của State activeTab cho khớp với id mới
   const [activeTab, setActiveTab] = useState<"all" | "playlists" | "albums">("all");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
   // Logic lọc dữ liệu dựa trên Tab đang chọn
   const filtered =
     activeTab === "all"
       ? libraryItems
       : libraryItems.filter((item) => item.type === activeTab);
-
-  // Hàm xử lý tạm thời khi bấm nút Upload Music
-  const handleUploadClick = () => {
-    alert(
-      "Tính năng mở Form Upload bài hát & Tạo Album mới sẽ được xử lý ở bước tiếp theo nha !",
-    );
-  };
 
   return (
     <div className="space-y-6 select-none">
@@ -75,8 +74,10 @@ const LibraryPage = () => {
         </div>
       </div>
 
-      {/* Thanh bấm chuyển đổi các Tab (All / Playlists / Albums) và nút Upload cùng hàng */}
+      {/* Thanh bấm chuyển đổi các Tab (All / Playlists / Albums) và cụm nút hành động */}
       <div className="flex items-center justify-between">
+        
+        {/* Cụm bên trái: Các Tab bộ lọc (Giữ nguyên của bạn) */}
         <div className="flex gap-2">
           {libraryTabs.map((tab) => {
             const Icon = tab.icon;
@@ -98,14 +99,32 @@ const LibraryPage = () => {
             );
           })}
         </div>
-        <button
-          type="button"
-          onClick={() => setIsUploadOpen(true)}
-          className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-transform hover:scale-105 cursor-pointer active:scale-95"
-        >
-          <Plus className="size-4 stroke-3" />
-          Upload Music
-        </button>
+
+        {/* 🌟 CỤM BÊN PHẢI: Bọc 2 nút Upload và Create vào đây để tụi nó đứng sát nhau */}
+        <div className="flex items-center gap-3">
+          
+          {/* Nút Upload Music */}
+          <button
+            type="button"
+            onClick={() => setIsUploadOpen(true)}
+            className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-transform hover:scale-105 cursor-pointer active:scale-95"
+          >
+            <Plus className="size-4 stroke-3" />
+            Upload Music in Album
+          </button>
+          
+          {/* Nút Create New Playlist */}
+          <button
+            type="button"
+            onClick={() => setIsCreatePlaylistOpen(true)}
+            className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-transform hover:scale-105 cursor-pointer active:scale-95"
+          >
+            <Plus className="size-4 stroke-3" />
+            Create New Playlist
+          </button>
+
+        </div>
+
       </div>
 
       {/* Lưới hiển thị danh sách các mục trong thư viện */}
@@ -113,6 +132,7 @@ const LibraryPage = () => {
         {filtered.map((item) => (
           <article
             key={item.title}
+            onClick={() => navigate("/playlist")}
             className="group cursor-pointer rounded-md bg-zinc-900/40 p-4 transition-colors hover:bg-zinc-800"
           >
             <div className="relative mb-3">
@@ -158,6 +178,10 @@ const LibraryPage = () => {
       <UploadMediaModal 
         isOpen={isUploadOpen} 
         onClose={() => setIsUploadOpen(false)} 
+      />
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistOpen}
+        onClose={() => setIsCreatePlaylistOpen(false)}
       />
     </div>
   );

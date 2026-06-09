@@ -1,4 +1,3 @@
-// UploadMediaModal.tsx
 import { X, ChevronDown, ChevronUp } from "lucide-react"
 import useUploadMedia from "../hooks/useUploadMedia"
 
