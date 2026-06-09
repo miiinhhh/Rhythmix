@@ -4,7 +4,7 @@ using System vices;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using TuneVault.Domain.Entities;
+using Rhythmix.Domain.Entities;
 
 namespace Rhythmix.Application.Notifications.Commands
 {
