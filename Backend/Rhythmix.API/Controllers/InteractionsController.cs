@@ -45,7 +45,7 @@ namespace Rhythmix.API.Controllers
             
             if (!success)
             {
-                return BadRequest(ApiResponse<object>.ToFailure(new() { "Không thể ghi nhận lịch sử phát nhạc." }));
+                return BadRequest(ApiResponse<object>.ToFailure(new List<string> { "Không thể ghi nhận lịch sử phát nhạc." }));
             }
             
             return Ok(ApiResponse<object>.ToSuccess(new { Message = "Lịch sử phát nhạc đã được lưu." }));

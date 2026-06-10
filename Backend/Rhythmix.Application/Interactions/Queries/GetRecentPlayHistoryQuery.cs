@@ -21,8 +21,7 @@ namespace Rhythmix.Application.Interactions.Queries
         public async Task<List<PlayHistory>> Handle(GetRecentPlayHistoryQuery request, CancellationToken cancellationToken)
         {
             using var connection = _connectionFactory.CreateConnection();
-            [cite_start]// Truy vấn lấy đúng 10 bản ghi gần nhất 
-            const string sql = "SELECT TOP 10 * FROM PlayHistory WHERE UserId = @UserId ORDER BY PlayedAt DESC"; 
+            const string sql = "SELECT TOP 10 * FROM PlayHistory WHERE UserId = @UserId ORDER BY PlayedAt DESC";
 
             var result = await connection.QueryAsync<PlayHistory>(sql, new { UserId = request.UserId });
             return result.ToList();

@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhythmix.Infrastructure", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhythmix.API", "Rhythmix.API\Rhythmix.API.csproj", "{3D4CF797-CF27-4A14-AA23-71E309B49593}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rhythmix.Application.Tests", "Rhythmix.Application.Tests\Rhythmix.Application.Tests.csproj", "{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{3D4CF797-CF27-4A14-AA23-71E309B49593}.Release|x64.Build.0 = Release|Any CPU
 		{3D4CF797-CF27-4A14-AA23-71E309B49593}.Release|x86.ActiveCfg = Release|Any CPU
 		{3D4CF797-CF27-4A14-AA23-71E309B49593}.Release|x86.Build.0 = Release|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Debug|x64.Build.0 = Debug|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Debug|x86.Build.0 = Debug|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Release|x64.ActiveCfg = Release|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Release|x64.Build.0 = Release|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Release|x86.ActiveCfg = Release|Any CPU
+		{AE2894AD-59A9-4C6E-A4C9-D8D0540C71BC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

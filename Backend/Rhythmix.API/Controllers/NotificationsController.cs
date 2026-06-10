@@ -45,7 +45,7 @@ namespace Rhythmix.API.Controllers
             
             if (!success)
             {
-                return BadRequest(ApiResponse<object>.ToFailure(new() { "Không tìm thấy thông báo hoặc bạn không có quyền." }));
+                return BadRequest(ApiResponse<object>.ToFailure(new List<string> { "Không tìm thấy thông báo hoặc bạn không có quyền." }));
             }
             
             return Ok(ApiResponse<object>.ToSuccess(new { Message = "Đã đánh dấu đọc thông báo thành công." }));
