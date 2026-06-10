@@ -54,7 +54,7 @@ CREATE TABLE MediaItems
     FileSize BIGINT,
     AlbumId UNIQUEIDENTIFIER NULL,
     OwnerId UNIQUEIDENTIFIER NOT NULL,
-    IsPublic BIT DEFAULT 1,       -- tui không nghĩ cần, public/private chỉ ns về playlist (ThanhTuan said)
+    --IsPublic BIT DEFAULT 1,       -- tui không nghĩ cần, public/private chỉ ns về playlist (ThanhTuan said) chuẩn đấy em (Minh said)
     ViewCount INT DEFAULT 0,
     CreatedAt DATETIME2 DEFAULT GETDATE(),
 
