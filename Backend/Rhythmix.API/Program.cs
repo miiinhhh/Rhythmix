@@ -16,6 +16,7 @@ public class Program
         builder.Services.AddControllers();
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
+        builder.Services.AddSwaggerGen();
 
         builder.Services.AddCors(options =>
         {
@@ -54,6 +55,8 @@ public class Program
 
         if (app.Environment.IsDevelopment())
         {
+            app.UseSwagger();
+            app.UseSwaggerUI();
             app.MapOpenApi();
         }
 

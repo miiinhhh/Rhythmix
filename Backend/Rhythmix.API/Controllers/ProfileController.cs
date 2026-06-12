@@ -19,7 +19,7 @@ public sealed class ProfileController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpGet("me")]
+    [HttpGet("me")] 
     public async Task<IActionResult> GetProfile()
     {
         var userId = GetCurrentUserId();
