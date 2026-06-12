@@ -19,12 +19,13 @@ namespace Rhythmix.Application.Interactions.Commands
         public async Task<bool> Handle(RecordPlayHistoryCommand request, CancellationToken cancellationToken)
         {
             using var connection = _connectionFactory.CreateConnection();
-            const string sql = "INSERT INTO PlayHistory (Id, UserId, MediaItemId, PlayedAt) VALUES (@Id, @UserId, @MediaItemId, @PlayedAt)";
+            // Tên bảng đúng: PlayHistories (có chữ s); PK là HistoryId; cột media là MediaId
+            const string sql = "INSERT INTO PlayHistories (HistoryId, UserId, MediaId, PlayedAt) VALUES (@HistoryId, @UserId, @MediaId, @PlayedAt)";
 
             var affectedRows = await connection.ExecuteAsync(sql, new {
-                Id = Guid.NewGuid(),
+                HistoryId = Guid.NewGuid(),
                 request.UserId,
-                request.MediaItemId,
+                MediaId = request.MediaItemId,
                 PlayedAt = DateTime.UtcNow
             });
 
