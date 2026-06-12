@@ -19,10 +19,11 @@ namespace Rhythmix.Application.Notifications.Commands
         public async Task<bool> Handle(MarkNotificationAsReadCommand request, CancellationToken cancellationToken)
         {
             using var connection = _connectionFactory.CreateConnection();
+            // PK của bảng Notifications là NotificationId (không phải Id)
             const string sql = @"
                 UPDATE Notifications 
                 SET IsRead = 1 
-                WHERE Id = @NotificationId AND UserId = @UserId"; // [cite: 213, 252]
+                WHERE NotificationId = @NotificationId AND UserId = @UserId";
 
             var affectedRows = await connection.ExecuteAsync(sql, new { 
                 NotificationId = request.NotificationId, 
