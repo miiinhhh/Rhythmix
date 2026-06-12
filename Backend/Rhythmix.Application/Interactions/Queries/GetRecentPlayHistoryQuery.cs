@@ -1,30 +1,35 @@
 using Dapper;
 using MediatR;
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Rhythmix.Application.Common.Interfaces;
-using Rhythmix.Domain.Entities;
 
-namespace Rhythmix.Application.Interactions.Queries
+namespace Rhythmix.Application.Interactions.Commands
 {
-    public record GetRecentPlayHistoryQuery(string UserId) : IRequest<List<PlayHistory>>;
+    public record RecordPlayHistoryCommand(string UserId, Guid MediaItemId) : IRequest<bool>;
 
-    public class GetRecentPlayHistoryQueryHandler : IRequestHandler<GetRecentPlayHistoryQuery, List<PlayHistory>>
+    public class RecordPlayHistoryCommandHandler : IRequestHandler<RecordPlayHistoryCommand, bool>
     {
         private readonly IDbConnectionFactory _connectionFactory;
 
-        public GetRecentPlayHistoryQueryHandler(IDbConnectionFactory connectionFactory) 
+        public RecordPlayHistoryCommandHandler(IDbConnectionFactory connectionFactory) 
             => _connectionFactory = connectionFactory;
 
-        public async Task<List<PlayHistory>> Handle(GetRecentPlayHistoryQuery request, CancellationToken cancellationToken)
+        public async Task<bool> Handle(RecordPlayHistoryCommand request, CancellationToken cancellationToken)
         {
             using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT TOP 10 * FROM PlayHistory WHERE UserId = @UserId ORDER BY PlayedAt DESC";
+            // Tên bảng đúng: PlayHistories (có chữ s); PK là HistoryId; cột media là MediaId
+            const string sql = "INSERT INTO PlayHistories (HistoryId, UserId, MediaId, PlayedAt) VALUES (@HistoryId, @UserId, @MediaId, @PlayedAt)";
 
-            var result = await connection.QueryAsync<PlayHistory>(sql, new { UserId = request.UserId });
-            return result.ToList();
+            var affectedRows = await connection.ExecuteAsync(sql, new {
+                HistoryId = Guid.NewGuid(),
+                request.UserId,
+                MediaId = request.MediaItemId,
+                PlayedAt = DateTime.UtcNow
+            });
+
+            return affectedRows > 0;
         }
     }
 }
