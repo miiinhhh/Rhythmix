@@ -19,23 +19,25 @@ namespace Rhythmix.Application.Interactions.Commands
         public async Task<string> Handle(ToggleFavoriteCommand request, CancellationToken cancellationToken)
         {
             using var connection = _connectionFactory.CreateConnection();
-
-            const string checkSql = "SELECT COUNT(1) FROM Favorites WHERE UserId = @UserId AND MediaItemId = @MediaItemId";
-            var exists = await connection.ExecuteScalarAsync<bool>(checkSql, new { request.UserId, request.MediaItemId });
+            
+            // Kiểm tra tồn tại — dùng đúng tên cột MediaId theo DB schema
+            const string checkSql = "SELECT COUNT(1) FROM Favorites WHERE UserId = @UserId AND MediaId = @MediaId";
+            var exists = await connection.ExecuteScalarAsync<bool>(checkSql, new { request.UserId, MediaId = request.MediaItemId });
 
             if (exists)
             {
-                const string deleteSql = "DELETE FROM Favorites WHERE UserId = @UserId AND MediaItemId = @MediaItemId";
-                await connection.ExecuteAsync(deleteSql, new { request.UserId, request.MediaItemId });
+                // Nếu đã thích thì xóa đi (Unfavorite)
+                const string deleteSql = "DELETE FROM Favorites WHERE UserId = @UserId AND MediaId = @MediaId";
+                await connection.ExecuteAsync(deleteSql, new { request.UserId, MediaId = request.MediaItemId });
                 return "Removed from Favorites";
             }
             else
             {
-                const string insertSql = "INSERT INTO Favorites (Id, UserId, MediaItemId, CreatedAt) VALUES (@Id, @UserId, @MediaItemId, @CreatedAt)";
+                // Thêm mới vào mục yêu thích — PK là (UserId, MediaId), không có cột Id riêng
+                const string insertSql = "INSERT INTO Favorites (UserId, MediaId, CreatedAt) VALUES (@UserId, @MediaId, @CreatedAt)";
                 await connection.ExecuteAsync(insertSql, new { 
-                    Id = Guid.NewGuid(), 
                     request.UserId, 
-                    request.MediaItemId, 
+                    MediaId = request.MediaItemId, 
                     CreatedAt = DateTime.UtcNow 
                 });
                 return "Added to Favorites";
