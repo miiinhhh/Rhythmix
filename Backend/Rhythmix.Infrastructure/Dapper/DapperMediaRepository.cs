@@ -1,4 +1,3 @@
-// Rhythmix.Infrastructure/Dapper/DapperMediaRepository.cs
 using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -16,7 +15,7 @@ public sealed class DapperMediaRepository : IMediaRepository
         _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
     }
 
-    /// <inheritdoc />
+     
     public async Task<MediaItem?> GetByIdAsync(Guid mediaId)
     {
         const string sql = @"
@@ -34,7 +33,7 @@ public sealed class DapperMediaRepository : IMediaRepository
                 OwnerId,
                 IsPublic,
                 ViewCount,
-                CreatedAt,
+                CreatedAt
             FROM [MediaItems]
             WHERE MediaId = @MediaId";
 
@@ -46,7 +45,7 @@ public sealed class DapperMediaRepository : IMediaRepository
             new { MediaId = mediaId });
     }
 
-    /// <inheritdoc />
+     
     public async Task<IEnumerable<MediaItem>> GetByIdsAsync(IEnumerable<Guid> mediaIds)
     {
         if (mediaIds == null || !mediaIds.Any())
@@ -81,7 +80,7 @@ public sealed class DapperMediaRepository : IMediaRepository
             new { Ids = mediaIds });
     }
 
-    /// <inheritdoc />
+     
     public async Task<Guid> AddAsync(MediaItem media)
     {
         if (media == null) throw new ArgumentNullException(nameof(media));
@@ -143,7 +142,7 @@ public sealed class DapperMediaRepository : IMediaRepository
         return media.MediaId;
     }
 
-    /// <inheritdoc />
+     
     public async Task UpdateAsync(MediaItem media)
     {
         if (media == null) throw new ArgumentNullException(nameof(media));
@@ -190,7 +189,7 @@ public sealed class DapperMediaRepository : IMediaRepository
         }
     }
 
-    /// <inheritdoc />
+     
     public async Task DeleteAsync(Guid mediaId)
     {
         const string sql = @"
@@ -245,7 +244,7 @@ public sealed class DapperMediaRepository : IMediaRepository
                 OwnerId,
                 IsPublic,
                 ViewCount,
-                CreatedAt,
+                CreatedAt
             FROM [MediaItems]
             ORDER BY CreatedAt DESC
             OFFSET @Offset ROWS
@@ -286,7 +285,7 @@ public sealed class DapperMediaRepository : IMediaRepository
                 OwnerId,
                 IsPublic,
                 ViewCount,
-                CreatedAt,
+                CreatedAt
             FROM [MediaItems]
             WHERE Title LIKE @Keyword
                OR Description LIKE @Keyword

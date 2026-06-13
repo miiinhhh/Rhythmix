@@ -36,11 +36,6 @@ public interface IShareRepository
     Task<MediaShare?> GetByIdAsync(Guid shareId, IDbTransaction? transaction = null);
 
     /// <summary>
-    /// Mark share as read
-    /// </summary>
-    Task MarkAsReadAsync(Guid shareId, IDbTransaction? transaction = null);
-
-    /// <summary>
     /// Delete a share
     /// </summary>
     Task DeleteAsync(Guid shareId, IDbTransaction? transaction = null);

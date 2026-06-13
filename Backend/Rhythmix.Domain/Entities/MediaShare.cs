@@ -9,5 +9,4 @@ public class MediaShare
     public Guid? PlaylistId { get; set; }
     public string? Message { get; set; }
     public DateTime SharedAt { get; set; } = DateTime.UtcNow;
-    public bool IsRead { get; set; } = false;
 }

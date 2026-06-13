@@ -34,7 +34,6 @@ public sealed class GetSharedByMeQueryHandler : IRequestHandler<GetSharedByMeQue
                 PlaylistId = share.PlaylistId,
                 Message = share.Message,
                 SharedAt = share.SharedAt,
-                IsRead = share.IsRead
             });
         }
 

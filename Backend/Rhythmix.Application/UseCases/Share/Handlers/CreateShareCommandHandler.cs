@@ -44,8 +44,7 @@ public sealed class CreateShareCommandHandler : IRequestHandler<CreateShareComma
             MediaId = request.MediaId,
             PlaylistId = request.PlaylistId,
             Message = request.Message,
-            SharedAt = DateTime.UtcNow,
-            IsRead = false
+            SharedAt = DateTime.UtcNow
         };
 
         await _shareRepository.CreateShareAsync(share);
@@ -62,8 +61,7 @@ public sealed class CreateShareCommandHandler : IRequestHandler<CreateShareComma
             MediaId = share.MediaId,
             PlaylistId = share.PlaylistId,
             Message = share.Message,
-            SharedAt = share.SharedAt,
-            IsRead = share.IsRead
+            SharedAt = share.SharedAt
         };
     }
 }

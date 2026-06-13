@@ -12,5 +12,4 @@ public sealed class ShareItemDto
     public string? PlaylistName { get; set; }
     public string? Message { get; set; }
     public DateTime SharedAt { get; set; }
-    public bool IsRead { get; set; }
 }

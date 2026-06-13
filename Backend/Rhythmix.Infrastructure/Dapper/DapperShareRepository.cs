@@ -18,8 +18,8 @@ public sealed class DapperShareRepository : IShareRepository
     public async Task<Guid> CreateShareAsync(MediaShare share, IDbTransaction? transaction = null)
     {
         const string sql = @"
-        INSERT INTO [MediaShares] (ShareId, SenderId, ReceiverId, MediaId, PlaylistId, Message, SharedAt, IsRead)
-        VALUES (@Id, @SenderId, @ReceiverId, @MediaId, @PlaylistId, @Message, @SharedAt, @IsRead)";
+        INSERT INTO [MediaShares] (ShareId, SenderId, ReceiverId, MediaId, PlaylistId, Message, SharedAt)
+        VALUES (@Id, @SenderId, @ReceiverId, @MediaId, @PlaylistId, @Message, @SharedAt)";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -31,8 +31,7 @@ public sealed class DapperShareRepository : IShareRepository
             share.MediaId,
             share.PlaylistId,
             share.Message,
-            share.SharedAt,
-            share.IsRead
+            share.SharedAt
         }, transaction);
 
         return share.Id;
@@ -48,8 +47,7 @@ public sealed class DapperShareRepository : IShareRepository
                 MediaId,
                 PlaylistId,
                 Message,
-                SharedAt,
-                CAST(0 AS BIT) AS IsRead
+                SharedAt
             FROM [MediaShares]
             WHERE ReceiverId = @UserId
             ORDER BY SharedAt DESC";
@@ -69,8 +67,7 @@ public sealed class DapperShareRepository : IShareRepository
                 MediaId,
                 PlaylistId,
                 Message,
-                SharedAt,
-                CAST(0 AS BIT) AS IsRead
+                SharedAt
             FROM [MediaShares]
             WHERE SenderId = @UserId
             ORDER BY SharedAt DESC";
@@ -124,8 +121,7 @@ public sealed class DapperShareRepository : IShareRepository
                 MediaId,
                 PlaylistId,
                 Message,
-                SharedAt,
-                CAST(0 AS BIT) AS IsRead
+                SharedAt
             FROM [MediaShares]
             WHERE ShareId = @ShareId";
 
@@ -134,17 +130,6 @@ public sealed class DapperShareRepository : IShareRepository
         return await connection.QuerySingleOrDefaultAsync<MediaShare>(sql, new { ShareId = shareId }, transaction);
     }
 
-    public async Task MarkAsReadAsync(Guid shareId, IDbTransaction? transaction = null)
-    {
-        const string sql = @"
-            UPDATE [MediaShares]
-            SET IsRead = 1
-            WHERE ShareId = @ShareId";
-
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync();
-        await connection.ExecuteAsync(sql, new { ShareId = shareId }, transaction);
-    }
 
     public async Task DeleteAsync(Guid shareId, IDbTransaction? transaction = null)
     {

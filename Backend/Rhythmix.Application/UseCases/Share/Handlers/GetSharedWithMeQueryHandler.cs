@@ -33,8 +33,7 @@ public sealed class GetSharedWithMeQueryHandler : IRequestHandler<GetSharedWithM
                 MediaId = share.MediaId,
                 PlaylistId = share.PlaylistId,
                 Message = share.Message,
-                SharedAt = share.SharedAt,
-                IsRead = share.IsRead
+                SharedAt = share.SharedAt
             });
         }
 

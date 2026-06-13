@@ -8,7 +8,7 @@ public interface IPlaylistTrackRepository
     /// <summary>
     /// Thêm một track vào playlist
     /// </summary>
-    Task AddTrackAsync(Guid playlistId, Guid mediaId, int sortOrder = 0, IDbTransaction? transaction = null);
+     Task<int> AddTrackAsync(Guid playlistId, Guid mediaId, int sortOrder = -1, IDbTransaction? transaction = null);
 
     /// <summary>
     /// Xóa một track khỏi playlist
@@ -28,7 +28,7 @@ public interface IPlaylistTrackRepository
     /// <summary>
     /// Lấy chi tiết của một track cụ thể trong playlist (bao gồm thông tin từ MediaItems)
     /// </summary>
-    Task<PlaylistTrack> GetTrackDetailAsync(Guid playlistId, Guid mediaId, IDbTransaction? transaction = null);
+    Task<PlaylistTrack?> GetTrackDetailAsync(Guid playlistId, Guid mediaId, IDbTransaction? transaction = null);
 
     /// <summary>
     /// Cập nhật thứ tự sắp xếp của một track trong playlist
