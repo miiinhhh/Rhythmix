@@ -1,8 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Edit3, X, Save, Camera, Users, UserCheck, ListMusic, Music2, Play, Heart, History, Pause } from "lucide-react";
-import { MOCK_PLAYLISTS } from "../data/mockData";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { MOCK_USERS, MOCK_FOLLOWS } from "../data/mockData";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { musicService } from "../services/musicService"; 
+import type { FollowType } from "../data/mockData";
+import FollowModal from "../components/FollowModal";
+import { useNotifications } from "../context/NotificationContext";
 
 const MOCK_SONGS = [
   { id: 1, title: "Sunset Boulevard", artist: "Neon Coast", album: "City Lights", duration: "0:41", isLiked: true, url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
@@ -23,15 +26,43 @@ interface OutletContextType {
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  // 2. Lấy userId từ URL (Ví dụ: /profile/user-123)
+  const { userId } = useParams(); 
+  const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
+  
+  const targetId = userId || currentUserId;
+  
+  // Kiểm tra xem đây có phải là trang cá nhân của mình không
+  const isMyProfile = !userId || userId === currentUserId;
   const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying } = useOutletContext<OutletContextType>();
   const [userProfile, setUserProfile] = useState({
     fullName: "Hello World",
     bio: "Music lover",
     avatarUrl:
       "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=256&auto=format&fit=crop",
-    followersCount: 234,
-    followingCount: 156,
   });
+  useEffect(() => {
+    // Lấy targetId từ URL nếu có, không thì lấy ID của chính mình
+    const targetId = userId || currentUserId;
+    
+    // Tìm user trong MOCK_USERS dựa trên targetId
+    const matchedUser = MOCK_USERS.find((u) => u.id === targetId);
+    
+    if (matchedUser) {
+      setUserProfile({
+        fullName: matchedUser.name,
+        bio: matchedUser.bio || "Music lover",
+        avatarUrl: matchedUser.avatarUrl,
+      });
+      
+      // Chỉ set dữ liệu edit khi đang ở trang cá nhân của mình
+      if (isMyProfile) {
+        setEditName(matchedUser.name);
+        setEditBio(matchedUser.bio || "Music lover");
+        setPreviewUrl(matchedUser.avatarUrl);
+      }
+    }
+  }, [userId, currentUserId, isMyProfile]); // 🟢 Quan trọng: Phải có [userId] để nó load lại khi nhảy sang profile khác
 
   const publicPlaylists = musicService.getPublicPlaylists();
   const likedTracks = musicService.getLikedSongs();
@@ -65,9 +96,6 @@ const ProfilePage = () => {
 
   const [, setTick] = useState(0);
   const refresh = () => setTick((v) => v + 1);  
-  // const publicPlaylists = MOCK_PLAYLISTS.filter((playlist) => playlist.isPublic === true);
-  // const likedTracks = MOCK_SONGS.filter((song) => song.isLiked);
-  // const recentlyPlayed = MOCK_SONGS.slice(0, 10);
   const [activeTab, setActiveTab] = useState<"public" | "liked" | "recent">("public");
 
   // State quản lý Modal và form nhập liệu
@@ -105,6 +133,77 @@ const ProfilePage = () => {
     setIsModalOpen(false);
   };
 
+  const [follows, setFollows] = useState<FollowType[]>(() => {
+    const saved = localStorage.getItem("my_follows");
+    return saved ? (JSON.parse(saved) as FollowType[]) : [...MOCK_FOLLOWS];
+  });
+
+  // Tính toán số lượng real-time
+  const followersCount = useMemo(() => 
+    follows.filter(f => f.followingId === targetId).length, 
+  [follows, targetId]);
+
+  const followingCount = useMemo(() => 
+    follows.filter(f => f.followerId === targetId).length, 
+  [follows, targetId]);
+  const isFollowing = useMemo(() => 
+    follows.some(f => f.followerId === currentUserId && f.followingId === targetId),
+    [follows, currentUserId, targetId]);
+  
+  const currentUser = MOCK_USERS.find(u => u.id === currentUserId) || { id: "unknown", name: "Guest" };
+  const { addNotification } = useNotifications();
+  
+  const handleToggleFollow = () => {
+    setFollows(prev => {
+      const isFollowing = prev.some(f => f.followerId === currentUserId && f.followingId === targetId);
+      let newFollows;
+      
+      if (isFollowing) {
+        newFollows = prev.filter(f => !(f.followerId === currentUserId && f.followingId === targetId));
+      } else {
+        newFollows = [...prev, { followerId: currentUserId, followingId: targetId }];
+        
+        // ✅ CHỈ GỌI Ở ĐÂY: Khi người ta nhấn "Theo dõi" (chuyển từ không follow sang follow)
+        addNotification({
+          id: Date.now().toString(),
+          receiverId: targetId,
+          type: "follow",
+          payload: JSON.stringify({ 
+            senderId: currentUser.id, 
+            senderName: currentUser.name,
+            recipientId: targetId
+          }),
+          time: "Just now",
+          isRead: false
+        } as any);
+      }
+      
+      localStorage.setItem("my_follows", JSON.stringify(newFollows));
+      return newFollows;
+    });
+  };
+
+  const [followModal, setFollowModal] = useState<{ isOpen: boolean; title: string; list: any[] }>({
+    isOpen: false,
+    title: "",
+    list: []
+  });
+
+  const openFollowModal = (type: "followers" | "following") => {
+    const usersList = type === "followers" 
+      ? follows.filter(f => f.followingId === targetId).map(f => MOCK_USERS.find(u => u.id === f.followerId))
+      : follows.filter(f => f.followerId === targetId).map(f => MOCK_USERS.find(u => u.id === f.followingId));
+    
+    // Lọc bỏ những user không tìm thấy (undefined)
+    const filteredList = usersList.filter(u => u !== undefined);
+
+    setFollowModal({
+      isOpen: true,
+      title: type === "followers" ? "Followers" : "Following",
+      list: filteredList
+    });
+  };
+  
   return (
     <div className="space-y-6 select-none">
       <div>
@@ -143,35 +242,45 @@ const ProfilePage = () => {
 
           {/* ĐƯA THÔNG TIN FOLLOWERS/FOLLOWING XUỐNG DƯỚI BIO (Style Chuẩn Spotify) */}
           <div className="flex items-center justify-center gap-4 pt-1 text-xs font-bold text-zinc-300 sm:justify-start">
-            <div className="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-green-500">
+            <div  onClick={() => openFollowModal("followers")} className="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-green-500">
               <Users className="size-3.5 text-zinc-400" />
               <span>
-                {userProfile.followersCount}{" "}
+                {followersCount} {" "} {/* Dùng trực tiếp biến từ useMemo */}
                 <span className="font-normal text-zinc-500">followers</span>
               </span>
             </div>
             <span className="text-zinc-700">•</span>
-            <div className="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-green-500">
+            <div  onClick={() => openFollowModal("following")} className="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-green-500">
               <UserCheck className="size-3.5 text-zinc-400" />
               <span>
-                {userProfile.followingCount}{" "}
+                {followingCount} {" "} {/* Dùng trực tiếp biến từ useMemo */}
                 <span className="font-normal text-zinc-500">following</span>
               </span>
             </div>
           </div>
 
+          {/* 4. Sửa nút hành động tùy theo trang */}
           <div className="pt-2">
-            <button
-              onClick={() => {
-                setIsModalOpen(true);
-                setEditName(userProfile.fullName);
-                setEditBio(userProfile.bio);
-                setPreviewUrl(userProfile.avatarUrl);
-              }}
-              className="flex cursor-pointer items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-1.5 text-xs font-bold text-white transition-all hover:bg-zinc-800 active:scale-95"
-            >
-              <Edit3 className="size-3" /> Chỉnh sửa hồ sơ
-            </button>
+            {isMyProfile ? (
+                <button
+                  onClick={() => {
+                    setIsModalOpen(true);
+                    setEditName(userProfile.fullName);
+                    setEditBio(userProfile.bio);
+                    setPreviewUrl(userProfile.avatarUrl);
+                  }}
+                  className="flex cursor-pointer items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-1.5 text-xs font-bold text-white hover:bg-zinc-800"
+                >
+                  <Edit3 className="size-3" /> Chỉnh sửa hồ sơ
+                </button>
+            ) : (
+                <button
+                  onClick={handleToggleFollow}
+                  className={`px-6 py-2 rounded-full text-xs font-bold ${isFollowing ? "bg-zinc-800 text-white" : "bg-white text-black"}`}
+                >
+                  {isFollowing ? "Đang theo dõi" : "Theo dõi"}
+                </button>
+            )}
           </div>
         </div>
       </div>
@@ -486,6 +595,12 @@ const ProfilePage = () => {
           </div>
         </div>
       )}
+      <FollowModal 
+        isOpen={followModal.isOpen} 
+        onClose={() => setFollowModal({ ...followModal, isOpen: false })} 
+        title={followModal.title} 
+        list={followModal.list} 
+      />
     </div>
   );
 }

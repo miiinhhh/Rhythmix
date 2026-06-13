@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff, X, Library } from "lucide-react";
+import { MOCK_USERS } from "../data/mockData";
 
 type Mode = "login" | "register";
 
@@ -46,8 +47,29 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
     e.preventDefault();
     if (!validate()) return;
 
-    // Khi thành công, giả lập lấy phần trước chữ @ của email làm tên nếu ở chế độ login
-    onAuthenticated(mode === "register" ? name.trim() : email.split("@")[0]);
+    if (mode === "login") {
+      // 🟢 XỬ LÝ ĐĂNG NHẬP GIẢ LẬP THEO USER DATA
+      const foundUser = MOCK_USERS.find(
+        (u) => u.email.toLowerCase() === email.toLowerCase() && u.passwordHash === password
+      );
+
+      if (foundUser) {
+        // Nếu đúng user, lưu thông tin id và tên vào localStorage để hệ thống biết ai đang đăng nhập
+        localStorage.setItem("currentUserId", foundUser.id);
+        localStorage.setItem("currentUserName", foundUser.name);
+        
+        onAuthenticated(foundUser.name); // Trả tên ra cho header hiển thị
+        setErrors({});
+        onClose();
+      } else {
+        // Nếu sai thông tin
+        setErrors({ auth: "Email hoặc mật khẩu không chính xác!" });
+      }
+    } else {
+      // Chế độ đăng ký (để sau này kết nối BE xử lý)
+      onAuthenticated(name);
+      onClose();
+    }
   };
 
   const switchMode = (next: Mode) => {
@@ -109,6 +131,11 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
               error={errors.name}
               placeholder="Your name"
             />
+          )}
+          {errors.auth && (
+            <div className="mb-4 rounded-md bg-red-500/10 border border-red-500/20 p-2.5 text-center text-xs font-semibold text-red-400">
+              {errors.auth}
+            </div>
           )}
           <Field
             id="auth-email"

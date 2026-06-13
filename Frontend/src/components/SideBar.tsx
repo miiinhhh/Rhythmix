@@ -1,5 +1,6 @@
 import { Home, Search, Library, Inbox, Bell, User, type LucideIcon } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useNotifications } from "../context/NotificationContext";
 
 type NavItem = {
   path: string;
@@ -21,6 +22,11 @@ const secondaryNav: NavItem[] = [
 ];
 
 const SideBar = ({ onOpenAuth }: { onOpenAuth: () => void }) => {
+  const { notifications } = useNotifications(); // 🟢 Lấy danh sách thông báo
+  
+  // 🟢 Kiểm tra xem có thông báo nào chưa đọc không
+  const hasUnread = notifications.some(n => !n.isRead);
+
   // Gom hàm tạo CSS ra ngoài nhìn cho đỡ rối mắt
   const getLinkStyle = ({ isActive }: { isActive: boolean }) =>
     `flex w-full items-center gap-4 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
@@ -53,8 +59,15 @@ const SideBar = ({ onOpenAuth }: { onOpenAuth: () => void }) => {
         <nav className="flex flex-col gap-1">
           {secondaryNav.map(({ path, label, icon: Icon }) => (
             <NavLink key={path} to={path} className={getLinkStyle}>
-              <Icon className="size-5" />
-              {label}
+              <div className="relative flex items-center gap-4">
+                <Icon className="size-5" />
+                {label}
+                
+                {/* Dấu chấm xanh tĩnh đơn giản */}
+                {label === "Notifications" && hasUnread && (
+                  <span className="size-2 rounded-full bg-green-500" />
+                )}
+              </div>
             </NavLink>
           ))}
         </nav>

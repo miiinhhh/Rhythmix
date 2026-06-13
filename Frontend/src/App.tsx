@@ -9,6 +9,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import ProfilePage from "./pages/ProfilePage";
 import PlaylistDetailPage from "./pages/PlaylistDetailPage";
 import LikedSongsPage from "./pages/LikedSongsPage";
+import { NotificationProvider } from "./context/NotificationContext";
 
 // Tạo bộ định tuyến cấu hình đường dẫn URL
 const router = createBrowserRouter([
@@ -25,13 +26,17 @@ const router = createBrowserRouter([
       { path: "/profile", element: <ProfilePage /> },
       { path: "/playlist/:id", element: <PlaylistDetailPage /> },
       { path: "/liked", element: <LikedSongsPage /> },
+      { path: "/profile/:userId", element: <ProfilePage /> },
     ],
   },
 ]);
 
 const App = () => {
-  // Trả về RouterProvider để kích hoạt toàn bộ hệ thống URL
-  return <RouterProvider router={router} />;
+  return (
+    <NotificationProvider>
+      <RouterProvider router={router} />
+    </NotificationProvider>
+  );
 };
 
 export default App;

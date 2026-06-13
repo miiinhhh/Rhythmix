@@ -9,9 +9,10 @@ import {
   Heart,
   Music2,
   Maximize2,
+  Share2,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import VideoPlayerModal from "./VideoPlayerModal";
+import ShareModal from "./ShareModal";
 
 interface SongType {
   id: number;
@@ -21,6 +22,8 @@ interface SongType {
   duration: string;
   isLiked: boolean;
   url: string;
+  videoUrl?: string;
+  posterUrl?: string;
 }
 
 interface PlayerBarProps {
@@ -29,6 +32,13 @@ interface PlayerBarProps {
   setIsPlaying: (playing: boolean) => void;
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
   onOpenVideo: () => void;
+  onTimeUpdate: (currentTime: number, duration: number) => void;
+  seekTrigger: { time: number } | null;
+  onShareSuccess?: (
+    type: "song" | "video",
+    trackInfo: any,
+    receiverName: string,
+  ) => void;
 }
 
 const PlayerBar = ({
@@ -37,6 +47,9 @@ const PlayerBar = ({
   setIsPlaying,
   setSongs,
   onOpenVideo,
+  onTimeUpdate,
+  seekTrigger,
+  onShareSuccess,
 }: PlayerBarProps) => {
   // 3. Tạo "điều khiển từ xa" để điều khiển thẻ audio ngầm của trình duyệt
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -45,28 +58,40 @@ const PlayerBar = ({
   const [currentTime, setCurrentTime] = useState(0); // Số giây hiện tại (Ví dụ: 10s)
   const [duration, setDuration] = useState(0); // Tổng số giây (Ví dụ: 243s)
 
-  // Hàm này chạy liên tục khi nhạc đang phát để cập nhật số giây hiện tại
+  // 🟢 Liên tục báo cáo số giây lên AppLayout khi nhạc phát
   const handleTimeUpdate = () => {
     if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
+      const current = audioRef.current.currentTime;
+      setCurrentTime(current);
+      onTimeUpdate(current, audioRef.current.duration || 0);
     }
   };
-
-  // Hàm này chạy đúng 1 lần khi bài nhạc vừa tải xong để biết bài này dài bao nhiêu giây
+  // 🟢 Báo cáo thời lượng tổng ngay khi nhạc vừa tải xong
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
-      setDuration(audioRef.current.duration);
+      const dur = audioRef.current.duration || 0;
+      setDuration(dur);
+      onTimeUpdate(audioRef.current.currentTime, dur);
     }
   };
 
-  // Hàm xử lý khi người dùng kéo thanh trượt để TUA NHẠC (SEEK)
+  // Hàm xử lý khi người dùng kéo thanh trượt trực tiếp ở PlayerBar
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (audioRef.current) {
       const newTime = Number(e.target.value);
-      audioRef.current.currentTime = newTime; // Bắt đầu phát từ giây mới gõ/kéo
+      audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
+      onTimeUpdate(newTime, duration);
     }
   };
+
+  // 🟢 ĐÓN NHẬN LỆNH TUA TỪ TRONG VIDEO_PLAYER_MODAL TRUYỀN SANG
+  useEffect(() => {
+    if (seekTrigger !== null && audioRef.current) {
+      audioRef.current.currentTime = seekTrigger.time;
+      setCurrentTime(seekTrigger.time);
+    }
+  }, [seekTrigger]);
 
   // Hàm phụ để biến đổi số giây (Ví dụ: 90 giây) thành định dạng phút:giây dễ đọc (01:30)
   const formatTime = (time: number) => {
@@ -93,9 +118,6 @@ const PlayerBar = ({
       audioRef.current.volume = newVolume; // Ra lệnh cho thẻ audio ngầm tăng/giảm âm lượng thật
     }
   };
-  {
-    /* Tính phần trăm đã phát: (thời gian hiện tại / tổng thời gian) * 100 */
-  }
   const calculateProgressPercent = () => {
     if (!duration) return 0;
     return (currentTime / duration) * 100;
@@ -113,6 +135,15 @@ const PlayerBar = ({
   // When track ends, update parent state
   const handleEnded = () => {
     setIsPlaying(false);
+  };
+
+  // 🟢 State quản lý ẩn/hiển thị ShareModal
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // 🟢 Hàm click nút Share ở PlayerBar: Luôn luôn ép type là "song"
+  const handleShareClick = () => {
+    if (!currentTrack) return; // Không có bài hát thì không làm gì
+    setIsShareModalOpen(true);
   };
 
   return (
@@ -153,13 +184,26 @@ const PlayerBar = ({
               ),
             );
           }}
-          className="ml-2 hidden text-zinc-400 transition-colors hover:text-white sm:block"
+          className="ml-2 hidden text-zinc-400 transition-colors hover:text-white sm:block cursor-pointer"
           aria-label={currentTrack?.isLiked ? "Unlike" : "Like"}
         >
           {/* Tui thêm tí hiệu ứng scale-110 cho tim to lên xíu khi được Like nhìn cho đã mắt */}
           <Heart
             className={`size-4 transition-all duration-200 ${currentTrack?.isLiked ? "text-green-500 fill-green-500 scale-110" : ""}`}
           />
+        </button>
+        <button
+          type="button"
+          disabled={!currentTrack} // Nếu chưa phát bài nào thì không cho bấm
+          onClick={handleShareClick}
+          className={`text-zinc-400 transition-colors hover:text-white cursor-pointer ${
+            !currentTrack
+              ? "opacity-30 cursor-not-allowed hover:text-zinc-400"
+              : ""
+          }`}
+          aria-label="Share"
+        >
+          <Share2 className="size-4" />
         </button>
       </div>
 
@@ -241,6 +285,24 @@ const PlayerBar = ({
           <Maximize2 className="size-4" />
         </button>
       </div>
+      {/* 🟢 Render ShareModal tại đây */}
+      {currentTrack && (
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          itemToShare={{
+            type: "song", // Ở PlayerBar thì luôn luôn là bài hát
+            id: currentTrack.id,
+            title: currentTrack.title,
+            subtitle: currentTrack.artist, // Truyền ca sĩ vào subtitle
+          }}
+          onShareSuccess={(name: string) => {
+            if (onShareSuccess) {
+              onShareSuccess("song", currentTrack, name);
+            }
+          }}
+        />
+      )}
     </footer>
   );
 };

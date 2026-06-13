@@ -1,9 +1,11 @@
 import SideBar from "../components/SideBar";
 import PlayerBar from "../components/PlayerBar";
-import { Outlet } from "react-router-dom";
-import { useState } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
 import AuthModal from "../components/AuthModal";
 import VideoPlayerModal from "../components/VideoPlayerModal";
+import { MOCK_USERS } from "../data/mockData";
+import { useNotifications, NotificationContext } from "../context/NotificationContext";
 
 const initialSongs = [
   {
@@ -14,6 +16,8 @@ const initialSongs = [
     duration: "0:41",
     isLiked: true,
     url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    videoUrl: "https://media.istockphoto.com/id/1400382484/vi/video/t%C3%A1c-%C4%91%E1%BB%99ng-c%E1%BB%A7a-ti%E1%BB%83u-h%C3%A0nh-tinh-tr%C3%AAn-tr%C3%A1i-%C4%91%E1%BA%A5t-ti%E1%BB%83u-h%C3%A0nh-tinh-sao-ch%E1%BB%95i-thi%E1%BB%87t-ph%C3%A1t-s%C3%A1ng-%C4%91i.mp4?p=1&s=mp4-640x640-is&k=20&c=s7GG-mPFa0btByLlpoqGhDLm7FQO2z0cZJuxLBFhRpc=",
+    posterUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1000",
   },
   {
     id: 2,
@@ -23,6 +27,8 @@ const initialSongs = [
     duration: "0:45",
     isLiked: false,
     url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+    posterUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1000",
   },
   {
     id: 3,
@@ -32,6 +38,8 @@ const initialSongs = [
     duration: "0:50",
     isLiked: false,
     url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+    videoUrl: "https://www.w3schools.com/html/movie.mp4",
+    posterUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1000",
   },
   {
     id: 4,
@@ -41,6 +49,8 @@ const initialSongs = [
     duration: "3:20",
     isLiked: false,
     url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-neon-light-from-a-tunnel-in-a-modern-city-43254-large.mp4",
+    posterUrl: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1000",
   },
   {
     id: 5,
@@ -50,21 +60,133 @@ const initialSongs = [
     duration: "3:50",
     isLiked: false,
     url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
+    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-abstract-laser-lights-background-42300-large.mp4",
+    posterUrl: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=1000",
   },
 ];
+
+interface InboxMessageType {
+  id: string;
+  senderId: string;
+  senderName: string;
+  receiverId: string;
+  receiverName: string;
+  avatarColor: string;
+  sharedType: "song" | "video" | "playlist";
+  // trackData: typeof initialSongs[0];
+  trackData?: any; // Dành cho Bài hát / Video
+  playlistData?: {  
+    id: string;
+    title: string;
+    coverUrl?: string;
+    description?: string;
+  };
+  time: string;
+}
+
 const AppLayout = () => {
+  const context = useContext(NotificationContext); 
+  console.log("DEBUG: Context trong AppLayout là:", context);
+  const navigate = useNavigate();
+  const { addNotification } = useNotifications();
+  const { allMessages, addMessage } = useNotifications();
+
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   const [songs, setSongs] = useState(initialSongs);
   const [currentSongId, setCurrentSongId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  // Tự động tìm ra thông tin chi tiết của bài hát dựa trên ID đang chọn
-  const currentTrack = songs.find((song) => song.id === currentSongId) || null;
-  // Hàm xử lý khi user đăng nhập/đăng ký thành công từ Modal
+
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [seekTrigger, setSeekTrigger] = useState<{ time: number } | null>(null);
+
+  
+
+  const currentTrack = 
+    songs.find((song) => song.id === currentSongId) || 
+    allMessages.find((msg) => msg.trackData?.id === currentSongId)?.trackData || 
+    null;
+  
   const handleAuthSuccess = (_name: string) => {
-    setIsAuthenticated(true); // Đánh dấu đã đăng nhập thành công
+    setIsAuthenticated(true);
   };
+
+  useEffect(() => {
+    if (!localStorage.getItem("currentUserId")) {
+      localStorage.setItem("currentUserId", "user-alex");
+      localStorage.setItem("currentUserName", "Alex Mercer");
+    }
+  }, []);
+
+  const handleShareSuccess = (type: "song" | "video" | "playlist", itemInfo: any, receiverName: string) => {
+    const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
+    const currentUserName = localStorage.getItem("currentUserName") || "Alex Mercer";
+    
+    const foundReceiver = MOCK_USERS.find(user => 
+      user.name.toLowerCase().includes(receiverName.toLowerCase())
+    );
+
+    const targetReceiverId = foundReceiver ? foundReceiver.id : currentUserId;
+    const targetReceiverName = foundReceiver ? foundReceiver.name : receiverName;
+
+    // 1. Khởi tạo bộ khung tin nhắn cơ bản
+    const newShareMessage: InboxMessageType = {
+      id: `msg_${Date.now()}`,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      receiverId: targetReceiverId,
+      receiverName: targetReceiverName,
+      avatarColor: currentUserId.includes("ross") ? "bg-purple-500" : "bg-blue-500",
+      sharedType: type,
+      time: new Date().toISOString() // 🟢 Lưu mốc thời gian thực tế lúc bấm gửi (Ví dụ: "2026-06-12T16:55:00.000Z")
+    };
+
+    // 2. Phân nhánh bốc dữ liệu chuẩn chỉ theo loại (type) chia sẻ
+    if (type === "playlist") {
+      // 🟢 LUỒNG PLAYLIST: Đóng gói gọn gàng vào playlistData
+      newShareMessage.playlistData = {
+        id: itemInfo.id,
+        title: itemInfo.title,
+        coverUrl: itemInfo.coverUrl || itemInfo.posterUrl || "", 
+        description: itemInfo.description || "Playlist được chia sẻ"
+      };
+    } else {
+      // 🔴 LUỒNG SONG / VIDEO: Giữ nguyên dòng bùa hộ mệnh quét bài hát gốc 
+      const originalTrack = initialSongs.find(s => s.title.toLowerCase() === itemInfo.title.toLowerCase());
+      
+      newShareMessage.trackData = originalTrack ? {
+        ...originalTrack // Bê nguyên xi object gốc sạch sẽ url
+      } : {
+        ...itemInfo,
+        id: itemInfo.id || 1 // Fallback nếu không thấy
+      };
+    }
+    const getNotificationType = (type: string) => {
+      if (type === "playlist") return "share_playlist";
+      if (type === "video") return "share_video"; // 🟢 Thêm trường hợp video
+      return "share_song"; // Mặc định cho song
+    };
+    addNotification({
+      id: newShareMessage.id,
+      receiverId: targetReceiverId,
+      type: getNotificationType(type),
+      payload: JSON.stringify({ 
+        senderName: currentUserName, 
+        itemName: itemInfo.title,
+        itemId: newShareMessage.id
+      }),
+      time: "Vừa xong",
+      isRead: false
+    });
+    
+    addMessage(newShareMessage);
+  };
+
+  const defaultVideo = "https://media.istockphoto.com/id/1400382484/vi/video/t%C3%A1c-%C4%91%E1%BB%99ng-c%E1%BB%A7a-ti%E1%BB%83u-h%C3%A0nh-tinh-tr%C3%AAn-tr%C3%A1i-%C4%91%E1%BA%A5t-ti%E1%BB%83u-h%C3%A0nh-tinh-sao-ch%E1%BB%95i-thi%E1%BB%87t-ph%C3%A1t-s%C3%A1ng-%C4%91i.mp4?p=1&s=mp4-640x640-is&k=20&c=s7GG-mPFa0btByLlpoqGhDLm7FQO2z0cZJuxLBFhRpc=";
+  const defaultPoster = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1000";
+
   return (
     <div className="flex h-screen flex-col bg-zinc-950 text-white select-none font-sans">
       <AuthModal
@@ -86,8 +208,13 @@ const AppLayout = () => {
                   isPlaying,
                   setIsPlaying,
                   songs,
-                  setSongs,
-                }}
+                  setSongs, // Không cần as any ở đây nữa
+                  onOpenVideo: () => setIsVideoOpen(true),
+                  onShareSuccess: handleShareSuccess, // Không cần as any ở đây nữa
+                  onNavigateToPlaylist: (playlistId: string) => {
+                    navigate(`/playlist/${playlistId}`);
+                  }
+                } as any} // 🟢 ÉP KIỂU "as any" CHO TOÀN BỘ OBJECT TẠI ĐÂY
               />
             </main>
           </div>
@@ -96,17 +223,31 @@ const AppLayout = () => {
             currentTrack={currentTrack}
             isPlaying={isPlaying}
             setIsPlaying={setIsPlaying}
-            setSongs={setSongs}
+            setSongs={setSongs as any}
             onOpenVideo={() => setIsVideoOpen(true)}
+            onTimeUpdate={(currentTime, duration) => {
+              setAudioCurrentTime(currentTime);
+              setAudioDuration(duration);
+            }}
+            seekTrigger={seekTrigger}
+            onShareSuccess={handleShareSuccess} 
           />
         </>
       )}
+      
       <VideoPlayerModal
         isOpen={isVideoOpen}
         onClose={() => setIsVideoOpen(false)}
-        videoUrl="https://media.istockphoto.com/id/1400382484/vi/video/t%C3%A1c-%C4%91%E1%BB%99ng-c%E1%BB%A7a-ti%E1%BB%83u-h%C3%A0nh-tinh-tr%C3%AAn-tr%C3%A1i-%C4%91%E1%BA%A5t-ti%E1%BB%83u-h%C3%A0nh-tinh-sao-ch%E1%BB%95i-thi%C3%AAn-th%E1%BA%A1ch-ph%C3%A1t-s%C3%A1ng-%C4%91i.mp4?p=1&s=mp4-640x640-is&k=20&c=s7GG-mPFa0btByLlpoqGhDLm7FQO2z0cZJuxLBFhRpc="
-        posterUrl="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1000" // Ảnh thumbnail concert
-        title={currentTrack ? currentTrack.title : "Live Concert"}
+        videoUrl={currentTrack?.videoUrl || defaultVideo}
+        posterUrl={currentTrack?.posterUrl || defaultPoster}
+        title={currentTrack?.title || "Live Concert"}
+        artist={currentTrack?.artist || "Luna Nova"}
+        isPlaying={isPlaying}
+        setIsPlaying={setIsPlaying}
+        audioCurrentTime={audioCurrentTime}
+        audioDuration={audioDuration}
+        onShareSuccess={handleShareSuccess}
+        onSeekAudio={(time) => setSeekTrigger({ time })}
       />
     </div>
   );

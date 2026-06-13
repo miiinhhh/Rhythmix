@@ -18,8 +18,9 @@ import { useOutletContext } from "react-router-dom";
 import AddSongModal from "../components/AddSongModal";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import UpdatePlaylistModal from "../components/UpdatePlaylistModal";
-import { MOCK_PLAYLISTS } from "../data/mockData";
 import { musicService } from "../services/musicService";
+import ShareModal from "../components/ShareModal";
+
 import {
   DragDropContext,
   Droppable,
@@ -44,6 +45,7 @@ interface OutletContextType {
   setIsPlaying: (v: boolean) => void;
   songs: SongType[];
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
+  onShareSuccess: (type: "song" | "video" | "playlist", itemInfo: any, receiverName: string) => void;
 }
 
 const MOCK_ALL_SONGS: SongType[] = [
@@ -114,6 +116,7 @@ const PlaylistDetailPage = () => {
     isPlaying,
     setIsPlaying,
     setSongs: setLibrarySongs,
+    onShareSuccess,
   } = useOutletContext<OutletContextType>();
 
   const [likedPulse, setLikedPulse] = useState<number[]>([]);
@@ -161,15 +164,6 @@ const PlaylistDetailPage = () => {
     );
   }
 
-  // Hàm xử lý khi Phát/Tạm dừng nhạc
-  // const handlePlaySong = (songId: number) => {
-  //   if (currentSongId === songId) {
-  //     setIsPlaying(!isPlaying);
-  //   } else {
-  //     setCurrentSongId(songId);
-  //     setIsPlaying(true);
-  //   }
-  // };
   const handlePlaySong = (songId: number) => {
     const song = playlistSongs.find((s) => s.id === songId);
     if (song) musicService.addRecentSong(song);
@@ -191,23 +185,6 @@ const PlaylistDetailPage = () => {
       setIsPlaying(!isPlaying);
     }
   };
-
-  // Xác nhận xóa track nhạc
-  // const handleDeleteConfirm = () => {
-  //   if (selectedSong) {
-  //     setPlaylistSongs((prevSongs) =>
-  //       prevSongs.filter((song) => song.id !== selectedSong.id),
-  //     );
-
-  //     if (selectedSong.id === currentSongId) {
-  //       setCurrentSongId(null);
-  //       setIsPlaying(false);
-  //     }
-
-  //     setIsDeleteOpen(false);
-  //     setSelectedSong(null);
-  //   }
-  // };
   const handleDeleteConfirm = () => {
     if (selectedSong && id) {
       musicService.deleteSongFromPlaylist(id, selectedSong.id);
@@ -220,6 +197,8 @@ const PlaylistDetailPage = () => {
       setSelectedSong(null);
     }
   };
+
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   return (
     <div className="grow bg-zinc-900 text-white p-6 min-h-screen">
@@ -284,6 +263,7 @@ const PlaylistDetailPage = () => {
           </button>
           <button
             type="button"
+            onClick={() => setIsShareModalOpen(true)}
             className="text-zinc-400 hover:text-white transition-colors cursor-pointer p-1"
             title="Chia sẻ playlist"
           >
@@ -543,16 +523,39 @@ const PlaylistDetailPage = () => {
         isOpen={isUpdatePlaylistModalOpen}
         onClose={() => setIsUpdatePlaylistModalOpen(false)}
         playlistData={playlistInfo}
-        // onUpdateSuccess={(updatedData) => {
-        //   setPlaylistInfo((prev) => {
-        //     if (!prev) return prev;
-        //     return { ...prev, ...updatedData };
-        //   });
-        // }}
         onUpdateSuccess={(updatedData) => {
           const updated = musicService.updatePlaylist(playlistInfo.id, updatedData);
           if (updated) {
             setPlaylistInfo(updated);
+          }
+        }}
+      />
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        itemToShare={{
+          type: "playlist",
+          // playlistInfo luôn có id (chuỗi string chuẩn từ musicService)
+          id: playlistInfo.id, 
+          // Lấy tiêu đề thực tế của Playlist (ví dụ: "Daily Mix 1")
+          title: playlistInfo.title, 
+          // Hiển thị thông tin mô tả phụ (ví dụ: "Playlist • 3 songs")
+          subtitle: `Playlist • ${playlistSongs.length} bài hát`, 
+        }}
+        // 🟢 LIÊN KẾT MA THUẬT: Khi bấm nút Gửi trong Modal, nó sẽ kích hoạt hàm này
+        onShareSuccess={(receiverName: string) => {
+          if (typeof onShareSuccess === "function") {
+            onShareSuccess(
+              "playlist", // Định dạng loại đồ chơi là playlist
+              {
+                id: playlistInfo.id,
+                title: playlistInfo.title,
+                // Nếu playlist có ảnh bìa thì truyền vào đây, không thì để chuỗi rỗng hoặc icon mặc định
+                coverUrl: "", 
+                description: playlistInfo.description
+              },
+              receiverName // Tên người nhận được chọn từ modal
+            );
           }
         }}
       />

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Music2, Play, Search } from "lucide-react";
 import { useOutletContext, useNavigate } from "react-router-dom";
+import { MOCK_USERS } from "../data/mockData";
 
 interface OutletContextType {
   currentSongId: number | null;
@@ -84,7 +85,7 @@ const MOCK_PLAYLISTS: PlaylistType[] = [
 
 const trending = MOCK_PLAYLISTS.filter((p) => p.isPublic).slice(0, 3);
 
-export default function SearchPage() {
+const SearchPage = () => {
 
   const navigate = useNavigate();
 
@@ -125,6 +126,11 @@ export default function SearchPage() {
   const { setCurrentSongId, setIsPlaying } =
   useOutletContext<OutletContextType>();
 
+  // Lọc người dùng theo tên
+  const filteredUsers = MOCK_USERS.filter(u => 
+    u.name.toLowerCase().includes(query.trim().toLowerCase())
+  );
+  
   return (
     <div className="space-y-8 select-none">
       <div>
@@ -146,6 +152,24 @@ export default function SearchPage() {
 
         {hasQuery ? (
           <div className="mt-4 space-y-6">
+            {filteredUsers.length > 0 && (
+              <div>
+                <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Users</h2>
+                <div className="space-y-2">
+                  {filteredUsers.map(user => (
+                    <div 
+                      key={user.id} 
+                      onClick={() => navigate(`/profile/${user.id}`)}
+                      className="flex items-center gap-3 p-3 hover:bg-zinc-800 cursor-pointer rounded-lg border border-zinc-800 bg-zinc-900/60"
+                    >
+                      <img src={user.avatarUrl} className="size-10 rounded-full object-cover" />
+                      <span className="text-white font-semibold">{user.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             {artistResults.length > 0 && (
               <div>
                 <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Artists</h2>
@@ -270,3 +294,4 @@ export default function SearchPage() {
     </div>
   );
 }
+export default SearchPage;

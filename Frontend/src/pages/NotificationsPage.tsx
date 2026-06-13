@@ -1,79 +1,40 @@
-import { useState } from "react"
+import { useNotifications } from "../context/NotificationContext";
 import { UserPlus, Music, Disc, Radio } from "lucide-react"
+import { useNavigate } from "react-router-dom";
 
-
-const mockNotifications = [
-  {
-    id: "n1",
-    type: "follow",
-    payload: JSON.stringify({ senderName: "Linh99" }), // Lưu JSON dạng string
-    time: "2h ago",
-    isRead: false,
-  },
-  {
-    id: "n2",
-    type: "share_song",
-    payload: JSON.stringify({ senderName: "Maya", itemName: "Midnight City", extraInfo: "M83" }),
-    time: "5h ago",
-    isRead: false,
-  },
-  {
-    id: "n3",
-    type: "share_playlist",
-    payload: JSON.stringify({ senderName: "Alex", itemName: "Chill Vibes 2026" }),
-    time: "1d ago",
-    isRead: false,
-  },
-  {
-    id: "n4",
-    type: "share_album",
-    payload: JSON.stringify({ senderName: "Lucas", itemName: "Starboy" }),
-    time: "2d ago",
-    isRead: true,
-  },
-]
 
 const NotificationPage = () => {
-  const [notifications, setNotifications] = useState(mockNotifications)
+  const { notifications, setNotifications } = useNotifications();
 
+  const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
+  const myNotifications = notifications.filter(n => n.receiverId === currentUserId);
+  
   const parseNotificationContent = (type: string, payloadStr: string) => {
     try {
-      // Vì payload dưới DB lên là chuỗi, ta dùng JSON.parse() để biến lại thành Object JS
       const data = JSON.parse(payloadStr) 
-      
       switch (type) {
         case "follow":
-          return {
-            title: "New follower",
-            description: `${data.senderName} started following you.`,
-          }
+          return { title: "New follower", description: `${data.senderName} started following you.` }
         case "share_song":
-          return {
-            title: "Someone shared a song with you",
-            description: `${data.senderName} sent you '${data.itemName}' by ${data.extraInfo}.`,
-          }
+          return { title: "Someone shared a song", description: `${data.senderName} sent you '${data.itemName}'.` }
         case "share_playlist":
-          return {
-            title: "Someone shared a playlist",
-            description: `${data.senderName} shared the playlist '${data.itemName}'.`,
-          }
-        case "share_album":
-          return {
-            title: "New album recommendation",
-            description: `${data.senderName} recommended the album '${data.itemName}'.`,
-          }
+          return { title: "Someone shared a playlist", description: `${data.senderName} shared '${data.itemName}'.` }
+        case "share_video":
+          return { title: "New video shared", description: `${data.senderName} shared the video '${data.itemName}'.` }
         default:
-          return { title: "Notification", description: "You have a new update." }
+          return { title: "Update", description: "You have a new update." }
       }
-    } catch (error) {
-      // Phòng trường hợp chuỗi JSON bị lỗi cấu trúc, app không bị crash
-      return { title: "Error", description: "Invalid notification data." }
+    } catch {
+      return { title: "Notification", description: "..." }
     }
   }
-  // =========================================================================
 
   const markAllAsRead = () => setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
-  const toggleReadStatus = (id: string) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+  
+  const toggleReadStatus = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+  }
+
   const getIconDetails = (type: string) => {
     if (type === "follow") return { icon: <UserPlus className="size-5 text-emerald-500" />, bgColor: "bg-emerald-500/10" }
     if (type === "share_song") return { icon: <Music className="size-5 text-blue-500" />, bgColor: "bg-blue-500/10" }
@@ -81,6 +42,22 @@ const NotificationPage = () => {
     return { icon: <Disc className="size-5 text-purple-500" />, bgColor: "bg-purple-500/10" }
   }
 
+  const navigate = useNavigate(); // Nhớ import cái này nhé
+
+  const handleNotificationClick = (item: any) => {
+    toggleReadStatus(item.id);
+    try {
+      const data = JSON.parse(item.payload);
+      if (item.type === "follow") {
+        navigate(`/profile/${data.senderId}`);
+      } else {
+        navigate(`/inbox?highlight=${data.itemId}`);
+      }
+    } catch (e) {
+      console.error("Lỗi khi chuyển hướng:", e);
+    }
+  };
+  
   return (
     <div className="space-y-6 select-none ">
       <div className="flex justify-between items-end pb-2">
@@ -95,16 +72,15 @@ const NotificationPage = () => {
 
       {/* Danh sách hiển thị */}
       <div className="space-y-2">
-        {notifications.map((item) => {
+        {myNotifications.map((item) => {
           const { icon, bgColor } = getIconDetails(item.type)
           
           // 💥 GỌI HÀM BÓC TÁCH PAYLOAD TẠI ĐÂY ĐỂ LẤY TITLE VÀ DESCRIPTION MỚI:
           const { title, description } = parseNotificationContent(item.type, item.payload)
-          
           return (
             <div
               key={item.id}
-              onClick={() => toggleReadStatus(item.id)}
+              onClick={() => handleNotificationClick(item)}
               className="flex items-center justify-between p-4 rounded-lg bg-[#121212] hover:bg-[#1a1a1a] transition-all cursor-pointer"
             >
               <div className="flex gap-4 items-center flex-1 min-w-0">
