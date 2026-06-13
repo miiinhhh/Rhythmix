@@ -6,7 +6,10 @@ using Rhythmix.Application.DTOs.Auth;
 using Rhythmix.Application.UseCases.Auth;
 
 namespace Rhythmix.API.Controllers;
-
+/*{
+  "email": "admin@rhythmix.com",
+  "password": "Admin123!"
+}*/
 [ApiController]
 [Route("api/[controller]")]
 public sealed class AuthController : ControllerBase

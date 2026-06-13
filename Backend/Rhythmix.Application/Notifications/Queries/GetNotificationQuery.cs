@@ -21,7 +21,18 @@ namespace Rhythmix.Application.Notifications.Queries
         public async Task<List<Notification>> Handle(GetNotificationsQuery request, CancellationToken cancellationToken)
         {
             using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT * FROM Notifications WHERE UserId = @UserId ORDER BY CreatedAt DESC"; // [cite: 213, 252]
+            // SELECT explicit để Dapper map đúng — DB có cột Payload, entity dùng Type/IsRead/CreatedAt/UserId
+            const string sql = @"
+                SELECT 
+                    NotificationId  AS Id,
+                    UserId,
+                    Type,
+                    Payload         AS Content,
+                    IsRead,
+                    CreatedAt
+                FROM Notifications 
+                WHERE UserId = @UserId 
+                ORDER BY CreatedAt DESC";
             
             var result = await connection.QueryAsync<Notification>(sql, new { UserId = request.UserId });
             return result.ToList();

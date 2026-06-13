@@ -7,6 +7,7 @@ using Rhythmix.Application.Interfaces;
 using Rhythmix.Domain.Interfaces;
 using Rhythmix.Infrastructure.Dapper;
 using Rhythmix.Infrastructure.Data;
+using Rhythmix.Infrastructure.Hubs;
 using Rhythmix.Infrastructure.Services;
 
 namespace Rhythmix.Infrastructure;
@@ -20,8 +21,13 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository>(provider => new DapperUserRepository(connectionString));
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
-        services.AddScoped<IDbConnectionFactory, DbConnectionFactory>();
         services.AddScoped<IDbConnection>(_ => new SqlConnection(connectionString));
+
+        // Đăng ký DbConnectionFactory để các Handler inject được IDbConnectionFactory
+        services.AddScoped<IDbConnectionFactory, DbConnectionFactory>();
+
+        // Đăng ký NotificationService để inject INotificationHub qua SignalR
+        services.AddScoped<INotificationHub, NotificationService>();
 
         return services;
     }
