@@ -54,7 +54,7 @@ CREATE TABLE MediaItems
     FileSize BIGINT,
     AlbumId UNIQUEIDENTIFIER NULL,
     OwnerId UNIQUEIDENTIFIER NOT NULL,
-    IsPublic BIT DEFAULT 1,
+    --IsPublic BIT DEFAULT 1,       -- tui không nghĩ cần, public/private chỉ ns về playlist (ThanhTuan said) chuẩn đấy em (Minh said)
     ViewCount INT DEFAULT 0,
     CreatedAt DATETIME2 DEFAULT GETDATE(),
 
@@ -79,7 +79,23 @@ CREATE TABLE Playlists
         FOREIGN KEY(OwnerId)
         REFERENCES AspNetUsers(Id)
 );
+CREATE TABLE PlayListTrack
+(
+    PlaylistId UNIQUEIDENTIFIER NOT NULL,
+    MediaId UNIQUEIDENTIFIER NOT NULL,
+    SortOrder INT DEFAULT 0,    -- Cột thêm vào: Giúp kéo thả, sắp xếp thứ tự bài hát
+    
+    PRIMARY KEY (PlaylistId, MediaId), 
 
+    CONSTRAINT FK_PlaylistItems_Playlists
+        FOREIGN KEY (PlaylistId) REFERENCES Playlists(PlaylistId) 
+        ON DELETE CASCADE, -- Nếu xóa playlist thì tự động xóa các liên kết bên trong
+
+    -- Khóa ngoại liên kết tới bảng MediaItems (Track)
+    CONSTRAINT FK_PlaylistItems_MediaItems
+        FOREIGN KEY (MediaId) REFERENCES MediaItems(MediaId)
+        ON DELETE CASCADE -- Nếu bài hát bị xóa khỏi hệ thống thì tự động biến mất khỏi playlist
+);
 CREATE TABLE MediaShares
 (
     ShareId UNIQUEIDENTIFIER PRIMARY KEY,

@@ -11,8 +11,12 @@ public static class PasswordHasher
     public static string Hash(string password)
     {
         var salt = RandomNumberGenerator.GetBytes(SaltSize);
-        using var deriveBytes = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256);
-        var hash = deriveBytes.GetBytes(HashSize);
+        var hash = Rfc2898DeriveBytes.Pbkdf2(
+            password,
+            salt,
+            Iterations,
+            HashAlgorithmName.SHA256,
+            HashSize);
         return $"{Iterations}.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
     }
 
@@ -33,8 +37,12 @@ public static class PasswordHasher
         var salt = Convert.FromBase64String(parts[1]);
         var hash = Convert.FromBase64String(parts[2]);
 
-        using var deriveBytes = new Rfc2898DeriveBytes(password, salt, iterations, HashAlgorithmName.SHA256);
-        var computedHash = deriveBytes.GetBytes(HashSize);
+        var computedHash = Rfc2898DeriveBytes.Pbkdf2(
+            password,
+            salt,
+            iterations,
+            HashAlgorithmName.SHA256,
+            HashSize);
         return CryptographicOperations.FixedTimeEquals(computedHash, hash);
     }
 }
