@@ -1,25 +1,24 @@
-// Rhythmix.Application/UseCases/Media/Handlers/GetMediaByIdQueryHandler.cs
+// Rhythmix.Application/UseCases/Media/Handlers/GetMediaByOwnerQueryHandler.cs
 using MediatR;
 using Rhythmix.Application.DTOs.Media;
 using Rhythmix.Domain.Interfaces;
 
 namespace Rhythmix.Application.UseCases.Media.Handlers;
 
-public sealed class GetMediaByIdQueryHandler : IRequestHandler<GetMediaByIdQuery, MediaDto?>
+public sealed class GetMediaByOwnerQueryHandler : IRequestHandler<GetMediaByOwnerQuery, IEnumerable<MediaDto>>
 {
     private readonly IMediaRepository _mediaRepository;
 
-    public GetMediaByIdQueryHandler(IMediaRepository mediaRepository)
+    public GetMediaByOwnerQueryHandler(IMediaRepository mediaRepository)
     {
         _mediaRepository = mediaRepository;
     }
 
-    public async Task<MediaDto?> Handle(GetMediaByIdQuery request, CancellationToken cancellationToken)
+    public async Task<IEnumerable<MediaDto>> Handle(GetMediaByOwnerQuery request, CancellationToken cancellationToken)
     {
-        var media = await _mediaRepository.GetByIdAsync(request.MediaId);
-        if (media == null) return null;
+        var mediaList = await _mediaRepository.GetByOwnerIdAsync(request.OwnerId, request.Page, request.PageSize);
 
-        return new MediaDto
+        return mediaList.Select(media => new MediaDto
         {
             MediaId = media.MediaId,
             Title = media.Title,
@@ -35,6 +34,6 @@ public sealed class GetMediaByIdQueryHandler : IRequestHandler<GetMediaByIdQuery
             IsPublic = media.IsPublic,
             ViewCount = media.ViewCount,
             CreatedAt = media.CreatedAt
-        };
+        });
     }
 }

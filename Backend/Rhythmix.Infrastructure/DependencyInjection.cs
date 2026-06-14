@@ -9,9 +9,6 @@ using Rhythmix.Infrastructure.Dapper;
 using Rhythmix.Infrastructure.Data;
 using Rhythmix.Infrastructure.Hubs;
 using Rhythmix.Infrastructure.Services;
-
-namespace Rhythmix.Infrastructure;
-
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
@@ -27,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IShareRepository>(provider => new DapperShareRepository(connectionString));
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IDbConnection>(_ => new SqlConnection(connectionString));
+        services.AddScoped<IFileStorageService, FileStorageService>();
 
         // Đăng ký DbConnectionFactory để các Handler inject được IDbConnectionFactory
         services.AddScoped<IDbConnectionFactory, DbConnectionFactory>();

@@ -1,3 +1,4 @@
+
 using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -15,138 +16,61 @@ public sealed class DapperMediaRepository : IMediaRepository
         _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
     }
 
-     
-    public async Task<MediaItem?> GetByIdAsync(Guid mediaId)
+    public async Task<MediaItem?> GetByIdAsync(Guid mediaId, IDbTransaction? transaction = null)
     {
         const string sql = @"
             SELECT 
-                MediaId,
-                Title,
-                Description,
-                MediaType,
-                Duration,
-                FilePath,
-                ThumbnailUrl,
-                MimeType,
-                FileSize,
-                AlbumId,
-                OwnerId,
-                IsPublic,
-                ViewCount,
-                CreatedAt
+                MediaId, Title, Description, MediaType, Duration, 
+                FilePath, ThumbnailUrl, MimeType, FileSize, 
+                AlbumId, OwnerId, IsPublic, ViewCount, CreatedAt
             FROM [MediaItems]
             WHERE MediaId = @MediaId";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        
-        return await connection.QueryFirstOrDefaultAsync<MediaItem>(
-            sql,
-            new { MediaId = mediaId });
+        return await connection.QueryFirstOrDefaultAsync<MediaItem>(sql, new { MediaId = mediaId }, transaction);
     }
 
-     
-    public async Task<IEnumerable<MediaItem>> GetByIdsAsync(IEnumerable<Guid> mediaIds)
+    public async Task<IEnumerable<MediaItem>> GetByIdsAsync(IEnumerable<Guid> mediaIds, IDbTransaction? transaction = null)
     {
         if (mediaIds == null || !mediaIds.Any())
-        {
             return Enumerable.Empty<MediaItem>();
-        }
 
         const string sql = @"
             SELECT 
-                MediaId,
-                Title,
-                Description,
-                MediaType,
-                Duration,
-                FilePath,
-                ThumbnailUrl,
-                MimeType,
-                FileSize,
-                AlbumId,
-                OwnerId,
-                IsPublic,
-                ViewCount,
-                CreatedAt
+                MediaId, Title, Description, MediaType, Duration, 
+                FilePath, ThumbnailUrl, MimeType, FileSize, 
+                AlbumId, OwnerId, IsPublic, ViewCount, CreatedAt
             FROM [MediaItems]
             WHERE MediaId IN @Ids";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        
-        return await connection.QueryAsync<MediaItem>(
-            sql,
-            new { Ids = mediaIds });
+        return await connection.QueryAsync<MediaItem>(sql, new { Ids = mediaIds }, transaction);
     }
 
-     
-    public async Task<Guid> AddAsync(MediaItem media)
+    public async Task<Guid> AddAsync(MediaItem media, IDbTransaction? transaction = null)
     {
-        if (media == null) throw new ArgumentNullException(nameof(media));
-
         const string sql = @"
             INSERT INTO [MediaItems] (
-                MediaId, 
-                Title, 
-                Description, 
-                MediaType, 
-                Duration, 
-                FilePath, 
-                ThumbnailUrl, 
-                MimeType, 
-                FileSize, 
-                AlbumId, 
-                OwnerId, 
-                IsPublic, 
-                ViewCount, 
-                CreatedAt, 
+                MediaId, Title, Description, MediaType, Duration, 
+                FilePath, ThumbnailUrl, MimeType, FileSize, 
+                AlbumId, OwnerId, IsPublic, ViewCount, CreatedAt
             ) VALUES (
-                @MediaId, 
-                @Title, 
-                @Description, 
-                @MediaType, 
-                @Duration, 
-                @FilePath, 
-                @ThumbnailUrl, 
-                @MimeType, 
-                @FileSize, 
-                @AlbumId, 
-                @OwnerId, 
-                @IsPublic, 
-                @ViewCount, 
-                @CreatedAt, 
+                @MediaId, @Title, @Description, @MediaType, @Duration, 
+                @FilePath, @ThumbnailUrl, @MimeType, @FileSize, 
+                @AlbumId, @OwnerId, @IsPublic, @ViewCount, @CreatedAt
             )";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        
-        await connection.ExecuteAsync(sql, new
-        {
-            media.MediaId,
-            media.Title,
-            media.Description,
-            media.MediaType,
-            media.Duration,
-            media.FilePath,
-            media.ThumbnailUrl,
-            media.MimeType,
-            media.FileSize,
-            media.AlbumId,
-            media.OwnerId,
-            media.IsPublic,
-            media.ViewCount,
-            media.CreatedAt,
-        });
+        await connection.ExecuteAsync(sql, media, transaction);
 
         return media.MediaId;
     }
 
-     
-    public async Task UpdateAsync(MediaItem media)
+    public async Task UpdateAsync(MediaItem media, IDbTransaction? transaction = null)
     {
-        if (media == null) throw new ArgumentNullException(nameof(media));
-
         const string sql = @"
             UPDATE [MediaItems]
             SET Title = @Title,
@@ -158,146 +82,59 @@ public sealed class DapperMediaRepository : IMediaRepository
                 MimeType = @MimeType,
                 FileSize = @FileSize,
                 AlbumId = @AlbumId,
-                OwnerId = @OwnerId,
-                IsPublic = @IsPublic,
-                ViewCount = @ViewCount
+                IsPublic = @IsPublic
             WHERE MediaId = @MediaId";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        
-        int rowsAffected = await connection.ExecuteAsync(sql, new
-        {
-            media.Title,
-            media.Description,
-            media.MediaType,
-            media.Duration,
-            media.FilePath,
-            media.ThumbnailUrl,
-            media.MimeType,
-            media.FileSize,
-            media.AlbumId,
-            media.OwnerId,
-            media.IsPublic,
-            media.ViewCount,
-            media.MediaId
-        });
-
-        if (rowsAffected == 0)
-        {
-            throw new InvalidOperationException($"Media with ID {media.MediaId} not found for update");
-        }
+        await connection.ExecuteAsync(sql, media, transaction);
     }
 
-     
-    public async Task DeleteAsync(Guid mediaId)
+    public async Task DeleteAsync(Guid mediaId, IDbTransaction? transaction = null)
     {
-        const string sql = @"
-            DELETE FROM [MediaItems]
-            WHERE MediaId = @MediaId";
-
+        const string sql = "DELETE FROM [MediaItems] WHERE MediaId = @MediaId";
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        
-        int rowsAffected = await connection.ExecuteAsync(sql, new { MediaId = mediaId });
-
-        if (rowsAffected == 0)
-        {
-            throw new InvalidOperationException($"Media with ID {mediaId} not found for deletion");
-        }
+        await connection.ExecuteAsync(sql, new { MediaId = mediaId }, transaction);
     }
 
-    /// <summary>
-    /// Kiểm tra media có tồn tại không
-    /// </summary>
-    public async Task<bool> ExistsAsync(Guid mediaId)
+    public async Task<bool> ExistsAsync(Guid mediaId, IDbTransaction? transaction = null)
     {
-        const string sql = @"
-            SELECT COUNT(1)
-            FROM [MediaItems]
-            WHERE MediaId = @MediaId";
-
+        const string sql = "SELECT COUNT(1) FROM [MediaItems] WHERE MediaId = @MediaId";
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        
-        int count = await connection.ExecuteScalarAsync<int>(sql, new { MediaId = mediaId });
+        var count = await connection.ExecuteScalarAsync<int>(sql, new { MediaId = mediaId }, transaction);
         return count > 0;
     }
 
-    /// <summary>
-    /// Lấy tất cả media (có phân trang)
-    /// </summary>
-    public async Task<IEnumerable<MediaItem>> GetAllAsync(int page = 1, int pageSize = 20)
+    public async Task<IEnumerable<MediaItem>> GetByOwnerIdAsync(Guid ownerId, int page = 1, int pageSize = 20, IDbTransaction? transaction = null)
     {
         const string sql = @"
             SELECT 
-                MediaId,
-                Title,
-                Description,
-                MediaType,
-                Duration,
-                FilePath,
-                ThumbnailUrl,
-                MimeType,
-                FileSize,
-                AlbumId,
-                OwnerId,
-                IsPublic,
-                ViewCount,
-                CreatedAt
+                MediaId, Title, Description, MediaType, Duration, 
+                FilePath, ThumbnailUrl, MimeType, FileSize, 
+                AlbumId, OwnerId, IsPublic, ViewCount, CreatedAt
             FROM [MediaItems]
+            WHERE OwnerId = @OwnerId
             ORDER BY CreatedAt DESC
             OFFSET @Offset ROWS
             FETCH NEXT @PageSize ROWS ONLY";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        
         return await connection.QueryAsync<MediaItem>(sql, new
         {
+            OwnerId = ownerId,
             Offset = (page - 1) * pageSize,
             PageSize = pageSize
-        });
+        }, transaction);
     }
 
-    /// <summary>
-    /// Tìm kiếm media theo tên
-    /// </summary>
-    public async Task<IEnumerable<MediaItem>> SearchAsync(string keyword, int limit = 20)
+    public async Task IncrementViewCountAsync(Guid mediaId, IDbTransaction? transaction = null)
     {
-        if (string.IsNullOrWhiteSpace(keyword))
-        {
-            return Enumerable.Empty<MediaItem>();
-        }
-
-        const string sql = @"
-            SELECT TOP (@Limit)
-                MediaId,
-                Title,
-                Description,
-                MediaType,
-                Duration,
-                FilePath,
-                ThumbnailUrl,
-                MimeType,
-                FileSize,
-                AlbumId,
-                OwnerId,
-                IsPublic,
-                ViewCount,
-                CreatedAt
-            FROM [MediaItems]
-            WHERE Title LIKE @Keyword
-               OR Description LIKE @Keyword
-            ORDER BY Title";
-
+        const string sql = "UPDATE [MediaItems] SET ViewCount = ViewCount + 1 WHERE MediaId = @MediaId";
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        
-        return await connection.QueryAsync<MediaItem>(sql, new
-        {
-            Keyword = $"%{keyword.Trim()}%",
-            Limit = limit
-        });
+        await connection.ExecuteAsync(sql, new { MediaId = mediaId }, transaction);
     }
 }
