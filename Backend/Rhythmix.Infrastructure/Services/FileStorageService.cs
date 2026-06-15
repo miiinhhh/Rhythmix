@@ -14,7 +14,7 @@ public class FileStorageService : IFileStorageService
 
     public FileStorageService()
     {
-        _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "media");
+        _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         
         if (!Directory.Exists(_storagePath))
         {
@@ -42,7 +42,10 @@ public class FileStorageService : IFileStorageService
     public async Task<Stream?> GetFileStreamAsync(string filePath)
     {
         var fullPath = Path.Combine(_storagePath, filePath.TrimStart('/'));
-        
+        Console.WriteLine($"StoragePath: {_storagePath}");
+        Console.WriteLine($"FilePath: {filePath}");
+        Console.WriteLine($"FullPath: {fullPath}");
+        Console.WriteLine($"Exists: {File.Exists(fullPath)}");
         if (!File.Exists(fullPath))
         {
             return null;
