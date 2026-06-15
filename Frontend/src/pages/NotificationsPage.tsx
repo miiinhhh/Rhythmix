@@ -1,5 +1,5 @@
 import { useNotifications } from "../context/NotificationContext";
-import { UserPlus, Music, Disc, Radio } from "lucide-react"
+import { UserPlus, Music, Disc, Radio, BellOff } from "lucide-react"
 import { useNavigate } from "react-router-dom";
 
 
@@ -71,6 +71,14 @@ const NotificationPage = () => {
       </div>
 
       {/* Danh sách hiển thị */}
+      {myNotifications.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-[50vh] border-2 border-dashed border-zinc-800 rounded-lg text-zinc-500">
+          <div className="bg-zinc-900 p-4 rounded-full mb-4">
+            <BellOff size={32} className="text-zinc-600" />
+          </div>
+          <p className="font-medium">Chưa có thông báo nào mới.</p>
+        </div>
+      ) : (
       <div className="space-y-2">
         {myNotifications.map((item) => {
           const { icon, bgColor } = getIconDetails(item.type)
@@ -106,7 +114,8 @@ const NotificationPage = () => {
             </div>
           )
         })}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

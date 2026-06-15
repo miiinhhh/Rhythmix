@@ -5,18 +5,39 @@ interface ConfirmDeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  songTitle: string; // Truyền tên bài hát vào đây để hiển thị lên câu hỏi cho trực quan
+  itemTitle: string; 
+  type: "song" | "playlist"; // Thêm prop này để phân biệt
 }
 
-const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose, onConfirm, songTitle }) => {
+const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ 
+  isOpen, onClose, onConfirm, itemTitle, type 
+}) => {
   if (!isOpen) return null;
+
+  // Cấu hình nội dung dựa trên type
+  const config = {
+    song: {
+      title: "Xóa bài hát?",
+      message: (
+        <>Bạn có chắc chắn muốn xóa bài hát <span className="text-white font-semibold">"{itemTitle}"</span> khỏi danh sách phát này không?</>
+      ),
+      buttonText: "Xóa bài hát"
+    },
+    playlist: {
+      title: "Xóa playlist?",
+      message: (
+        <>Bạn có chắc chắn muốn xóa playlist <span className="text-white font-semibold">"{itemTitle}"</span> khỏi thư viện không? Hành động này không thể hoàn tác.</>
+      ),
+      buttonText: "Xóa playlist"
+    }
+  };
+
+  const currentConfig = config[type];
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] animate-[fadeIn_0.15s_ease-out]">
-      {/* Khung Modal */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-xl w-full max-w-sm p-6 shadow-2xl relative select-none">
         
-        {/* Nút đóng góc phải */}
         <button 
           type="button"
           onClick={onClose} 
@@ -25,21 +46,17 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose
           <X size={18} />
         </button>
 
-        {/* Nội dung cảnh báo */}
         <div className="flex flex-col items-center text-center mt-2">
-          {/* Icon cảnh báo màu đỏ/vàng */}
           <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-4">
             <AlertTriangle size={24} />
           </div>
 
-          <h3 className="text-lg font-bold text-white mb-2">Xóa bài hát?</h3>
-          
+          <h3 className="text-lg font-bold text-white mb-2">{currentConfig.title}</h3>
           <p className="text-sm text-zinc-400 px-2 leading-relaxed">
-            Bạn có chắc chắn muốn xóa bài hát <span className="text-white font-semibold">"{songTitle}"</span> khỏi danh sách phát này không?
+            {currentConfig.message}
           </p>
         </div>
 
-        {/* Cụm nút bấm Hủy / Xóa */}
         <div className="flex gap-3 mt-6">
           <button
             type="button"
@@ -51,15 +68,14 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose
           <button
             type="button"
             onClick={() => {
-              onConfirm(); // Kích hoạt hàm xóa
-              onClose();   // Đóng modal luôn
+              onConfirm();
+              onClose();
             }}
             className="flex-1 bg-red-600 text-white font-semibold text-sm py-2.5 rounded-full hover:bg-red-500 hover:scale-[1.02] transition-all cursor-pointer shadow-lg shadow-red-900/20"
           >
-            Xóa bài
+            {currentConfig.buttonText}
           </button>
         </div>
-
       </div>
     </div>
   );
