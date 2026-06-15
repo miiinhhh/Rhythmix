@@ -199,6 +199,12 @@ const PlaylistDetailPage = () => {
   };
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isDeletePlaylistModalOpen, setIsDeletePlaylistModalOpen] = useState(false);
+  const handleDeletePlaylist = () => {
+    musicService.deletePlaylist(playlistInfo.id); // Gọi service xóa
+    setIsDeletePlaylistModalOpen(false);
+    navigate("/library"); // Điều hướng về library
+  };
 
   return (
     <div className="grow bg-zinc-900 text-white p-6 min-h-screen">
@@ -286,6 +292,15 @@ const PlaylistDetailPage = () => {
           >
             <Pencil className="size-4 stroke-[3px]" /> Update Playlist
           </button>
+          {playlistInfo.title !== "Liked Songs" && (
+            <button
+              type="button"
+              onClick={() => setIsDeletePlaylistModalOpen(true)} // Lưu ý: Bạn cần tạo state này hoặc dùng logic hiện tại
+              className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/60 text-zinc-200 hover:text-white hover:bg-zinc-700 hover:border-zinc-500 px-4 py-2 text-sm font-semibold transition-all cursor-pointer active:scale-95"
+            >
+              <Trash2 className="size-4" /> Delete Playlist
+            </button>
+          )}
         </div>
       </div>
 
@@ -513,10 +528,11 @@ const PlaylistDetailPage = () => {
       />
 
       <ConfirmDeleteModal
+        type="song"
+        itemTitle={selectedSong?.title || ""}
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteConfirm}
-        songTitle={selectedSong?.title || ""}
       />
 
       <UpdatePlaylistModal
@@ -558,6 +574,13 @@ const PlaylistDetailPage = () => {
             );
           }
         }}
+      />
+      <ConfirmDeleteModal
+        type="playlist"
+        itemTitle={playlistInfo.title}
+        isOpen={isDeletePlaylistModalOpen}
+        onClose={() => setIsDeletePlaylistModalOpen(false)}
+        onConfirm={handleDeletePlaylist}
       />
     </div>
   );
