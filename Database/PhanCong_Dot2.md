@@ -8,7 +8,7 @@ Hoàn thiện các phần tài liệu, báo cáo, AI, triển khai cloud và vid
 
 ## Chi tiết công việc Frontend
 
-### 1. Thanh Tuấn: Vẽ sơ đồ ERD
+### 1. Thanh Tuấn: Vẽ sơ đồ ERD (file schema.sql)
 
 - Dựa theo file `Database/schema.sql`.
 - Thể hiện đầy đủ các bảng chính:
