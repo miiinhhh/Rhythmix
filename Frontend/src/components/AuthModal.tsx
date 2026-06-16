@@ -125,7 +125,7 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
             {mode === "login" ? "Welcome back" : "Create your account"}
           </h2>
           <p className="mt-1 text-sm text-zinc-400">
-            {mode === "login" ? "Log in to continue to Soundwave." : "Sign up to start listening."}
+            {mode === "login" ? "Log in to continue to TuneVault." : "Sign up to start listening."}
           </p>
         </div>
 

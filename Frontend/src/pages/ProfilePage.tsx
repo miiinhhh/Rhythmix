@@ -296,8 +296,6 @@ const ProfilePage = () => {
   return (
     <div className="space-y-6 select-none">
       <div>
-
-        <h1 className="text-4xl font-extrabold tracking-tight text-white">Profile</h1>
         <h1 className="text-3xl font-extrabold tracking-tight text-white">
           Profile
         </h1>
@@ -413,7 +411,7 @@ const ProfilePage = () => {
                 : "border border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800"
             }`}
           >
-            Recently Played
+            Play History
           </button>
         </div>
 
