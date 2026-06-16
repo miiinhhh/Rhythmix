@@ -9,7 +9,7 @@ interface FormErrors {
   artist?: string
   selectedFile?: string
   newAlbumTitle?: string
-  selectedCategories?: string
+  selectedGenres?: string
 }
 
 const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
@@ -18,7 +18,7 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
     const [artist, setArtist] = useState("")
     const [description, setDescription] = useState("")
     const [selectedAlbumId, setSelectedAlbumId] = useState("")
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+    const [selectedGenres, setSelectedGenres] = useState<string[]>([])
     const [trackCover, setTrackCover] = useState<File | null>(null)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
@@ -28,7 +28,7 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
       { id: "album-1", title: "After Hours" },
       { id: "album-2", title: "Lost in Saigon" },
     ])
-    const [myCategories] = useState([
+    const [myGenres] = useState([
       { id: "cat-1", title: "Pop" },
       { id: "cat-2", title: "Rock" },
       { id: "cat-3", title: "Hip-hop" },
@@ -79,7 +79,7 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
       if (!title.trim()) newErrors.title = "Vui lòng nhập tên bài hát!"
       if (!artist.trim()) newErrors.artist = "Vui lòng nhập tên nghệ sĩ!"
       if (!selectedFile) newErrors.selectedFile = "Vui lòng chọn file nhạc (.mp3) để upload!"
-      if (selectedCategories.length === 0) newErrors.selectedCategories = "Vui lòng chọn ít nhất một thể loại!"
+      if (selectedGenres.length === 0) newErrors.selectedGenres = "Vui lòng chọn ít nhất một thể loại!"
   
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors)
@@ -166,16 +166,16 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider cursor-pointer">CATEGORIES *</label>
+              <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider cursor-pointer">GENRES *</label>
               
               {/* Danh sách tag đã chọn */}
               <div className="flex flex-wrap gap-2 mb-2">
-                {selectedCategories.map((catId) => {
-                  const cat = myCategories.find(c => c.id === catId);
+                {selectedGenres.map((catId) => {
+                  const cat = myGenres.find(c => c.id === catId);
                   return (
                     <span key={catId} className="flex items-center gap-1 bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs border border-green-500/50">
                       {cat?.title}
-                      <button type="button" onClick={() => setSelectedCategories(prev => prev.filter(id => id !== catId))}>
+                      <button type="button" onClick={() => setSelectedGenres(prev => prev.filter(id => id !== catId))}>
                         <X className="size-3 cursor-pointer" />
                       </button>
                     </span>
@@ -188,21 +188,21 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
                 value=""
                 onChange={(e) => {
                   const val = e.target.value;
-                  if (val && !selectedCategories.includes(val)) {
-                    setSelectedCategories([...selectedCategories, val]);
-                    clearFieldError("selectedCategories");
+                  if (val && !selectedGenres.includes(val)) {
+                    setSelectedGenres([...selectedGenres, val]);
+                    clearFieldError("selectedGenres");
                   }
                 }}
-                className={`w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm text-white border outline-none cursor-pointer ${errors.selectedCategories ? "border-red-500" : "border-zinc-800"}`}
+                className={`w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm text-white border outline-none cursor-pointer ${errors.selectedGenres ? "border-red-500" : "border-zinc-800"}`}
               >
                 <option value="">Chọn thể loại</option>
-                {myCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id} disabled={selectedCategories.includes(cat.id)}>
+                {myGenres.map((cat) => (
+                  <option key={cat.id} value={cat.id} disabled={selectedGenres.includes(cat.id)}>
                     {cat.title}
                   </option>
                 ))}
               </select>
-              {errors.selectedCategories && <p className="text-xs text-red-500">{errors.selectedCategories}</p>}
+              {errors.selectedGenres && <p className="text-xs text-red-500">{errors.selectedGenres}</p>}
             </div>
           </div>
 
