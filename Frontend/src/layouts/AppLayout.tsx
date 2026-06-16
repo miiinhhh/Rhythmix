@@ -4,7 +4,10 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import AuthModal from "../components/AuthModal";
 import VideoPlayerModal from "../components/VideoPlayerModal";
+<<<<<<< HEAD
 import { authService, signalRService } from "../api";
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 import { MOCK_USERS } from "../data/mockData";
 import { useNotifications, NotificationContext } from "../context/NotificationContext";
 
@@ -92,7 +95,11 @@ const AppLayout = () => {
   const { addNotification } = useNotifications();
   const { allMessages, addMessage } = useNotifications();
 
+<<<<<<< HEAD
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!localStorage.getItem("token"));
+=======
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   const [songs, setSongs] = useState(initialSongs);
@@ -114,11 +121,14 @@ const AppLayout = () => {
     setIsAuthenticated(true);
   };
 
+<<<<<<< HEAD
   const handleLogout = async () => {
     await authService.logout();
     setIsAuthenticated(false);
   };
 
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
   useEffect(() => {
     if (!localStorage.getItem("currentUserId")) {
       localStorage.setItem("currentUserId", "user-alex");
@@ -126,6 +136,7 @@ const AppLayout = () => {
     }
   }, []);
 
+<<<<<<< HEAD
   // ============ SignalR Connection ============
   useEffect(() => {
     if (!isAuthenticated) {
@@ -156,6 +167,8 @@ const AppLayout = () => {
     };
   }, [isAuthenticated]);
 
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
   const handleShareSuccess = (type: "song" | "video" | "playlist", itemInfo: any, receiverName: string) => {
     const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
     const currentUserName = localStorage.getItem("currentUserName") || "Alex Mercer";
@@ -224,19 +237,32 @@ const AppLayout = () => {
   const defaultPoster = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1000";
 
   return (
+<<<<<<< HEAD
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950 text-black dark:text-white select-none font-sans">
       <AuthModal
         open={!isAuthenticated}
         onClose={() => setIsAuthenticated(!!localStorage.getItem("token"))}
+=======
+    <div className="flex h-screen flex-col bg-zinc-950 text-white select-none font-sans">
+      <AuthModal
+        open={!isAuthenticated}
+        onClose={() => undefined}
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
         onAuthenticated={handleAuthSuccess}
       />
 
       {isAuthenticated && (
         <>
           <div className="flex min-h-0 flex-1">
+<<<<<<< HEAD
             <SideBar onOpenAuth={handleLogout} />
 
             <main className="m-2 ml-0 flex-1 overflow-y-auto rounded-lg bg-gray-100 dark:bg-zinc-900 p-6 text-black dark:text-white">
+=======
+            <SideBar onOpenAuth={() => setIsAuthenticated(false)} />
+
+            <main className="m-2 ml-0 flex-1 overflow-y-auto rounded-lg bg-zinc-900 p-6">
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
               <Outlet
                 context={{
                   currentSongId,

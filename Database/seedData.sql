@@ -38,13 +38,21 @@ VALUES
 (
     '11111111-1111-1111-1111-111111111111',
     N'Administrator',
+<<<<<<< HEAD
     '/uploads/images/jane.jpg',
+=======
+    N'/uploads/images/jane.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     N'Người dùng'
 ),
 (
     '22222222-2222-2222-2222-222222222222',
     N'John Doe',
+<<<<<<< HEAD
     '/uploads/images/john.jpg',
+=======
+    N'/uploads/images/john.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     N'Người dùng'
 );
 -- =========================================
@@ -65,7 +73,11 @@ VALUES
     '11111111-1111-1111-1111-111111111111',
     N'7UPPERCUTS Collection',
     N'Tuyển tập nhạc của 7UPPERCUTS',
+<<<<<<< HEAD
     '/uploads/images/7uppercuts_album.jpg',
+=======
+    N'/uploads/images/7uppercuts_album.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     '2026-06-10'
 ),
 (
@@ -73,7 +85,11 @@ VALUES
     '11111111-1111-1111-1111-111111111111',
     N'Ngọt Collection',
     N'Tuyển tập nhạc của Ngọt',
+<<<<<<< HEAD
     '/uploads/images/ngot_album.jpg',
+=======
+    N'/uploads/images/ngot_album.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     '2026-06-10'
 );
 -- =========================================
@@ -102,8 +118,13 @@ VALUES
     NULL,
     'Audio',
     191,
+<<<<<<< HEAD
     '/uploads/audio/7UPPERCUTS_YÊU.mp3',
     '/uploads/images/7UPPERCUTS_YÊU.jpg',
+=======
+    N'/uploads/audio/7UPPERCUTS_YÊU.mp3',
+    N'/uploads/images/7UPPERCUTS_YÊU.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3068928,
     '33333333-3333-3333-3333-333333333333',
@@ -116,8 +137,13 @@ VALUES
     NULL,
     'Video',
     151,
+<<<<<<< HEAD
     '/uploads/video/7UPPERCUTS_DOPAMINE.mp4',
     '/uploads/images/7UPPERCUTS_DOPAMINE.jpg',
+=======
+    N'/uploads/video/7UPPERCUTS_DOPAMINE.mp4',
+    N'/uploads/images/7UPPERCUTS_DOPAMINE.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'video/mp4',
     50463744,
     '33333333-3333-3333-3333-333333333333',
@@ -131,8 +157,13 @@ VALUES
     NULL,
     'Audio',
     309,
+<<<<<<< HEAD
     '/uploads/audio/Ngọt_CHUYẾN KÊNH.mp3',
     '/uploads/images/Ngọt_CHUYẾN KÊNH.jpg',
+=======
+    N'/uploads/audio/Ngọt_CHUYẾN KÊNH.mp3',
+    N'/uploads/images/Ngọt_CHUYẾN KÊNH.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     4960256,
     '44444444-4444-4444-4444-444444444444',
@@ -145,8 +176,13 @@ VALUES
     NULL,
     'Audio',
     221,
+<<<<<<< HEAD
     '/uploads/audio/Ngọt_LẦN CUỐI.mp3',
     '/uploads/images/Ngọt_LẦN CUỐI.jpg',
+=======
+    N'/uploads/audio/Ngọt_LẦN CUỐI.mp3',
+    N'/uploads/images/Ngọt_LẦN CUỐI.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3548160,
     '44444444-4444-4444-4444-444444444444',
@@ -159,8 +195,13 @@ VALUES
     NULL,
     'Audio',
     234,
+<<<<<<< HEAD
     '/uploads/audio/Ngọt_Thấy Chưa.mp3',
     '/uploads/images/Ngọt_Thấy Chưa.jpg',
+=======
+    N'/uploads/audio/Ngọt_Thấy Chưa.mp3',
+    N'/uploads/images/Ngọt_Thấy Chưa.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3755008,
     '44444444-4444-4444-4444-444444444444',
@@ -173,8 +214,13 @@ VALUES
     NULL,
     'Audio',
     252,
+<<<<<<< HEAD
     '/uploads/audio/Ngọt Em dạo này.mp3',
     '/uploads/images/Ngọt Em dạo này.jpg',
+=======
+    N'/uploads/audio/Ngọt Em dạo này.mp3',
+    N'/uploads/images/Ngọt Em dạo này.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     4046848,
     '44444444-4444-4444-4444-444444444444',
@@ -188,8 +234,13 @@ VALUES
     NULL,
     'Video',
     243,
+<<<<<<< HEAD
     '/uploads/video/JaigonOrchestra_Chinatown.mp4',
     '/uploads/images/JaigonOrchestra_Chinatown.jpg',
+=======
+    N'/uploads/video/JaigonOrchestra_Chinatown.mp4',
+    N'/uploads/images/JaigonOrchestra_Chinatown.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'video/mp4',
     52259840,
     NULL,
@@ -202,8 +253,13 @@ VALUES
     NULL,
     'Audio',
     247,
+<<<<<<< HEAD
     '/uploads/audio/Quen Lắm.mp3',
     '/uploads/images/Quen Lắm.jpg',
+=======
+    N'/uploads/audio/Quen Lắm.mp3',
+    N'/uploads/images/Quen Lắm.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3965952,
     NULL,
@@ -216,8 +272,13 @@ VALUES
     NULL,
     'Audio',
     202,
+<<<<<<< HEAD
     '/uploads/audio/Đá tan.mp3',
     '/uploads/images/Đá tan.jpg',
+=======
+    N'/uploads/audio/Đá tan.mp3',
+    N'/uploads/images/Đá tan.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3236864,
     NULL,
@@ -230,8 +291,13 @@ VALUES
     NULL,
     'Audio',
     194,
+<<<<<<< HEAD
     '/uploads/audio/Trước Khi Em Tồn Tại.mp3',
     '/uploads/images/Trước Khi Em Tồn Tại.jpg',
+=======
+    N'/uploads/audio/Trước Khi Em Tồn Tại.mp3',
+    N'/uploads/images/Trước Khi Em Tồn Tại.jpg',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3107840,
     NULL,

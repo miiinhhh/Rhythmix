@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import apiClient from './apiClient';
 import type { MediaItemDto, UploadMediaDto, ApiResponse } from '../types/api';
 
@@ -67,4 +68,13 @@ export const mediaService = {
     const res = await apiClient.get<ApiResponse<MediaItemDto[]>>(`/media/user/${userId}`);
     return res.data.data;
   },
+=======
+import apiClient from './apiClient';
+import { type MediaItem } from '../types/database';
+
+export const mediaService = {
+  uploadMedia: (formData: FormData) => apiClient.post('/media/upload', formData),
+  getDiscovery: () => apiClient.get<MediaItem[]>('/media/discovery'),
+  search: (query: string) => apiClient.get<MediaItem[]>(`/media/search?q=${query}`),
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 };

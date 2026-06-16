@@ -10,8 +10,11 @@ import ProfilePage from "./pages/ProfilePage";
 import PlaylistDetailPage from "./pages/PlaylistDetailPage";
 import LikedSongsPage from "./pages/LikedSongsPage";
 import { NotificationProvider } from "./context/NotificationContext";
+<<<<<<< HEAD
 import { ThemeProvider } from "./context/ThemeContext";
 import { LoadingProvider } from "./context/LoadingContext";
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 
 // Tạo bộ định tuyến cấu hình đường dẫn URL
 const router = createBrowserRouter([
@@ -35,6 +38,7 @@ const router = createBrowserRouter([
 
 const App = () => {
   return (
+<<<<<<< HEAD
     <ThemeProvider>
       <LoadingProvider>
         <NotificationProvider>
@@ -42,6 +46,11 @@ const App = () => {
         </NotificationProvider>
       </LoadingProvider>
     </ThemeProvider>
+=======
+    <NotificationProvider>
+      <RouterProvider router={router} />
+    </NotificationProvider>
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
   );
 };
 

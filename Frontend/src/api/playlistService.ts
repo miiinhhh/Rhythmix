@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import apiClient from './apiClient';
 import type { PlaylistDto, CreatePlaylistDto, MediaItemDto, ApiResponse } from '../types/api';
 
@@ -78,4 +79,14 @@ export const playlistService = {
     const res = await apiClient.get<ApiResponse<PlaylistDto[]>>('/playlists/public');
     return res.data.data;
   },
+=======
+import apiClient from './apiClient';
+
+export const playlistService = {
+  getAll: () => apiClient.get('/playlists'),
+  create: (data: { name: string; description: string }) => apiClient.post('/playlists', data),
+  addMedia: (playlistId: string, mediaId: string) => 
+    apiClient.post(`/playlists/${playlistId}/media`, { mediaId }),
+  delete: (playlistId: string) => apiClient.delete(`/playlists/${playlistId}`),
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 };

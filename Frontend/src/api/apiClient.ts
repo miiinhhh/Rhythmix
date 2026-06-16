@@ -1,7 +1,11 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
+<<<<<<< HEAD
   baseURL: 'http://localhost:5269/api',
+=======
+  baseURL: 'http://localhost:5000/api',
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -14,6 +18,7 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (res) => res,
   (err) => {
+<<<<<<< HEAD
     const status = err.response?.status;
     const reqUrl = err.config?.url || '';
     const isAuthEndpoint = reqUrl.includes('/auth/login') || reqUrl.includes('/auth/register');
@@ -22,6 +27,9 @@ apiClient.interceptors.response.use(
     // so the UI can show inline messages. Only perform a global redirect for
     // 401 responses from other endpoints.
     if (status === 401 && !isAuthEndpoint) {
+=======
+    if (err.response?.status === 401) {
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
         localStorage.removeItem('token');
         window.location.href = '/login';
     }

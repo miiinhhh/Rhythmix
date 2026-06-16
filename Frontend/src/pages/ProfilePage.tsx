@@ -6,6 +6,7 @@ import { musicService } from "../services/musicService";
 import type { FollowType } from "../data/mockData";
 import FollowModal from "../components/FollowModal";
 import { useNotifications } from "../context/NotificationContext";
+<<<<<<< HEAD
 import { userService } from "../api/userService";
 import type { UserProfileDto } from "../types/api";
 
@@ -18,6 +19,16 @@ const getAvatarSrc = (avatarUrl?: string) => {
   }
   return `${API_ORIGIN}${avatarUrl}`;
 };
+=======
+
+const MOCK_SONGS = [
+  { id: 1, title: "Sunset Boulevard", artist: "Neon Coast", album: "City Lights", duration: "0:41", isLiked: true, url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+  { id: 2, title: "Velvet Sky", artist: "Aria Lane", album: "Nightfall", duration: "0:45", isLiked: false, url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+  { id: 3, title: "Paper Planes", artist: "The Drifters", album: "Horizons", duration: "0:50", isLiked: false, url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+  { id: 4, title: "Blinding Lights", artist: "The Weeknd", album: "After Hours", duration: "3:20", isLiked: false, url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
+  { id: 5, title: "Starboy", artist: "The Weeknd", album: "Starboy", duration: "3:50", isLiked: false, url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" },
+];
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 
 // Định nghĩa interface cho Context nhận từ AppLayout (giống bên LikedSongsPage)
 interface OutletContextType {
@@ -39,6 +50,7 @@ const ProfilePage = () => {
   // Kiểm tra xem đây có phải là trang cá nhân của mình không
   const isMyProfile = !userId || userId === currentUserId;
   const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying } = useOutletContext<OutletContextType>();
+<<<<<<< HEAD
   const [userProfile, setUserProfile] = useState<UserProfileDto>({
   id: currentUserId,
   email: "",
@@ -73,6 +85,36 @@ const fetchMyProfile = async () => {
 
   fetchMyProfile();
 }, []);
+=======
+  const [userProfile, setUserProfile] = useState({
+    fullName: "Hello World",
+    bio: "Music lover",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=256&auto=format&fit=crop",
+  });
+  useEffect(() => {
+    // Lấy targetId từ URL nếu có, không thì lấy ID của chính mình
+    const targetId = userId || currentUserId;
+    
+    // Tìm user trong MOCK_USERS dựa trên targetId
+    const matchedUser = MOCK_USERS.find((u) => u.id === targetId);
+    
+    if (matchedUser) {
+      setUserProfile({
+        fullName: matchedUser.name,
+        bio: matchedUser.bio || "Music lover",
+        avatarUrl: matchedUser.avatarUrl,
+      });
+      
+      // Chỉ set dữ liệu edit khi đang ở trang cá nhân của mình
+      if (isMyProfile) {
+        setEditName(matchedUser.name);
+        setEditBio(matchedUser.bio || "Music lover");
+        setPreviewUrl(matchedUser.avatarUrl);
+      }
+    }
+  }, [userId, currentUserId, isMyProfile]); // 🟢 Quan trọng: Phải có [userId] để nó load lại khi nhảy sang profile khác
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 
   const publicPlaylists = musicService.getPublicPlaylists();
   const likedTracks = musicService.getLikedSongs();
@@ -104,10 +146,16 @@ const fetchMyProfile = async () => {
     }
   };
 
+<<<<<<< HEAD
+=======
+  const [, setTick] = useState(0);
+  const refresh = () => setTick((v) => v + 1);  
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
   const [activeTab, setActiveTab] = useState<"public" | "liked" | "recent">("public");
 
   // State quản lý Modal và form nhập liệu
   const [isModalOpen, setIsModalOpen] = useState(false);
+<<<<<<< HEAD
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [editName, setEditName] = useState(userProfile.displayName || userProfile.userName);
@@ -119,6 +167,14 @@ const fetchMyProfile = async () => {
   // State quản lý file ảnh cục bộ (Local File) để preview
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(userProfile.avatarUrl || "");
+=======
+  const [editName, setEditName] = useState(userProfile.fullName);
+  const [editBio, setEditBio] = useState(userProfile.bio);
+
+  // State quản lý file ảnh cục bộ (Local File) để preview
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>(userProfile.avatarUrl);
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 
   // Ref để trigger ô chọn file ẩn
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -134,6 +190,7 @@ const fetchMyProfile = async () => {
   };
 
   // Hàm lưu thông tin
+<<<<<<< HEAD
   const handleUpdateProfile = async (e: React.FormEvent) => {
   e.preventDefault();
   setIsSavingProfile(true);
@@ -192,6 +249,19 @@ const fetchMyProfile = async () => {
     setIsSavingProfile(false);
   }
 };
+=======
+  const handleUpdateProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    setUserProfile((prev) => ({
+      ...prev,
+      fullName: editName,
+      bio: editBio,
+      // Khi kết nối API thực tế: Chỗ này Tuấn sẽ upload file lên Cloudinary/S3 lấy link rồi gán vào avatarUrl
+      avatarUrl: previewUrl,
+    }));
+    setIsModalOpen(false);
+  };
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 
   const [follows, setFollows] = useState<FollowType[]>(() => {
     const saved = localStorage.getItem("my_follows");
@@ -279,13 +349,21 @@ const fetchMyProfile = async () => {
         <div className="relative size-32 shrink-0 overflow-hidden rounded-full border border-zinc-700 bg-zinc-800 shadow-2xl">
           {userProfile.avatarUrl ? (
             <img
+<<<<<<< HEAD
               src={getAvatarSrc(userProfile.avatarUrl)}
+=======
+              src={userProfile.avatarUrl}
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
               alt="Avatar"
               className="size-full object-cover"
             />
           ) : (
             <div className="size-full bg-emerald-500 flex items-center justify-center text-3xl font-black text-black">
+<<<<<<< HEAD
               {(userProfile.displayName || userProfile.userName || "G").charAt(0).toUpperCase()}
+=======
+              {userProfile.fullName.charAt(0).toUpperCase()}
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
             </div>
           )}
         </div>
@@ -293,7 +371,11 @@ const fetchMyProfile = async () => {
         {/* Khối chữ: Tên -> Bio -> Thống kê Follow (Nằm dưới Bio cực kỳ gọn) */}
         <div className="flex-1 space-y-3 pt-2 text-center sm:text-left">
           <h2 className="text-2xl font-black tracking-tight text-white">
+<<<<<<< HEAD
             {userProfile.displayName || userProfile.userName}
+=======
+            {userProfile.fullName}
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
           </h2>
 
           <p className="text-sm text-zinc-400 font-medium max-w-xl leading-relaxed">
@@ -325,11 +407,17 @@ const fetchMyProfile = async () => {
                 <button
                   onClick={() => {
                     setIsModalOpen(true);
+<<<<<<< HEAD
                     setProfileError("");
                     setEditName(userProfile.displayName || userProfile.userName);
                     setEditBio(userProfile.bio || "");
                     setPreviewUrl(userProfile.avatarUrl || "");
                     setSelectedFile(null);
+=======
+                    setEditName(userProfile.fullName);
+                    setEditBio(userProfile.bio);
+                    setPreviewUrl(userProfile.avatarUrl);
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
                   }}
                   className="flex cursor-pointer items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-1.5 text-xs font-bold text-white hover:bg-zinc-800"
                 >
@@ -567,11 +655,15 @@ const fetchMyProfile = async () => {
                 Chỉnh sửa hồ sơ cá nhân
               </h3>
               <button
+<<<<<<< HEAD
                 onClick={() => {
                   setSelectedFile(null);
                   setProfileError("");
                   setIsModalOpen(false);
                 }}
+=======
+                onClick={() => setIsModalOpen(false)}
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
                 className="cursor-pointer text-zinc-400 hover:text-white"
               >
                 <X className="size-5" />
@@ -586,7 +678,11 @@ const fetchMyProfile = async () => {
                 >
                   {previewUrl ? (
                     <img
+<<<<<<< HEAD
                       src={getAvatarSrc(previewUrl)}
+=======
+                      src={previewUrl}
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
                       alt="Preview"
                       className="size-full object-cover transition-opacity group-hover:opacity-40"
                     />
@@ -643,6 +739,7 @@ const fetchMyProfile = async () => {
               </div>
 
               <div className="flex justify-end gap-2 border-t border-zinc-800 pt-2">
+<<<<<<< HEAD
                 {profileError && (
                   <p className="mr-auto max-w-56 text-xs font-medium text-red-400">
                     {profileError}
@@ -656,16 +753,27 @@ const fetchMyProfile = async () => {
                     setIsModalOpen(false);
                   }}
                   disabled={isSaveDisabled}
+=======
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
                   className="cursor-pointer px-4 py-2 text-xs font-bold text-white hover:underline"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
+<<<<<<< HEAD
                   disabled={isSaveDisabled}
                   className="flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-xs font-bold text-black transition-transform hover:bg-zinc-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Save className="size-3.5" /> {isSavingProfile ? "Đang lưu..." : "Lưu thay đổi"}
+=======
+                  className="flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-xs font-bold text-black transition-transform hover:bg-zinc-200 active:scale-95"
+                >
+                  <Save className="size-3.5" /> Lưu thay đổi
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
                 </button>
               </div>
             </form>

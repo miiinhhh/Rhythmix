@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import apiClient from './apiClient';
 import type { UserProfileDto, UpdateProfileDto, MediaItemDto, ApiResponse, ToggleLikeDto } from '../types/api';
 
@@ -88,3 +89,12 @@ export const userService = {
     return res.data.success;
   },
 };
+=======
+import apiClient from './apiClient';
+
+export const userService = {
+  getFavorites: () => apiClient.get('/user/favorites'),
+  toggleFavorite: (mediaId: string) => apiClient.post('/user/favorites', { mediaId }),
+  getHistory: () => apiClient.get('/user/history'),
+};
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece

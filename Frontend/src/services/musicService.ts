@@ -157,4 +157,18 @@ export const musicService = {
     );
     return this.getPlaylistById(playlistId);
   },
+<<<<<<< HEAD
+=======
+  deletePlaylist: (playlistId: string) => {
+    // Nếu bạn dùng mảng, hãy lọc bỏ nó ra
+    // Nếu có localStorage, hãy lấy ra, xóa rồi lưu lại
+    const currentPlaylists = JSON.parse(localStorage.getItem('myPlaylists') || '[]');
+    const updated = currentPlaylists.filter((p: any) => p.id !== playlistId);
+    localStorage.setItem('myPlaylists', JSON.stringify(updated));
+    return updated; // Trả về danh sách mới
+  },
+  getAllPlaylists: () => {
+    return JSON.parse(localStorage.getItem('myPlaylists') || '[]');
+  }
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 };

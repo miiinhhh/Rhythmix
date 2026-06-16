@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import apiClient from './apiClient';
 import type { AuthResponse } from '../types/api';
 
@@ -45,4 +46,18 @@ export const authService = {
     localStorage.removeItem('currentUserName');
     window.location.reload();
   },
+=======
+import apiClient from './apiClient';
+
+export const authService = {
+  login: async (credentials: { email: string; password: string }) => {
+    const res = await apiClient.post('/auth/login', credentials);
+    if (res.data.token) localStorage.setItem('token', res.data.token);
+    return res.data;
+  },
+  logout: () => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  },
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 };

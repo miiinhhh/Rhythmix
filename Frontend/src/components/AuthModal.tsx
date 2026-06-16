@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Eye, EyeOff, X, Library } from "lucide-react";
+<<<<<<< HEAD
 import { authService } from "../api/authService";
+=======
+import { MOCK_USERS } from "../data/mockData";
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 
 type Mode = "login" | "register";
 
@@ -20,7 +24,10 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+<<<<<<< HEAD
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 
   // Nếu state open = false thì không render gì cả
   if (!open) return null;
@@ -39,13 +46,17 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
     }
     if (mode === "register" && confirmPassword !== password) {
       next.confirmPassword = "Passwords do not match.";
+<<<<<<< HEAD
       // also add a general auth-level message so it appears in the top alert
       next.auth = "Confirm password does not match password.";
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
+<<<<<<< HEAD
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
@@ -83,6 +94,34 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
         apiError?.response?.data?.message || apiError?.message || "Có lỗi xảy ra trong quá trình xác thực.";
       setErrors({ auth: message });
       setSuccessMessage(null);
+=======
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    if (mode === "login") {
+      // 🟢 XỬ LÝ ĐĂNG NHẬP GIẢ LẬP THEO USER DATA
+      const foundUser = MOCK_USERS.find(
+        (u) => u.email.toLowerCase() === email.toLowerCase() && u.passwordHash === password
+      );
+
+      if (foundUser) {
+        // Nếu đúng user, lưu thông tin id và tên vào localStorage để hệ thống biết ai đang đăng nhập
+        localStorage.setItem("currentUserId", foundUser.id);
+        localStorage.setItem("currentUserName", foundUser.name);
+        
+        onAuthenticated(foundUser.name); // Trả tên ra cho header hiển thị
+        setErrors({});
+        onClose();
+      } else {
+        // Nếu sai thông tin
+        setErrors({ auth: "Email hoặc mật khẩu không chính xác!" });
+      }
+    } else {
+      // Chế độ đăng ký (để sau này kết nối BE xử lý)
+      onAuthenticated(name);
+      onClose();
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     }
   };
 
@@ -151,11 +190,14 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
               {errors.auth}
             </div>
           )}
+<<<<<<< HEAD
           {successMessage && (
             <div className="mb-4 rounded-md bg-green-500/10 border border-green-500/20 p-2.5 text-center text-xs font-semibold text-green-300">
               {successMessage}
             </div>
           )}
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
           <Field
             id="auth-email"
             label="Email"

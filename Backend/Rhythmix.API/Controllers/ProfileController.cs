@@ -2,7 +2,10 @@ using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+<<<<<<< HEAD
 using Rhythmix.API.DTOs;
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 using Rhythmix.Application.DTOs.Profile;
 using Rhythmix.Application.UseCases.Profile;
 
@@ -66,6 +69,7 @@ public sealed class ProfileController : ControllerBase
         return Ok(new { success = true, data = profile });
     }
 
+<<<<<<< HEAD
     [HttpPost("me/avatar")]
     [RequestSizeLimit(5_000_000)]
     public async Task<IActionResult> UploadAvatar([FromForm] UploadAvatarRequestDto request)
@@ -99,6 +103,8 @@ public sealed class ProfileController : ControllerBase
         });
     }
 
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     private Guid GetCurrentUserId()
     {
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");

@@ -1,5 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+<<<<<<< HEAD
 import { signalRService } from "../api/signalRService";
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 
 export interface Notification {
   id: string;
@@ -27,7 +30,10 @@ export interface InboxMessageType {
 interface NotificationContextType {
   notifications: Notification[];
   allMessages: InboxMessageType[]; // Quản lý thêm tin nhắn
+<<<<<<< HEAD
   unreadCount: number; // Badge count for unread notifications
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
   addNotification: (newNoti: Notification) => void;
   addMessage: (newMsg: InboxMessageType) => void; // Hàm mới để thêm tin nhắn
   setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
@@ -38,7 +44,10 @@ export const NotificationContext = createContext<NotificationContextType | undef
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
+<<<<<<< HEAD
   const token = localStorage.getItem("token");
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 
   const [notifications, setNotifications] = useState<Notification[]>(() => {
     const saved = localStorage.getItem("app_notifications");
@@ -50,11 +59,14 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     return saved ? JSON.parse(saved) : [];
   });
 
+<<<<<<< HEAD
   const [unreadCount, setUnreadCount] = useState<number>(() => {
     const saved = localStorage.getItem("app_unreadCount");
     return saved ? parseInt(saved) : 0;
   });
 
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
   const addNotification = (newNoti: Notification) => {
     setNotifications((prev) => {
       const isDuplicate = prev.some(n => n.id === newNoti.id);
@@ -62,6 +74,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       
       const updated = [newNoti, ...prev];
       localStorage.setItem("app_notifications", JSON.stringify(updated));
+<<<<<<< HEAD
       
       // Update unread count
       if (!newNoti.isRead) {
@@ -72,6 +85,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         });
       }
       
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
       return updated;
     });
   };
@@ -88,12 +103,16 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     setNotifications(prev => {
       const updated = prev.map(n => n.receiverId === currentUserId ? { ...n, isRead: true } : n);
       localStorage.setItem("app_notifications", JSON.stringify(updated));
+<<<<<<< HEAD
       setUnreadCount(0);
       localStorage.setItem("app_unreadCount", "0");
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
       return updated;
     });
   };
 
+<<<<<<< HEAD
   // SignalR integration - connect when user is authenticated
   useEffect(() => {
     if (!token || !signalRService.isConnected()) {
@@ -126,6 +145,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [token, currentUserId]);
 
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
   // Lắng nghe thay đổi giữa các tab
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -137,10 +158,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         const saved = localStorage.getItem("app_messages");
         if (saved) setAllMessages(JSON.parse(saved));
       }
+<<<<<<< HEAD
       if (e.key === "app_unreadCount") {
         const saved = localStorage.getItem("app_unreadCount");
         if (saved) setUnreadCount(parseInt(saved));
       }
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -150,7 +174,10 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     <NotificationContext.Provider value={{ 
         notifications, 
         allMessages, 
+<<<<<<< HEAD
         unreadCount,
+=======
+>>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
         addNotification, 
         addMessage,
         setNotifications, 
