@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // ============ API Response Wrapper ============
 export interface ApiResponse<T> {
   success: boolean;
@@ -146,18 +145,4 @@ export interface SearchResultDto {
   playlists: PlaylistDto[];
   users: UserProfileDto[];
 }
-=======
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-}
 
-export interface AuthResponse {
-  token: string;
-  user: {
-    id: string;
-    userName: string;
-  };
-}
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
