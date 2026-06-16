@@ -41,7 +41,8 @@ export const authService = {
     localStorage.removeItem('token');
     localStorage.removeItem('currentUserId');
     localStorage.removeItem('currentUserName');
-    window.location.href = '/login';
+    // /login route không tồn tại trong App.tsx, redirect an toàn về /home để UI hiển thị lại AuthModal
+    window.location.href = '/home';
   },
 };
 

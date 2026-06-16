@@ -71,13 +71,24 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
         setConfirmPassword("");
       }
     } catch (error: any) {
-      const message =
+      const rawMessage =
         error?.response?.data?.message || error?.message || "Có lỗi xảy ra trong quá trình xác thực.";
-      if (mode === "login") {
-        setErrors({ auth: message });
-      } else {
-        setErrors({ auth: message });
-      }
+
+      // Chuẩn UX cho trường hợp đăng nhập sai thông tin.
+      // Backend có thể trả message khác nhau, nên làm tolerant bằng cách match key.
+      const normalized = String(rawMessage).toLowerCase();
+      const isInvalidLogin =
+        normalized.includes('invalid') ||
+        normalized.includes('incorrect') ||
+        normalized.includes('wrong') ||
+        normalized.includes('unauthorized') ||
+        normalized.includes('login');
+
+      const message = isInvalidLogin
+        ? "Thông tin đăng nhập không đúng. Vui lòng nhập lại." 
+        : rawMessage;
+
+      setErrors({ auth: message });
     }
   };
 

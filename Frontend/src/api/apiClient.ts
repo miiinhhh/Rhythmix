@@ -15,9 +15,10 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (res) => res,
   (err) => {
+    // Không redirect sang route không tồn tại (tránh lỗi UI kiểu 404/Unexpected Application Error).
+    // Chỉ xóa token khi bị 401 và để caller (AuthModal) tự hiển thị thông báo nhập lại.
     if (err.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
     }
     return Promise.reject(err);
   }
