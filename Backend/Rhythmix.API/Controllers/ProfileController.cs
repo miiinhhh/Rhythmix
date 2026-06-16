@@ -83,7 +83,7 @@ public sealed class ProfileController : ControllerBase
             return BadRequest(new { success = false, message = "Invalid avatar format." });
         }
 
-        var avatarsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "avatars");
+        var avatarsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "images");
         Directory.CreateDirectory(avatarsDir);
 
         var fileName = $"{Guid.NewGuid()}{extension}";
@@ -95,7 +95,7 @@ public sealed class ProfileController : ControllerBase
         return Ok(new
         {
             success = true,
-            data = new { avatarUrl = $"/uploads/avatars/{fileName}" }
+            data = new { avatarUrl = $"/uploads/images/{fileName}" }
         });
     }
 

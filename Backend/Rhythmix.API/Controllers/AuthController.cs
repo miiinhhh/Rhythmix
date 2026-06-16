@@ -7,8 +7,8 @@ using Rhythmix.Application.UseCases.Auth;
 
 namespace Rhythmix.API.Controllers;
 /*{
-  "email": "admin@rhythmix.com",
-  "password": "Admin123!"
+  "email": "Minh@gmail.com",
+  "password": "12345678"
 }*/
 [ApiController]
 [Route("api/[controller]")]
