@@ -19,6 +19,8 @@ import { musicService } from "../services/musicService";
 import type { FollowType } from "../data/mockData";
 import FollowModal from "../components/FollowModal";
 import { useNotifications } from "../context/NotificationContext";
+import { userService } from "../api/userService";
+
 
 // Định nghĩa interface cho Context nhận từ AppLayout (giống bên LikedSongsPage)
 interface OutletContextType {
@@ -52,23 +54,61 @@ const ProfilePage = () => {
       "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=256&auto=format&fit=crop",
   });
 
-  // Load user profile từ MOCK_USERS
+  // Load user profile
   useEffect(() => {
-    const matchedUser = MOCK_USERS.find((u) => u.id === targetId);
-    if (!matchedUser) return;
+    let cancelled = false;
 
-    setUserProfile({
-      fullName: matchedUser.name,
-      bio: matchedUser.bio || "Music lover",
-      avatarUrl: matchedUser.avatarUrl,
-    });
+    const load = async () => {
+      if (!isMyProfile) {
+        // Public profile tạm thời từ mock
+        const matchedUser = MOCK_USERS.find((u) => u.id === targetId);
+        if (!matchedUser) return;
+        if (cancelled) return;
+        setUserProfile({
+          fullName: matchedUser.name,
+          bio: matchedUser.bio || "Music lover",
+          avatarUrl: matchedUser.avatarUrl,
+        });
+        return;
+      }
 
-    if (isMyProfile) {
-      setEditName(matchedUser.name);
-      setEditBio(matchedUser.bio || "Music lover");
-      setPreviewUrl(matchedUser.avatarUrl);
-    }
+      try {
+        setIsProfileLoading(true);
+        const profile = await userService.getCurrentProfileMe();
+        if (cancelled) return;
+
+        setUserProfile({
+          fullName: profile.userName ?? profile.displayName ?? "",
+          bio: profile.bio || "",
+          avatarUrl: profile.avatarUrl || "",
+        });
+        setEditName(profile.userName ?? profile.displayName ?? "");
+        setEditBio(profile.bio || "");
+        setPreviewUrl(profile.avatarUrl || "");
+      } catch {
+        if (cancelled) return;
+        // fallback mock
+        const matchedUser = MOCK_USERS.find((u) => u.id === targetId);
+        if (!matchedUser) return;
+        setUserProfile({
+          fullName: matchedUser.name,
+          bio: matchedUser.bio || "Music lover",
+          avatarUrl: matchedUser.avatarUrl,
+        });
+        setEditName(matchedUser.name);
+        setEditBio(matchedUser.bio || "Music lover");
+        setPreviewUrl(matchedUser.avatarUrl);
+      } finally {
+        if (!cancelled) setIsProfileLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [targetId, isMyProfile]);
+
 
   const publicPlaylists = musicService.getPublicPlaylists();
   const likedTracks = musicService.getLikedSongs();
@@ -123,19 +163,48 @@ const ProfilePage = () => {
     setPreviewUrl(URL.createObjectURL(file));
   };
 
-  const handleUpdateProfile = (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Tạm thời chỉ cập nhật local state (không gọi API để tránh lỗi route/DTO mismatch)
-    setUserProfile((prev) => ({
-      ...prev,
-      fullName: editName,
-      bio: editBio,
-      avatarUrl: previewUrl,
-    }));
+    try {
+      setIsSavingProfile(true);
+      setProfileError("");
 
-    setIsModalOpen(false);
+      const userId = localStorage.getItem("currentUserId") || "";
+
+      // update profile text fields
+      await userService.updateProfile({
+        id: userId,
+        userName: editName,
+        displayName: editName,
+        bio: editBio,
+      });
+
+      // upload avatar if user selected a file
+      if (selectedFile) {
+        const avatarUrl = await userService.uploadAvatar(selectedFile);
+        setPreviewUrl(avatarUrl);
+      }
+
+      // refresh profile from server
+      const profile = await userService.getCurrentProfileMe();
+      setUserProfile({
+        fullName: profile.userName ?? profile.displayName ?? "",
+        bio: profile.bio || "",
+        avatarUrl: profile.avatarUrl || "",
+      });
+      setEditName(profile.userName ?? profile.displayName ?? "");
+      setEditBio(profile.bio || "");
+      setIsModalOpen(false);
+    } catch (error: any) {
+      setProfileError(
+        error?.response?.data?.message || error?.message || "Cập nhật hồ sơ thất bại"
+      );
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
+
 
   const [follows, setFollows] = useState<FollowType[]>(() => {
     const saved = localStorage.getItem("my_follows");

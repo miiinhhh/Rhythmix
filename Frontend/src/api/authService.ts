@@ -1,63 +1,48 @@
-<<<<<<< HEAD
 import apiClient from './apiClient';
-import type { AuthResponse } from '../types/api';
 
 export const authService = {
   login: async (credentials: { email: string; password: string }) => {
-    const res = await apiClient.post<{ success: boolean; data: AuthResponse }>('/auth/login', credentials);
-    const authData = res.data.data;
+    const res = await apiClient.post('/auth/login', credentials);
 
-    if (authData?.token) {
-      localStorage.setItem('token', authData.token);
-      localStorage.setItem('currentUserId', authData.id);
-      localStorage.setItem('currentUserName', authData.userName);
-    }
+    // Expected (from backend): { success, data: { token, user: { id, userName } } }
+    const data = res.data?.data ?? res.data;
 
-    return authData;
+    const token = data?.token ?? res.data?.token;
+    const userId = data?.id ?? data?.user?.id;
+    const userName = data?.userName ?? data?.user?.userName;
+
+    if (token) localStorage.setItem('token', token);
+    if (userId) localStorage.setItem('currentUserId', userId);
+    if (userName) localStorage.setItem('currentUserName', userName);
+
+    return data;
   },
 
-  register: async (payload: { email: string; password: string; name: string }) => {
-    const request = {
-      email: payload.email,
-      userName: payload.name,
-      password: payload.password,
-      displayName: payload.name,
-      bio: '',
-      avatarUrl: '',
-    };
-
-    const res = await apiClient.post<{ success: boolean; data: AuthResponse }>('/auth/register', request);
-    const authData = res.data.data;
-
-    // Do NOT persist token on register - require explicit login after signing up
-
-    return authData;
+  register: async (payload: {
+    email: string;
+    userName: string;
+    password: string;
+    displayName?: string;
+    bio?: string;
+    avatarUrl?: string;
+  }) => {
+    const res = await apiClient.post('/auth/register', payload);
+    // backend: { success: true, data: <result> }
+    return res.data?.data ?? res.data;
   },
 
   logout: async () => {
     try {
       await apiClient.post('/auth/logout');
     } catch {
-      // ignore logout failure on client side
+      // ignore
     }
 
     localStorage.removeItem('token');
     localStorage.removeItem('currentUserId');
     localStorage.removeItem('currentUserName');
-    window.location.reload();
-  },
-=======
-import apiClient from './apiClient';
-
-export const authService = {
-  login: async (credentials: { email: string; password: string }) => {
-    const res = await apiClient.post('/auth/login', credentials);
-    if (res.data.token) localStorage.setItem('token', res.data.token);
-    return res.data;
-  },
-  logout: () => {
-    localStorage.removeItem('token');
     window.location.href = '/login';
   },
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
 };
+
+

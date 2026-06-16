@@ -38,23 +38,16 @@ VALUES
 (
     '11111111-1111-1111-1111-111111111111',
     N'Administrator',
-<<<<<<< HEAD
-    '/uploads/images/jane.jpg',
-=======
     N'/uploads/images/jane.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     N'Người dùng'
 ),
 (
     '22222222-2222-2222-2222-222222222222',
     N'John Doe',
-<<<<<<< HEAD
-    '/uploads/images/john.jpg',
-=======
     N'/uploads/images/john.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     N'Người dùng'
 );
+
 -- =========================================
 -- ALBUM
 -- =========================================
@@ -73,11 +66,7 @@ VALUES
     '11111111-1111-1111-1111-111111111111',
     N'7UPPERCUTS Collection',
     N'Tuyển tập nhạc của 7UPPERCUTS',
-<<<<<<< HEAD
-    '/uploads/images/7uppercuts_album.jpg',
-=======
     N'/uploads/images/7uppercuts_album.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     '2026-06-10'
 ),
 (
@@ -85,13 +74,10 @@ VALUES
     '11111111-1111-1111-1111-111111111111',
     N'Ngọt Collection',
     N'Tuyển tập nhạc của Ngọt',
-<<<<<<< HEAD
-    '/uploads/images/ngot_album.jpg',
-=======
     N'/uploads/images/ngot_album.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     '2026-06-10'
 );
+
 -- =========================================
 -- MEDIA ITEMS
 -- =========================================
@@ -110,199 +96,137 @@ INSERT INTO MediaItems
     OwnerId
 )
 VALUES
-
--- Album 7UPPERCUTS
 (
     '00000000-0000-0000-0000-000000000001',
     N'7UPPERCUTS_YÊU',
     NULL,
     'Audio',
     191,
-<<<<<<< HEAD
-    '/uploads/audio/7UPPERCUTS_YÊU.mp3',
-    '/uploads/images/7UPPERCUTS_YÊU.jpg',
-=======
     N'/uploads/audio/7UPPERCUTS_YÊU.mp3',
     N'/uploads/images/7UPPERCUTS_YÊU.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3068928,
     '33333333-3333-3333-3333-333333333333',
     '11111111-1111-1111-1111-111111111111'
 ),
-
 (
     '00000000-0000-0000-0000-000000000002',
     N'7UPPERCUTS_DOPAMINE',
     NULL,
     'Video',
     151,
-<<<<<<< HEAD
-    '/uploads/video/7UPPERCUTS_DOPAMINE.mp4',
-    '/uploads/images/7UPPERCUTS_DOPAMINE.jpg',
-=======
     N'/uploads/video/7UPPERCUTS_DOPAMINE.mp4',
     N'/uploads/images/7UPPERCUTS_DOPAMINE.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'video/mp4',
     50463744,
     '33333333-3333-3333-3333-333333333333',
     '11111111-1111-1111-1111-111111111111'
 ),
-
--- Album Ngọt
 (
     '00000000-0000-0000-0000-000000000003',
     N'Ngọt_CHUYẾN KÊNH',
     NULL,
     'Audio',
     309,
-<<<<<<< HEAD
-    '/uploads/audio/Ngọt_CHUYẾN KÊNH.mp3',
-    '/uploads/images/Ngọt_CHUYẾN KÊNH.jpg',
-=======
     N'/uploads/audio/Ngọt_CHUYẾN KÊNH.mp3',
     N'/uploads/images/Ngọt_CHUYẾN KÊNH.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     4960256,
     '44444444-4444-4444-4444-444444444444',
     '11111111-1111-1111-1111-111111111111'
 ),
-
 (
     '00000000-0000-0000-0000-000000000004',
     N'Ngọt_LẦN CUỐI',
     NULL,
     'Audio',
     221,
-<<<<<<< HEAD
-    '/uploads/audio/Ngọt_LẦN CUỐI.mp3',
-    '/uploads/images/Ngọt_LẦN CUỐI.jpg',
-=======
     N'/uploads/audio/Ngọt_LẦN CUỐI.mp3',
     N'/uploads/images/Ngọt_LẦN CUỐI.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3548160,
     '44444444-4444-4444-4444-444444444444',
     '11111111-1111-1111-1111-111111111111'
 ),
-
 (
     '00000000-0000-0000-0000-000000000005',
     N'Ngọt_Thấy Chưa',
     NULL,
     'Audio',
     234,
-<<<<<<< HEAD
-    '/uploads/audio/Ngọt_Thấy Chưa.mp3',
-    '/uploads/images/Ngọt_Thấy Chưa.jpg',
-=======
     N'/uploads/audio/Ngọt_Thấy Chưa.mp3',
     N'/uploads/images/Ngọt_Thấy Chưa.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3755008,
     '44444444-4444-4444-4444-444444444444',
     '11111111-1111-1111-1111-111111111111'
 ),
-
 (
     '00000000-0000-0000-0000-000000000006',
     N'Ngọt Em dạo này',
     NULL,
     'Audio',
     252,
-<<<<<<< HEAD
-    '/uploads/audio/Ngọt Em dạo này.mp3',
-    '/uploads/images/Ngọt Em dạo này.jpg',
-=======
     N'/uploads/audio/Ngọt Em dạo này.mp3',
     N'/uploads/images/Ngọt Em dạo này.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     4046848,
     '44444444-4444-4444-4444-444444444444',
     '11111111-1111-1111-1111-111111111111'
 ),
-
--- Không thuộc album
 (
     '00000000-0000-0000-0000-000000000007',
     N'JaigonOrchestra_Chinatown',
     NULL,
     'Video',
     243,
-<<<<<<< HEAD
-    '/uploads/video/JaigonOrchestra_Chinatown.mp4',
-    '/uploads/images/JaigonOrchestra_Chinatown.jpg',
-=======
     N'/uploads/video/JaigonOrchestra_Chinatown.mp4',
     N'/uploads/images/JaigonOrchestra_Chinatown.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'video/mp4',
     52259840,
     NULL,
     '11111111-1111-1111-1111-111111111111'
 ),
-
 (
     '00000000-0000-0000-0000-000000000008',
     N'Quen Lắm',
     NULL,
     'Audio',
     247,
-<<<<<<< HEAD
-    '/uploads/audio/Quen Lắm.mp3',
-    '/uploads/images/Quen Lắm.jpg',
-=======
     N'/uploads/audio/Quen Lắm.mp3',
     N'/uploads/images/Quen Lắm.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3965952,
     NULL,
     '11111111-1111-1111-1111-111111111111'
 ),
-
 (
     '00000000-0000-0000-0000-000000000009',
     N'Đá tan',
     NULL,
     'Audio',
     202,
-<<<<<<< HEAD
-    '/uploads/audio/Đá tan.mp3',
-    '/uploads/images/Đá tan.jpg',
-=======
     N'/uploads/audio/Đá tan.mp3',
     N'/uploads/images/Đá tan.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3236864,
     NULL,
     '11111111-1111-1111-1111-111111111111'
 ),
-
 (
     '00000000-0000-0000-0000-000000000010',
     N'Trước Khi Em Tồn Tại',
     NULL,
     'Audio',
     194,
-<<<<<<< HEAD
-    '/uploads/audio/Trước Khi Em Tồn Tại.mp3',
-    '/uploads/images/Trước Khi Em Tồn Tại.jpg',
-=======
     N'/uploads/audio/Trước Khi Em Tồn Tại.mp3',
     N'/uploads/images/Trước Khi Em Tồn Tại.jpg',
->>>>>>> 74fd9038b4822c2d3d861cf9845199c9494fdece
     'audio/mpeg',
     3107840,
     NULL,
     '11111111-1111-1111-1111-111111111111'
 );
+
 -- =========================================
 -- PLAYLISTS
 -- =========================================
@@ -329,6 +253,7 @@ VALUES
     1,
     '22222222-2222-2222-2222-222222222222'
 );
+
 -- =========================================
 -- PLAYLIST TRACKS
 -- =========================================
@@ -340,14 +265,14 @@ INSERT INTO PlaylistTrack
     SortOrder
 )
 VALUES
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000001', 1), -- YÊU
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000003', 2), -- CHUYẾN KÊNH
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000004', 3), -- LẦN CUỐI
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000005', 4), -- Thấy Chưa
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000006', 5), -- Em dạo này
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000008', 6), -- Quen Lắm
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000009', 7), -- Đá tan
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000010', 8); -- Trước Khi Em Tồn Tại
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000001', 1),
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000003', 2),
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000004', 3),
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000005', 4),
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000006', 5),
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000008', 6),
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000009', 7),
+('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '00000000-0000-0000-0000-000000000010', 8);
 
 INSERT INTO PlaylistTrack
 (
@@ -356,5 +281,5 @@ INSERT INTO PlaylistTrack
     SortOrder
 )
 VALUES
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '00000000-0000-0000-0000-000000000002', 1), -- DOPAMINE
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '00000000-0000-0000-0000-000000000007', 2); -- Chinatown
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '00000000-0000-0000-0000-000000000002', 1),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '00000000-0000-0000-0000-000000000007', 2);
