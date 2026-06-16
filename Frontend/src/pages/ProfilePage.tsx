@@ -411,7 +411,7 @@ const ProfilePage = () => {
                 : "border border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800"
             }`}
           >
-            Recently Played
+            Play History
           </button>
         </div>
 
