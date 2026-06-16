@@ -158,8 +158,8 @@ const ShareInboxPage = () => {
           </h1>
           <p className="mt-1 text-pretty text-sm text-zinc-400">
             {isSentTab
-              ? "Lịch sử những bài hát, nội dung bạn đã gửi cho người khác."
-              : "Xem những bài hát, playlist và tin nhắn bạn bè chia sẻ với bạn."}
+              ? "History of songs and content you've sent to others"
+              : "View songs, playlists, and messages shared with you by friends."}
           </p>
         </div>
       </div>

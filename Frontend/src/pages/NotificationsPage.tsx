@@ -62,7 +62,7 @@ const NotificationPage = () => {
     <div className="space-y-6 select-none ">
       <div className="flex justify-between items-end pb-2">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-white">Notifications</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">Notifications</h1>
           <p className="mt-2 text-sm text-zinc-400 font-medium">Stay up to date with new releases and activity.</p>
         </div>
         <button onClick={markAllAsRead} className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:scale-105 transition-transform cursor-pointer">

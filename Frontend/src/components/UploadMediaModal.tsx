@@ -1,31 +1,97 @@
 import { X, ChevronDown, ChevronUp } from "lucide-react"
-import useUploadMedia from "../hooks/useUploadMedia"
-
+import { useState } from "react"
 interface UploadMediaModalProps {
   isOpen: boolean
   onClose: () => void
 }
+interface FormErrors {
+  title?: string
+  artist?: string
+  selectedFile?: string
+  newAlbumTitle?: string
+  selectedCategory?: string
+}
 
 const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
-  // Gọi "bộ não" Custom Hook ra để lấy toàn bộ dữ liệu và hàm xử lý
-  const {
-    title, setTitle,
-    artist, setArtist,
-    description, setDescription,
-    selectedAlbumId, setSelectedAlbumId,
-    setTrackCover,
-    setSelectedFile,
-    setSelectedVideoFile,
-    myAlbums,
-    isCreatingAlbum, setIsCreatingAlbum,
-    newAlbumTitle, setNewAlbumTitle,
-    newAlbumDesc, setNewAlbumDesc,
-    setNewAlbumCover,
-    errors, setErrors,
-    clearFieldError,
-    handleSaveNewAlbum,
-    handleSubmit,
-  } = useUploadMedia(onClose)
+  // 1. Toàn bộ State quản lý Bài hát
+    const [title, setTitle] = useState("")
+    const [artist, setArtist] = useState("")
+    const [description, setDescription] = useState("")
+    const [selectedAlbumId, setSelectedAlbumId] = useState("")
+    const [selectedCategory, setSelectedCategory] = useState("")
+    const [trackCover, setTrackCover] = useState<File | null>(null)
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
+  
+    // 2. Giả lập danh sách Albums hiện có
+    const [myAlbums, setMyAlbums] = useState([
+      { id: "album-1", title: "After Hours" },
+      { id: "album-2", title: "Lost in Saigon" },
+    ])
+    const [myCategories, setMyCategories] = useState([
+      { id: "cat-1", title: "Pop" },
+      { id: "cat-2", title: "Rock" },
+      { id: "cat-3", title: "Hip-hop" },
+    ])
+  
+    // 3. State quản lý Form tạo nhanh Album mới
+    const [isCreatingAlbum, setIsCreatingAlbum] = useState(false)
+    const [newAlbumTitle, setNewAlbumTitle] = useState("")
+    const [newAlbumDesc, setNewAlbumDesc] = useState("")
+    const [newAlbumCover, setNewAlbumCover] = useState<File | null>(null)
+  
+    // 4. State quản lý lỗi viền đỏ
+    const [errors, setErrors] = useState<FormErrors>({})
+  
+    // Hàm xóa lỗi của một trường cụ thể khi người dùng thao tác gõ/chọn file
+    const clearFieldError = (field: keyof FormErrors) => {
+      if (errors[field]) {
+        setErrors((prev) => ({ ...prev, [field]: undefined }))
+      }
+    }
+  
+    // 5. Hàm xử lý tạo nhanh Album (Sau này kết nối POST /api/albums ở đây)
+    const handleSaveNewAlbum = () => {
+      setErrors((prev) => ({ ...prev, newAlbumTitle: undefined }))
+  
+      if (!newAlbumTitle.trim()) {
+        setErrors((prev) => ({ ...prev, newAlbumTitle: "Vui lòng nhập tên album!" }))
+        return
+      }
+  
+      // SAU NÀY CONNECT DB: Bạn sẽ gọi API gửi `newAlbumTitle`, `newAlbumDesc`, `newAlbumCover` lên BE ở khúc này
+      const newAlbum = {
+        id: `album-${Date.now()}`,
+        title: newAlbumTitle.trim(),
+      }
+      setMyAlbums((current) => [...current, newAlbum])
+      setSelectedAlbumId(newAlbum.id)
+      setNewAlbumTitle("")
+      setNewAlbumDesc("")
+      setNewAlbumCover(null)
+      setIsCreatingAlbum(false)
+    }
+  
+    // 6. Hàm xử lý gửi Form chính (Sau này kết nối POST /api/tracks ở đây)
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault()
+      
+      const newErrors: FormErrors = {}
+      if (!title.trim()) newErrors.title = "Vui lòng nhập tên bài hát!"
+      if (!artist.trim()) newErrors.artist = "Vui lòng nhập tên nghệ sĩ!"
+      if (!selectedFile) newErrors.selectedFile = "Vui lòng chọn file nhạc (.mp3) để upload!"
+      if (!selectedCategory) newErrors.selectedCategory = "Vui lòng chọn danh mục!"
+  
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors)
+        return
+      }
+  
+      setErrors({})
+  
+      alert("Upload nhạc lên hệ thống thành công!")
+      onClose()
+    }
 
   if (!isOpen) return null
 
@@ -99,6 +165,25 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
                 onChange={(e) => setDescription(e.target.value)} 
                 className="w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none border border-zinc-800 focus:border-zinc-700 focus:bg-zinc-900/80 resize-none transition-all" 
               />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider cursor-pointer">CATEGORY *</label>
+              <select 
+                value={selectedCategory} 
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value)
+                  clearFieldError("selectedCategory") // Xóa lỗi khi người dùng chọn xong
+                }} 
+                className={`w-full rounded-lg bg-zinc-900 px-4 py-3 text-base text-white outline-none border transition-all cursor-pointer ${
+                  errors.selectedCategory ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-zinc-700"
+                }`}
+              >
+                <option value="">-- Select a category --</option>
+                {myCategories.map((category) => (
+                  <option key={category.id} value={category.id}>{category.title}</option>
+                ))}
+              </select>
+              {errors.selectedCategory && <p className="text-xs font-medium text-red-500 mt-1">{errors.selectedCategory}</p>}
             </div>
           </div>
 
