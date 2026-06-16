@@ -22,7 +22,7 @@ public sealed class DapperMediaRepository : IMediaRepository
             SELECT 
                 MediaId, Title, Description, MediaType, Duration, 
                 FilePath, ThumbnailUrl, MimeType, FileSize, 
-                AlbumId, OwnerId, IsPublic, ViewCount, CreatedAt
+                AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
             FROM [MediaItems]
             WHERE MediaId = @MediaId";
 
@@ -40,7 +40,7 @@ public sealed class DapperMediaRepository : IMediaRepository
             SELECT 
                 MediaId, Title, Description, MediaType, Duration, 
                 FilePath, ThumbnailUrl, MimeType, FileSize, 
-                AlbumId, OwnerId, IsPublic, ViewCount, CreatedAt
+                AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
             FROM [MediaItems]
             WHERE MediaId IN @Ids";
 
@@ -55,11 +55,11 @@ public sealed class DapperMediaRepository : IMediaRepository
             INSERT INTO [MediaItems] (
                 MediaId, Title, Description, MediaType, Duration, 
                 FilePath, ThumbnailUrl, MimeType, FileSize, 
-                AlbumId, OwnerId, IsPublic, ViewCount, CreatedAt
+                AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
             ) VALUES (
                 @MediaId, @Title, @Description, @MediaType, @Duration, 
                 @FilePath, @ThumbnailUrl, @MimeType, @FileSize, 
-                @AlbumId, @OwnerId, @IsPublic, @ViewCount, @CreatedAt
+                @AlbumId, @GenreId, @OwnerId, @IsPublic, @ViewCount, @CreatedAt
             )";
 
         await using var connection = new SqlConnection(_connectionString);
@@ -82,6 +82,7 @@ public sealed class DapperMediaRepository : IMediaRepository
                 MimeType = @MimeType,
                 FileSize = @FileSize,
                 AlbumId = @AlbumId,
+                GenreId = @GenreId,
                 IsPublic = @IsPublic
             WHERE MediaId = @MediaId";
 
@@ -113,7 +114,7 @@ public sealed class DapperMediaRepository : IMediaRepository
             SELECT 
                 MediaId, Title, Description, MediaType, Duration, 
                 FilePath, ThumbnailUrl, MimeType, FileSize, 
-                AlbumId, OwnerId, IsPublic, ViewCount, CreatedAt
+                AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
             FROM [MediaItems]
             WHERE OwnerId = @OwnerId
             ORDER BY CreatedAt DESC

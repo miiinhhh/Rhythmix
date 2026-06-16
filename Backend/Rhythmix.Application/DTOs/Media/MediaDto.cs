@@ -13,6 +13,7 @@ public class MediaDto
     public string MimeType { get; set; } = string.Empty;
     public long FileSize { get; set; }
     public Guid? AlbumId { get; set; }
+    public Guid? GenreId { get; set; }
     public Guid OwnerId { get; set; }
     public bool IsPublic { get; set; }
     public int ViewCount { get; set; }

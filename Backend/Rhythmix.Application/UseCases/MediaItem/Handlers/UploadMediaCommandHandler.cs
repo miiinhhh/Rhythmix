@@ -45,6 +45,7 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             MimeType = request.ContentType,
             FileSize = request.FileLength,
             AlbumId = request.AlbumId,
+            GenreId = request.GenreId,
             OwnerId = request.OwnerId,
             IsPublic = request.IsPublic,
             ViewCount = 0,

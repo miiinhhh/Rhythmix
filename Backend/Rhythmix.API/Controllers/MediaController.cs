@@ -55,6 +55,7 @@ public sealed class MediaController : ControllerBase
                 Title = request.Title,
                 Description = request.Description,
                 AlbumId = request.AlbumId,
+                GenreId = request.GenreId,
                 IsPublic = request.IsPublic,
                 OwnerId = userId,
                 FileStream = stream,

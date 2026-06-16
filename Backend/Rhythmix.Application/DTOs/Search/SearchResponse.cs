@@ -8,6 +8,7 @@ public sealed class SearchMediaDto
     public string MediaType { get; set; } = string.Empty;
     public int Duration { get; set; }
     public string ThumbnailUrl { get; set; } = string.Empty;
+    public Guid? GenreId { get; set; }
     public int ViewCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public Guid OwnerId { get; set; }

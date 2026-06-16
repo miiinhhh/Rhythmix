@@ -14,7 +14,7 @@ public class FileStorageService : IFileStorageService
 
     public FileStorageService()
     {
-        _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "media");
+        _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
         
         if (!Directory.Exists(_storagePath))
         {
@@ -36,12 +36,12 @@ public class FileStorageService : IFileStorageService
         using var fileStreamOutput = new FileStream(filePath, FileMode.Create, FileAccess.Write);
         await fileStream.CopyToAsync(fileStreamOutput);
 
-        return $"/{subDirectory}/{safeFileName}";
+        return $"/uploads/{subDirectory}/{safeFileName}";
     }
 
     public async Task<Stream?> GetFileStreamAsync(string filePath)
     {
-        var fullPath = Path.Combine(_storagePath, filePath.TrimStart('/'));
+        var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", filePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
         
         if (!File.Exists(fullPath))
         {
@@ -53,7 +53,7 @@ public class FileStorageService : IFileStorageService
 
     public async Task<bool> DeleteFileAsync(string filePath)
     {
-        var fullPath = Path.Combine(_storagePath, filePath.TrimStart('/'));
+        var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", filePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
         
         if (!File.Exists(fullPath))
         {

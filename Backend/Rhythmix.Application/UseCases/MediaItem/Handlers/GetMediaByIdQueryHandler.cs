@@ -31,6 +31,7 @@ public sealed class GetMediaByIdQueryHandler : IRequestHandler<GetMediaByIdQuery
             MimeType = media.MimeType,
             FileSize = media.FileSize,
             AlbumId = media.AlbumId,
+            GenreId = media.GenreId,
             OwnerId = media.OwnerId,
             IsPublic = media.IsPublic,
             ViewCount = media.ViewCount,

@@ -41,6 +41,14 @@ CREATE TABLE Albums
         REFERENCES AspNetUsers(Id)
 )
 
+CREATE TABLE Genres
+(
+    GenreId UNIQUEIDENTIFIER PRIMARY KEY,
+    Name NVARCHAR(100) NOT NULL UNIQUE,
+    Description NVARCHAR(MAX),
+    CreatedAt DATETIME2 DEFAULT GETDATE()
+)
+
 CREATE TABLE MediaItems
 (
     MediaId UNIQUEIDENTIFIER PRIMARY KEY,
@@ -53,6 +61,7 @@ CREATE TABLE MediaItems
     MimeType NVARCHAR(100),
     FileSize BIGINT,
     AlbumId UNIQUEIDENTIFIER NULL,
+    GenreId UNIQUEIDENTIFIER NULL,
     OwnerId UNIQUEIDENTIFIER NOT NULL,
     --IsPublic BIT DEFAULT 1,       -- tui không nghĩ cần, public/private chỉ ns về playlist (ThanhTuan said) chuẩn đấy em (Minh said)
     ViewCount INT DEFAULT 0,
@@ -60,6 +69,10 @@ CREATE TABLE MediaItems
 
     FOREIGN KEY (AlbumId)
         REFERENCES Albums(AlbumId),
+
+    FOREIGN KEY (GenreId)
+        REFERENCES Genres(GenreId)
+        ON DELETE SET NULL,
 
     FOREIGN KEY (OwnerId)
         REFERENCES AspNetUsers(Id)

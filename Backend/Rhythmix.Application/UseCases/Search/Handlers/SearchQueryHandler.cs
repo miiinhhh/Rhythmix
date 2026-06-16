@@ -38,6 +38,7 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
                 MediaType = m.MediaType,
                 Duration = m.Duration,
                 ThumbnailUrl = m.ThumbnailUrl ?? string.Empty,
+                GenreId = m.GenreId,
                 ViewCount = m.ViewCount,
                 CreatedAt = m.CreatedAt,
                 OwnerId = m.OwnerId  
@@ -95,6 +96,7 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
             MediaType = m.MediaType,
             Duration = m.Duration,
             ThumbnailUrl = m.ThumbnailUrl ?? string.Empty,
+            GenreId = m.GenreId,
             ViewCount = m.ViewCount,
             CreatedAt = m.CreatedAt,
             OwnerId = m.OwnerId

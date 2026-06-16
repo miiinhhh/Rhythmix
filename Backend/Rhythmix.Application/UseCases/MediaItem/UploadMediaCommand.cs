@@ -9,6 +9,7 @@ public sealed class UploadMediaCommand : IRequest<MediaDto>
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
     public Guid? AlbumId { get; init; }
+    public Guid? GenreId { get; init; }
     public bool IsPublic { get; init; } = true;
     public Guid OwnerId { get; init; }
     
