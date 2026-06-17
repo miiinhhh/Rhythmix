@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 const NotificationPage = () => {
   const { notifications, setNotifications } = useNotifications();
 
-  const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
+  const currentUserId = localStorage.getItem("currentUserId") || "";
   const myNotifications = notifications.filter((n) => n.receiverId === currentUserId);
 
   const parseNotificationContent = (type: string, payloadStr: string) => {

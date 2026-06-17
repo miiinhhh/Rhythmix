@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Check, Search, Send, X } from "lucide-react";
 import { shareService } from "../api/shareService";
-import { MOCK_USERS, sendShareItem } from "../data/mockData";
+import { userService } from "../api/userService";
+import type { UserProfileDto } from "../types/api";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -23,51 +24,45 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
   const [searchQuery, setSearchQuery] = useState("");
   const [sentRecords, setSentRecords] = useState<string[]>([]);
   const [shareError, setShareError] = useState("");
+  const [users, setUsers] = useState<UserProfileDto[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       setSentRecords([]);
       setSearchQuery("");
       setShareError("");
+      userService.getUsers().then(setUsers).catch(() => setUsers([]));
     }
   }, [itemToShare.id, itemToShare.type, isOpen]);
 
   if (!isOpen) return null;
 
-  const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
-  const currentUserName = localStorage.getItem("currentUserName") || "Alex Mercer";
+  const currentUserId = localStorage.getItem("currentUserId") || "";
 
-  const filteredUsers = MOCK_USERS.filter(
+  const filteredUsers = users.filter(
     (user) =>
       user.id !== currentUserId &&
-      user.name.toLowerCase().includes(searchQuery.toLowerCase())
+      (user.displayName || user.userName || user.email).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSend = async (receiverId: string, receiverName: string) => {
     try {
       setShareError("");
 
-      if (isGuid(receiverId) && isGuid(itemToShare.id)) {
-        await shareService.create({
-          receiverId,
-          mediaId:
-            itemToShare.type === "song" || itemToShare.type === "video"
-              ? String(itemToShare.id)
-              : undefined,
-          playlistId: itemToShare.type === "playlist" ? String(itemToShare.id) : undefined,
-          message: itemToShare.subtitle,
-        });
-      } else {
-        sendShareItem({
-          senderId: currentUserId,
-          senderName: currentUserName,
-          receiverId,
-          type: itemToShare.type,
-          itemId: itemToShare.id,
-          itemTitle: itemToShare.title,
-          itemSubtitle: itemToShare.subtitle,
-        });
+      if (!isGuid(receiverId) || !isGuid(itemToShare.id)) {
+        setShareError("Chi co the chia se du lieu da luu trong database.");
+        return;
       }
+
+      await shareService.create({
+        receiverId,
+        mediaId:
+          itemToShare.type === "song" || itemToShare.type === "video"
+            ? String(itemToShare.id)
+            : undefined,
+        playlistId: itemToShare.type === "playlist" ? String(itemToShare.id) : undefined,
+        message: itemToShare.subtitle,
+      });
 
       const recordKey = `${receiverId}-${itemToShare.type}`;
       setSentRecords((prev) => [...prev, recordKey]);
@@ -124,13 +119,19 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
                 className="flex items-center justify-between rounded-lg bg-zinc-800/40 p-2 transition-colors hover:bg-zinc-800/80"
               >
                 <div className="flex min-w-0 items-center gap-2.5">
-                  <img src={user.avatarUrl} alt={user.name} className="size-8 rounded-full object-cover" />
-                  <span className="truncate text-xs font-semibold text-white">{user.name}</span>
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={user.displayName || user.userName} className="size-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex size-8 items-center justify-center rounded-full bg-zinc-700 text-xs font-bold text-white">
+                      {(user.displayName || user.userName || user.email).slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="truncate text-xs font-semibold text-white">{user.displayName || user.userName}</span>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => handleSend(user.id, user.name)}
+                  onClick={() => handleSend(user.id, user.displayName || user.userName)}
                   disabled={hasSent}
                   className={`flex cursor-pointer items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold transition-all active:scale-95 ${
                     hasSent

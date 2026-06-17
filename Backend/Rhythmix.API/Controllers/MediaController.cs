@@ -78,6 +78,22 @@ public sealed class MediaController : ControllerBase
     }
 
     /// <summary>
+    /// Get recent public media for discovery
+    /// </summary>
+    [HttpGet("discovery")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetDiscovery([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var query = new GetRecentMediaQuery { Page = page, PageSize = pageSize };
+        var result = await _mediator.Send(query);
+
+        return Ok(new { success = true, data = result });
+    }
+
+    /// <summary>
     /// Get media by ID
     /// </summary>
     [HttpGet("{mediaId}")]

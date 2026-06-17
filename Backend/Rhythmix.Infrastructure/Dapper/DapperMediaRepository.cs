@@ -131,6 +131,43 @@ public sealed class DapperMediaRepository : IMediaRepository
         }, transaction);
     }
 
+    public async Task<IEnumerable<MediaItem>> GetRecentAsync(int page = 1, int pageSize = 20, IDbTransaction? transaction = null)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var hasIsPublicColumn = await connection.ExecuteScalarAsync<int>(
+            "SELECT CASE WHEN COL_LENGTH('MediaItems', 'IsPublic') IS NULL THEN 0 ELSE 1 END",
+            transaction: transaction) == 1;
+
+        var sql = hasIsPublicColumn
+            ? @"
+                SELECT 
+                    MediaId, Title, Description, MediaType, Duration, 
+                    FilePath, ThumbnailUrl, MimeType, FileSize, 
+                    AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
+                FROM [MediaItems]
+                WHERE IsPublic = 1
+                ORDER BY CreatedAt DESC
+                OFFSET @Offset ROWS
+                FETCH NEXT @PageSize ROWS ONLY"
+            : @"
+                SELECT 
+                    MediaId, Title, Description, MediaType, Duration, 
+                    FilePath, ThumbnailUrl, MimeType, FileSize, 
+                    AlbumId, GenreId, OwnerId, CAST(1 AS bit) AS IsPublic, ViewCount, CreatedAt
+                FROM [MediaItems]
+                ORDER BY CreatedAt DESC
+                OFFSET @Offset ROWS
+                FETCH NEXT @PageSize ROWS ONLY";
+
+        return await connection.QueryAsync<MediaItem>(sql, new
+        {
+            Offset = (page - 1) * pageSize,
+            PageSize = pageSize
+        }, transaction);
+    }
+
     public async Task IncrementViewCountAsync(Guid mediaId, IDbTransaction? transaction = null)
     {
         const string sql = "UPDATE [MediaItems] SET ViewCount = ViewCount + 1 WHERE MediaId = @MediaId";

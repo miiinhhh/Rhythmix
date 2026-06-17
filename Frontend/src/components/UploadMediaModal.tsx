@@ -1,8 +1,10 @@
 import { X, ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
+import { mediaService } from "../api/mediaService"
 interface UploadMediaModalProps {
   isOpen: boolean
   onClose: () => void
+  onUploaded?: () => void | Promise<void>
 }
 interface FormErrors {
   title?: string
@@ -12,14 +14,13 @@ interface FormErrors {
   selectedGenres?: string
 }
 
-const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
+const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps) => {
   // 1. Toàn bộ State quản lý Bài hát
     const [title, setTitle] = useState("")
     const [artist, setArtist] = useState("")
     const [description, setDescription] = useState("")
     const [selectedAlbumId, setSelectedAlbumId] = useState("")
     const [selectedGenres, setSelectedGenres] = useState<string[]>([])
-    const [trackCover, setTrackCover] = useState<File | null>(null)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
   
@@ -28,17 +29,12 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
       { id: "album-1", title: "After Hours" },
       { id: "album-2", title: "Lost in Saigon" },
     ])
-    const [myGenres] = useState([
-      { id: "cat-1", title: "Pop" },
-      { id: "cat-2", title: "Rock" },
-      { id: "cat-3", title: "Hip-hop" },
-    ])
+    const [myGenres] = useState<{ id: string; title: string }[]>([])
   
     // 3. State quản lý Form tạo nhanh Album mới
     const [isCreatingAlbum, setIsCreatingAlbum] = useState(false)
     const [newAlbumTitle, setNewAlbumTitle] = useState("")
     const [newAlbumDesc, setNewAlbumDesc] = useState("")
-    const [newAlbumCover, setNewAlbumCover] = useState<File | null>(null)
   
     // 4. State quản lý lỗi viền đỏ
     const [errors, setErrors] = useState<FormErrors>({})
@@ -67,20 +63,18 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
       setSelectedAlbumId(newAlbum.id)
       setNewAlbumTitle("")
       setNewAlbumDesc("")
-      setNewAlbumCover(null)
       setIsCreatingAlbum(false)
     }
   
     // 6. Hàm xử lý gửi Form chính (Sau này kết nối POST /api/tracks ở đây)
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault()
       
       const newErrors: FormErrors = {}
       if (!title.trim()) newErrors.title = "Vui lòng nhập tên bài hát!"
       if (!artist.trim()) newErrors.artist = "Vui lòng nhập tên nghệ sĩ!"
-      if (!selectedFile) newErrors.selectedFile = "Vui lòng chọn file nhạc (.mp3) để upload!"
-      if (selectedGenres.length === 0) newErrors.selectedGenres = "Vui lòng chọn ít nhất một thể loại!"
-  
+      if (!selectedFile && !selectedVideoFile) newErrors.selectedFile = "Vui long chon file media de upload!"
+        
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors)
         return
@@ -88,7 +82,21 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
   
       setErrors({})
   
-      alert("Upload nhạc lên hệ thống thành công!")
+      await mediaService.uploadMedia({
+        file: selectedFile || selectedVideoFile!,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        isPublic: true,
+      })
+
+      await onUploaded?.()
+      setTitle("")
+      setArtist("")
+      setDescription("")
+      setSelectedAlbumId("")
+      setSelectedGenres([])
+      setSelectedFile(null)
+      setSelectedVideoFile(null)
       onClose()
     }
 
@@ -252,7 +260,7 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
               <input 
                 type="file" 
                 accept="image/*" 
-                onChange={(e) => { if (e.target.files && e.target.files[0]) setTrackCover(e.target.files[0]) }} 
+                onChange={() => undefined} 
                 className="w-full rounded-lg bg-zinc-950 px-4 py-2.5 text-sm text-zinc-400 border border-zinc-800 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white file:cursor-pointer" 
               />
             </div>
@@ -315,7 +323,7 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
                     <input 
                       type="file" 
                       accept="image/*" 
-                      onChange={(e) => { if (e.target.files && e.target.files[0]) setNewAlbumCover(e.target.files[0]) }} 
+                      onChange={() => undefined} 
                       className="w-full rounded-lg bg-zinc-950 px-3 py-2 text-xs text-zinc-400 border border-zinc-800 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-800 file:px-3 file:py-1.5 file:text-[10px] file:font-semibold file:text-white file:cursor-pointer cursor-pointer" 
                     />
                   </div>
@@ -363,3 +371,4 @@ const UploadMediaModal = ({ isOpen, onClose }: UploadMediaModalProps) => {
 }
 
 export default UploadMediaModal
+

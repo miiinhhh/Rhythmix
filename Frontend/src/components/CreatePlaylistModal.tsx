@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { Music, X, Globe, Lock } from "lucide-react"; 
+import { playlistService } from "../api/playlistService";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onPlaylistCreated?: () => void; 
+  onPlaylistCreated?: () => void | Promise<void>; 
 }
 
 const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen, onClose, onPlaylistCreated }) => {
@@ -26,7 +27,7 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen, onClo
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // 🌟 Kiểm tra nếu ô Tên bị trống hoặc chỉ toàn dấu cách
@@ -36,12 +37,16 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen, onClo
     }
 
     // Nếu hợp lệ, tiến hành giả lập lưu vào DB
-    console.log("Dữ liệu chuẩn bị gửi xuống SQL Server:", { name, description, isPublic });
+    await playlistService.create({
+      name: name.trim(),
+      description: description.trim() || undefined,
+      isPublic,
+    });
     
     // Gọi hàm đóng modal và reset luôn
     handleCloseModal();
 
-    if (onPlaylistCreated) onPlaylistCreated();
+    await onPlaylistCreated?.();
   };
 
   return (

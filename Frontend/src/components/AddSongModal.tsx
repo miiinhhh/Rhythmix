@@ -1,16 +1,6 @@
 import React, { useState } from "react";
-import { PlusCircle, Plus, Check } from "lucide-react"; // Import thêm icon Check
-
-interface SongType {
-  id: number;
-  title: string;
-  artist: string;
-  album: string;
-  duration: string;
-  isLiked: boolean;
-  url: string;
-}
-
+import { PlusCircle, Plus, Check } from "lucide-react";
+import type { SongType } from "../utils/mediaMapping";
 interface AddSongModalProps {
   isOpen: boolean;
   onClose: () => void;

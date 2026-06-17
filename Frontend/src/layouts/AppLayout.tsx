@@ -1,78 +1,12 @@
 import SideBar from "../components/SideBar";
 import PlayerBar from "../components/PlayerBar";
 import { Outlet, useNavigate } from "react-router-dom";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import AuthModal from "../components/AuthModal";
 import VideoPlayerModal from "../components/VideoPlayerModal";
-import { authService, signalRService } from "../api";
-import { MOCK_USERS } from "../data/mockData";
+import { mediaService, signalRService } from "../api";
 import { useNotifications, NotificationContext } from "../context/NotificationContext";
-
-const initialSongs = [
-  {
-    id: 1,
-    title: "Sunset Boulevard",
-    artist: "Neon Coast",
-    album: "City Lights",
-    duration: "0:41",
-    isLiked: true,
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    videoUrl:
-      "https://media.istockphoto.com/id/1400382484/vi/video/t%C3%A1c-%C4%91%E1%BB%99ng-c%E1%BB%A7a-ti%E1%BB%83u-h%C3%A0nh-tinh-tr%C3%A1i-%C4%91%E1%BA%A5t-ti%E1%BB%83u-h%C3%A0nh-tinh-sao-ch%E1%BB%95i-thi%E1%BB%87t-ph%C3%A1t-s%C3%A1ng-%C4%91i.mp4?p=1&s=mp4-640x640-is&k=20&c=s7GG-mPFa0btByLlpoqGhDLm7FQO2z0cZJuxLBFhRpc=",
-    posterUrl:
-      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1000",
-  },
-  {
-    id: 2,
-    title: "Velvet Sky",
-    artist: "Aria Lane",
-    album: "Nightfall",
-    duration: "0:45",
-    isLiked: false,
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
-    posterUrl:
-      "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1000",
-  },
-  {
-    id: 3,
-    title: "Paper Planes",
-    artist: "The Drifters",
-    album: "Horizons",
-    duration: "0:50",
-    isLiked: false,
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-    videoUrl: "https://www.w3schools.com/html/movie.mp4",
-    posterUrl:
-      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1000",
-  },
-  {
-    id: 4,
-    title: "Blinding Lights",
-    artist: "The Weeknd",
-    album: "After Hours",
-    duration: "3:20",
-    isLiked: false,
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-    videoUrl:
-      "https://assets.mixkit.co/videos/preview/mixkit-neon-light-from-a-tunnel-in-a-modern-city-43254-large.mp4",
-    posterUrl:
-      "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1000",
-  },
-  {
-    id: 5,
-    title: "Starboy",
-    artist: "The Weeknd",
-    album: "Starboy",
-    duration: "3:50",
-    isLiked: false,
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-    videoUrl:
-      "https://assets.mixkit.co/videos/preview/mixkit-abstract-laser-lights-background-42300-large.mp4",
-    posterUrl:
-      "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=1000",
-  },
-];
+import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
 
 interface InboxMessageType {
   id: string;
@@ -103,8 +37,8 @@ const AppLayout = () => {
   );
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
-  const [songs, setSongs] = useState(initialSongs);
-  const [currentSongId, setCurrentSongId] = useState<number | null>(null);
+  const [songs, setSongs] = useState<SongType[]>([]);
+  const [currentSongId, setCurrentSongId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
@@ -120,16 +54,25 @@ const AppLayout = () => {
     setIsAuthenticated(true);
   };
 
-  const handleLogout = async () => {
-    await authService.logout();
-    setIsAuthenticated(false);
-  };
-
   useEffect(() => {
-    if (!localStorage.getItem("currentUserId")) {
-      localStorage.setItem("currentUserId", "user-alex");
-      localStorage.setItem("currentUserName", "Alex Mercer");
-    }
+    let isMounted = true;
+
+    const loadSongs = async () => {
+      try {
+        const mediaItems = await mediaService.getDiscovery();
+        if (!isMounted) return;
+
+        setSongs(mediaItems.map(mapMediaToSong));
+      } catch {
+        if (isMounted) setSongs([]);
+      }
+    };
+
+    loadSongs();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // SignalR real-time notifications
@@ -157,15 +100,11 @@ const AppLayout = () => {
     itemInfo: any,
     receiverName: string
   ) => {
-    const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
-    const currentUserName = localStorage.getItem("currentUserName") || "Alex Mercer";
+    const currentUserId = localStorage.getItem("currentUserId") || "";
+    const currentUserName = localStorage.getItem("currentUserName") || "Current user";
 
-    const foundReceiver = MOCK_USERS.find((user) =>
-      user.name.toLowerCase().includes(receiverName.toLowerCase())
-    );
-
-    const targetReceiverId = foundReceiver ? foundReceiver.id : currentUserId;
-    const targetReceiverName = foundReceiver ? foundReceiver.name : receiverName;
+    const targetReceiverId = currentUserId;
+    const targetReceiverName = receiverName;
 
     const newShareMessage: InboxMessageType = {
       id: `msg_${Date.now()}`,
@@ -186,13 +125,7 @@ const AppLayout = () => {
         description: itemInfo.description || "Playlist được chia sẻ",
       };
     } else {
-      const originalTrack = initialSongs.find(
-        (s) => s.title.toLowerCase() === itemInfo.title.toLowerCase()
-      );
-
-      newShareMessage.trackData = originalTrack
-        ? { ...originalTrack }
-        : { ...itemInfo, id: itemInfo.id || 1 };
+      newShareMessage.trackData = { ...itemInfo };
     }
 
     const getNotificationType = (t: string) => {

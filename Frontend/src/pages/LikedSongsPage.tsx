@@ -1,23 +1,13 @@
 import { useState, useEffect } from "react";
 import { Heart, Play, Pause, Music2, Clock, ArrowLeft, GripVertical } from "lucide-react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { musicService } from "../services/musicService";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-
-interface SongType {
-  id: number;
-  title: string;
-  artist: string;
-  album: string;
-  duration: string;
-  isLiked: boolean;
-  url: string;
-}
+import type { SongType } from "../utils/mediaMapping";
 // 1. Nhận hàm đổi bài hát từ Props truyền xuống (Ví dụ đặt tên là onPlayTrack)
 // 1. Định nghĩa chuẩn các thuộc tính nhận từ Outlet của AppLayout
 interface OutletContextType {
-  currentSongId: number | null;
-  setCurrentSongId: (id: number | null) => void;
+  currentSongId: string | null;
+  setCurrentSongId: (id: string | null) => void;
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
   songs: SongType[];
@@ -27,16 +17,16 @@ interface OutletContextType {
 const LikedSongsPage = () => {
  const navigate = useNavigate();
     
-  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, setSongs } = useOutletContext<OutletContextType>();
-  const [likedSongs, setLikedSongs] = useState<SongType[]>(musicService.getLikedSongs());
+  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, songs, setSongs } = useOutletContext<OutletContextType>();
+  const [likedSongs, setLikedSongs] = useState<SongType[]>([]);
 //   const [currentSongId, setCurrentSongId] = useState<number | null>(null);
 //   const [isPlaying, setIsPlaying] = useState(false);
-  const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
-  const [likedPulse, setLikedPulse] = useState<number[]>([]);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const [likedPulse, setLikedPulse] = useState<string[]>([]);
 
-  const refreshLikedSongs = () => {
-    setLikedSongs([...musicService.getLikedSongs()]);
-  };
+  useEffect(() => {
+    setLikedSongs(songs.filter((song) => song.isLiked));
+  }, [songs]);
 
   // Hàm xử lý sau khi kéo thả xong để cập nhật lại vị trí trong State
   const handleOnDragEnd = (result: DropResult) => {
@@ -47,14 +37,11 @@ const LikedSongsPage = () => {
     setLikedSongs(items);
     
     // Nếu musicService của ông có hàm lưu lại thứ tự, ông có thể gọi ở đây
-    musicService.saveLikedSongsOrder(items);
     };
     
-  const handlePlaySong = (songId: number) => {
+  const handlePlaySong = (songId: string) => {
     const song = likedSongs.find((s) => s.id === songId);
     if (!song) return;
-
-    musicService.addRecentSong(song);
 
     // 🔥 ĐỒNG BỘ QUA CONTEXT: 
     // Thay vì gọi hàm onPlayTrack không tồn tại, ông đổi giá trị currentSongId của AppLayout
@@ -65,8 +52,7 @@ const LikedSongsPage = () => {
       setIsPlaying(true);
     }
   };
-  const handleUnlike = (songId: number) => {
-    musicService.toggleSongLike(songId);
+  const handleUnlike = (songId: string) => {
     setLikedPulse((prev) => [...prev, songId]);
       
     setSongs((prev) => 
@@ -75,7 +61,7 @@ const LikedSongsPage = () => {
     
     setTimeout(() => {
       setLikedPulse((prev) => prev.filter((id) => id !== songId));
-      refreshLikedSongs();
+      setLikedSongs((prev) => prev.filter((song) => song.id !== songId));
     }, 220);
 
     if (currentSongId === songId) {

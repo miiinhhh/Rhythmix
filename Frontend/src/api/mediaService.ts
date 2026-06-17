@@ -10,6 +10,7 @@ export const mediaService = {
     if (data.description) formData.append('description', data.description);
     if (data.isPublic !== undefined) formData.append('isPublic', String(data.isPublic));
     if (data.albumId) formData.append('albumId', data.albumId);
+    if (data.genreId) formData.append('genreId', data.genreId);
 
     const res = await apiClient.post<ApiResponse<MediaItemDto>>('/media/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -31,6 +32,12 @@ export const mediaService = {
   // Get discovery/recommended media
   getDiscovery: async () => {
     const res = await apiClient.get<ApiResponse<MediaItemDto[]>>('/media/discovery');
+    return res.data.data;
+  },
+
+  // Get media uploaded by the current user
+  getMyMedia: async () => {
+    const res = await apiClient.get<ApiResponse<MediaItemDto[]>>('/media/my-media');
     return res.data.data;
   },
 

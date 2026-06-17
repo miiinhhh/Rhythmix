@@ -25,6 +25,11 @@ export const userService = {
     return res.data.data;
   },
 
+  getUsers: async () => {
+    const res = await apiClient.get<ApiResponse<UserProfileDto[]>>('/Profile/users');
+    return res.data.data;
+  },
+
   /**
    * Get another user's public profile
    */

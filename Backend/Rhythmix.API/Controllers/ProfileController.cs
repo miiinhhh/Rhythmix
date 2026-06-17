@@ -39,6 +39,13 @@ public sealed class ProfileController : ControllerBase
         return Ok(new { success = true, data = profile });
     }
 
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers()
+    {
+        var profiles = await _mediator.Send(new GetAllProfilesQuery());
+        return Ok(new { success = true, data = profiles });
+    }
+
     [HttpPut("me")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
     {

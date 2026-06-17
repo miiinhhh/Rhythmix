@@ -1,4 +1,4 @@
-import { X, Play, Pause, Maximize, Volume2, SkipBack, SkipForward, Shuffle, Repeat, Heart, Share2, ListMusic } from "lucide-react";
+import { X, Play, Pause, Volume2, SkipBack, Shuffle, Heart, Share2, ListMusic } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import ShareModal from "./ShareModal";
 

@@ -1,10 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Library, Music2, ListMusic, Play, Plus, Heart } from "lucide-react"; // Thêm ListMusic và Plus để làm nút Upload/Create
 import UploadMediaModal from "../components/UploadMediaModal"
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import CreatePlaylistModal from "../components/CreatePlaylistModal";
-import { MOCK_PLAYLISTS } from "../data/mockData";
-import { musicService } from "../services/musicService";
+import { mediaService } from "../api/mediaService";
+import { playlistService } from "../api/playlistService";
+import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
+import type { PlaylistDto } from "../types/api";
+
+interface OutletContextType {
+  setCurrentSongId: (id: string | null) => void;
+  setIsPlaying: (playing: boolean) => void;
+  songs: SongType[];
+  setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
+}
 
 // 2. Định nghĩa lại các Tab: All, Playlists, Albums
 const libraryTabs = [
@@ -21,10 +30,33 @@ const LibraryPage = () => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
   // Logic lọc dữ liệu dựa trên Tab đang chọn
-  const filtered =
-    activeTab === "all"
-      ? MOCK_PLAYLISTS
-      : MOCK_PLAYLISTS.filter((item) => item.type === activeTab);
+  const { setCurrentSongId, setIsPlaying, songs, setSongs } = useOutletContext<OutletContextType>();
+  const [myMedia, setMyMedia] = useState<SongType[]>([]);
+  const [playlists, setPlaylists] = useState<PlaylistDto[]>([]);
+
+  const loadMyMedia = async () => {
+    const mediaItems = await mediaService.getMyMedia();
+    const mappedSongs = mediaItems.map(mapMediaToSong);
+    setMyMedia(mappedSongs);
+    setSongs((prev) => {
+      const existingIds = new Set(prev.map((song) => song.id));
+      return [...prev, ...mappedSongs.filter((song) => !existingIds.has(song.id))];
+    });
+  };
+
+  const loadPlaylists = async () => {
+    const items = await playlistService.getAll();
+    setPlaylists(items);
+  };
+
+  useEffect(() => {
+    loadMyMedia().catch(() => setMyMedia([]));
+    loadPlaylists().catch(() => setPlaylists([]));
+  }, []);
+
+  const visibleMedia = activeTab === "playlists" ? [] : myMedia;
+  const visiblePlaylists = activeTab === "albums" ? [] : playlists;
+  const likedCount = songs.filter((song) => song.isLiked).length;
 
   return (
     <div className="space-y-6 select-none">
@@ -115,33 +147,48 @@ const LibraryPage = () => {
             </div>
             <h3 className="truncate text-sm font-semibold text-white">Liked Songs</h3>
             <p className="mt-1 line-clamp-2 text-xs text-zinc-400">
-              Playlist · {musicService.getLikedSongs().length} songs {/* Đếm động bài hát thật */}
+              Playlist · {likedCount} songs
             </p>
           </article>
         )}
-        {filtered.map((item) => (
+        {visiblePlaylists.map((playlist) => (
+          <article
+            key={playlist.playlistId}
+            onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
+            className="group cursor-pointer rounded-md bg-zinc-900/40 p-4 transition-colors hover:bg-zinc-800"
+          >
+            <div className="relative mb-3">
+              <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 shadow-lg">
+                <ListMusic className="size-10 text-zinc-400" />
+              </div>
+              <button
+                type="button"
+                className="absolute bottom-2 right-2 flex size-12 translate-y-2 items-center justify-center rounded-full bg-green-500 opacity-0 shadow-xl transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+              >
+                <Play className="size-5 fill-black text-black" />
+              </button>
+            </div>
+            <h3 className="truncate text-sm font-semibold text-white">
+              {playlist.name}
+            </h3>
+            <p className="mt-1 line-clamp-2 text-xs text-zinc-400">
+              Playlist · {playlist.isPublic ? "Public" : "Private"}
+            </p>
+          </article>
+        ))}
+        {visibleMedia.map((item) => (
           <article
             key={item.id}
-            onClick={() => item.title === "Liked Songs"
-              ? navigate("/liked")
-              : navigate(`/playlist/${item.id}`)
-            }
+            onClick={() => {
+              setCurrentSongId(item.id);
+              setIsPlaying(true);
+            }}
             className="group cursor-pointer rounded-md bg-zinc-900/40 p-4 transition-colors hover:bg-zinc-800"
           >
             <div className="relative mb-3">
               {/* Nếu là mục "Liked Songs" thì bo tròn hình tròn, còn lại (Playlist/Album) bo góc vuông */}
-              <div
-                className={`flex aspect-square w-full items-center justify-center bg-zinc-800 shadow-lg ${
-                  item.title === "Liked Songs" ? "rounded-full" : "rounded-md"
-                }`}
-              >
-                {item.title === "Liked Songs" ? (
-                  <Heart className="size-10 text-green-500" />
-                ) : item.type === "albums" ? (
-                  <Music2 className="size-10 text-zinc-400" />
-                ) : (
-                  <ListMusic className="size-10 text-zinc-400" />
-                )}
+              <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 shadow-lg">
+                <Music2 className="size-10 text-zinc-400" />
               </div>
 
               {/* Nút Play màu xanh lá hiện lên khi hover */}
@@ -156,14 +203,14 @@ const LibraryPage = () => {
               {item.title}
             </h3>
             <p className="mt-1 line-clamp-2 text-xs text-zinc-400">
-              {item.subtitle}
+              {item.artist} · {item.mediaType}
             </p>
           </article>
         ))}
       </div>
 
       {/* Hiển thị thông báo này nếu mảng sau khi lọc bị trống */}
-      {filtered.length === 0 && (
+      {visibleMedia.length === 0 && visiblePlaylists.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 py-20 text-center">
           <ListMusic className="mb-3 size-8 text-zinc-500" />
           <p className="text-sm text-zinc-400">Nothing here yet.</p>
@@ -171,11 +218,13 @@ const LibraryPage = () => {
       )}
       <UploadMediaModal 
         isOpen={isUploadOpen} 
-        onClose={() => setIsUploadOpen(false)} 
+        onClose={() => setIsUploadOpen(false)}
+        onUploaded={loadMyMedia}
       />
       <CreatePlaylistModal
         isOpen={isCreatePlaylistOpen}
         onClose={() => setIsCreatePlaylistOpen(false)}
+        onPlaylistCreated={loadPlaylists}
       />
     </div>
   );

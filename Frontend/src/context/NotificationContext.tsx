@@ -36,7 +36,7 @@ interface NotificationContextType {
 export const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
-  const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
+  const currentUserId = localStorage.getItem("currentUserId") || "";
 
   const [notifications, setNotifications] = useState<Notification[]>(() => {
     const saved = localStorage.getItem("app_notifications");

@@ -32,19 +32,21 @@ export interface LoginRequest {
 
 // ============ Media DTOs ============
 export interface MediaItemDto {
-  id: string;
+  mediaId: string;
   title: string;
   description?: string;
+  mediaType: string;
+  duration: number;
+  filePath: string;
+  thumbnailUrl?: string;
+  mimeType?: string;
+  fileSize?: number;
+  albumId?: string;
+  genreId?: string;
   ownerId: string;
   ownerName?: string;
-  url?: string;
-  thumbnailUrl?: string;
-  duration?: number;
-  fileSize?: number;
-  fileType: string; // "audio" | "video"
-  isPublic: boolean;
-  views?: number;
-  likes?: number;
+  isPublic?: boolean;
+  viewCount?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -55,20 +57,30 @@ export interface UploadMediaDto {
   description?: string;
   isPublic?: boolean;
   albumId?: string;
+  genreId?: string;
 }
 
 // ============ Playlist DTOs ============
 export interface PlaylistDto {
-  id: string;
+  playlistId: string;
   name: string;
   description?: string;
-  ownerId: string;
-  ownerName?: string;
-  coverUrl?: string;
-  mediaCount: number;
   isPublic: boolean;
+  ownerId: string;
   createdAt: string;
-  updatedAt?: string;
+}
+
+export interface PlaylistTrackDto {
+  mediaId: string;
+  sortOrder: number;
+  title: string;
+  filePath: string;
+  thumbnailUrl?: string;
+  duration: number;
+}
+
+export interface PlaylistDetailDto extends PlaylistDto {
+  tracks: PlaylistTrackDto[];
 }
 
 export interface CreatePlaylistDto {
@@ -80,6 +92,7 @@ export interface CreatePlaylistDto {
 export interface PlaylistMediaDto {
   mediaId: string;
   playlistId: string;
+  sortOrder?: number;
 }
 
 // ============ User DTOs ============

@@ -13,18 +13,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ShareModal from "./ShareModal";
-
-interface SongType {
-  id: number;
-  title: string;
-  artist: string;
-  album: string;
-  duration: string;
-  isLiked: boolean;
-  url: string;
-  videoUrl?: string;
-  posterUrl?: string;
-}
+import type { SongType } from "../utils/mediaMapping";
 
 interface PlayerBarProps {
   currentTrack: SongType | null;

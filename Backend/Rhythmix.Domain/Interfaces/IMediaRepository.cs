@@ -9,5 +9,6 @@ public interface IMediaRepository
     Task DeleteAsync(Guid mediaId, IDbTransaction? transaction = null);
     Task<bool> ExistsAsync(Guid mediaId, IDbTransaction? transaction = null);
     Task<IEnumerable<MediaItem>> GetByOwnerIdAsync(Guid ownerId, int page = 1, int pageSize = 20, IDbTransaction? transaction = null);
+    Task<IEnumerable<MediaItem>> GetRecentAsync(int page = 1, int pageSize = 20, IDbTransaction? transaction = null);
     Task IncrementViewCountAsync(Guid mediaId, IDbTransaction? transaction = null);
 }

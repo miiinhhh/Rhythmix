@@ -7,28 +7,33 @@ import {
   Users,
   UserCheck,
   ListMusic,
-  Music2,
   Play,
   Heart,
   History,
   Pause,
 } from "lucide-react";
-import { MOCK_USERS, MOCK_FOLLOWS } from "../data/mockData";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { musicService } from "../services/musicService";
-import type { FollowType } from "../data/mockData";
 import FollowModal from "../components/FollowModal";
 import { useNotifications } from "../context/NotificationContext";
 import { userService } from "../api/userService";
+import { playlistService } from "../api/playlistService";
+import type { PlaylistDto, UserProfileDto } from "../types/api";
+import type { SongType } from "../utils/mediaMapping";
+
+type FollowType = {
+  followerId: string;
+  followingId: string;
+  createdAt: string;
+};
 
 
 // Định nghĩa interface cho Context nhận từ AppLayout (giống bên LikedSongsPage)
 interface OutletContextType {
-  currentSongId: number | null;
-  setCurrentSongId: (id: number | null) => void;
+  currentSongId: string | null;
+  setCurrentSongId: (id: string | null) => void;
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
-  songs: any[];
+  songs: SongType[];
 }
 
 const API_ORIGIN = "http://localhost:5269";
@@ -45,11 +50,11 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { userId } = useParams();
 
-  const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
+  const currentUserId = localStorage.getItem("currentUserId") || "";
   const targetId = userId || currentUserId;
   const isMyProfile = !userId || userId === currentUserId;
 
-  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying } =
+  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, songs } =
     useOutletContext<OutletContextType>();
 
   const [userProfile, setUserProfile] = useState<{
@@ -60,9 +65,13 @@ const ProfilePage = () => {
   }>({
     fullName: "Hello World",
     bio: "Music lover",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=256&auto=format&fit=crop",
+    avatarUrl: "",
   });
+  const [users, setUsers] = useState<UserProfileDto[]>([]);
+
+  useEffect(() => {
+    userService.getUsers().then(setUsers).catch(() => setUsers([]));
+  }, []);
 
   // Load user profile
   useEffect(() => {
@@ -71,13 +80,13 @@ const ProfilePage = () => {
     const load = async () => {
       if (!isMyProfile) {
         // Public profile tạm thời từ mock
-        const matchedUser = MOCK_USERS.find((u) => u.id === targetId);
+        const matchedUser = users.find((u) => u.id === targetId);
         if (!matchedUser) return;
         if (cancelled) return;
         setUserProfile({
-          fullName: matchedUser.name,
+          fullName: matchedUser.displayName || matchedUser.userName,
           bio: matchedUser.bio || "Music lover",
-          avatarUrl: matchedUser.avatarUrl,
+          avatarUrl: matchedUser.avatarUrl || "",
         });
         return;
       }
@@ -98,16 +107,16 @@ const ProfilePage = () => {
       } catch {
         if (cancelled) return;
         // fallback mock
-        const matchedUser = MOCK_USERS.find((u) => u.id === targetId);
+        const matchedUser = users.find((u) => u.id === targetId);
         if (!matchedUser) return;
         setUserProfile({
-          fullName: matchedUser.name,
+          fullName: matchedUser.displayName || matchedUser.userName,
           bio: matchedUser.bio || "Music lover",
-          avatarUrl: matchedUser.avatarUrl,
+          avatarUrl: matchedUser.avatarUrl || "",
         });
-        setEditName(matchedUser.name);
+        setEditName(matchedUser.displayName || matchedUser.userName || "");
         setEditBio(matchedUser.bio || "Music lover");
-        setPreviewUrl(matchedUser.avatarUrl);
+        setPreviewUrl(matchedUser.avatarUrl || "");
       } finally {
         if (!cancelled) setIsProfileLoading(false);
       }
@@ -117,12 +126,24 @@ const ProfilePage = () => {
     return () => {
       cancelled = true;
     };
-  }, [targetId, isMyProfile]);
+  }, [targetId, isMyProfile, users]);
 
 
-  const publicPlaylists = musicService.getPublicPlaylists();
-  const likedTracks = musicService.getLikedSongs();
-  const recentlyPlayed = musicService.getRecentSongs();
+  const [publicPlaylists, setPublicPlaylists] = useState<PlaylistDto[]>([]);
+  const likedTracks = songs.filter((song) => song.isLiked);
+  const recentlyPlayed: { song: SongType; playedAt: Date }[] = [];
+
+  useEffect(() => {
+    if (!isMyProfile) {
+      setPublicPlaylists([]);
+      return;
+    }
+
+    playlistService
+      .getAll()
+      .then((items) => setPublicPlaylists(items.filter((item) => item.isPublic)))
+      .catch(() => setPublicPlaylists([]));
+  }, [isMyProfile]);
 
   const formatPlayedTime = (date: Date) => {
     const now = new Date();
@@ -139,7 +160,7 @@ const ProfilePage = () => {
     return date.toLocaleDateString();
   };
 
-  const handlePlayRecentSong = (songId: number) => {
+  const handlePlayRecentSong = (songId: string) => {
     if (currentSongId === songId) {
       setIsPlaying(!isPlaying);
     } else {
@@ -219,7 +240,7 @@ const ProfilePage = () => {
 
   const [follows, setFollows] = useState<FollowType[]>(() => {
     const saved = localStorage.getItem("my_follows");
-    return saved ? (JSON.parse(saved) as FollowType[]) : [...MOCK_FOLLOWS];
+    return saved ? (JSON.parse(saved) as FollowType[]) : [];
   });
 
   const followersCount = useMemo(
@@ -237,9 +258,11 @@ const ProfilePage = () => {
     [follows, currentUserId, targetId]
   );
 
-  const currentUser = MOCK_USERS.find((u) => u.id === currentUserId) || {
+  const currentUser = users.find((u) => u.id === currentUserId) || {
     id: "unknown",
-    name: "Guest",
+    userName: "Guest",
+    displayName: "Guest",
+    email: "",
   };
 
   const { addNotification } = useNotifications();
@@ -267,7 +290,7 @@ const ProfilePage = () => {
           type: "follow",
           payload: JSON.stringify({
             senderId: currentUser.id,
-            senderName: currentUser.name,
+            senderName: currentUser.displayName || currentUser.userName,
             recipientId: targetId,
           }),
           time: "Just now",
@@ -291,10 +314,10 @@ const ProfilePage = () => {
       type === "followers"
         ? follows
             .filter((f) => f.followingId === targetId)
-            .map((f) => MOCK_USERS.find((u) => u.id === f.followerId))
+            .map((f) => users.find((u) => u.id === f.followerId))
         : follows
             .filter((f) => f.followerId === targetId)
-            .map((f) => MOCK_USERS.find((u) => u.id === f.followingId));
+            .map((f) => users.find((u) => u.id === f.followingId));
 
     const filteredList = usersList.filter((u) => u !== undefined);
     setFollowModal({
@@ -432,17 +455,13 @@ const ProfilePage = () => {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {publicPlaylists.map((item) => (
                 <article
-                  key={item.id}
-                  onClick={() => navigate(`/playlist/${item.id}`)}
+                  key={item.playlistId}
+                  onClick={() => navigate(`/playlist/${item.playlistId}`)}
                   className="group cursor-pointer rounded-md bg-zinc-900/40 p-4 transition-colors hover:bg-zinc-800"
                 >
                   <div className="relative mb-3">
                     <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 shadow-lg">
-                      {item.type === "albums" ? (
-                        <Music2 className="size-10 text-zinc-400" />
-                      ) : (
-                        <ListMusic className="size-10 text-zinc-400" />
-                      )}
+                      <ListMusic className="size-10 text-zinc-400" />
                     </div>
                     <button
                       type="button"
@@ -452,8 +471,8 @@ const ProfilePage = () => {
                       <Play className="size-5 fill-black text-black" />
                     </button>
                   </div>
-                  <h4 className="truncate text-sm font-semibold text-white">{item.title}</h4>
-                  <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{item.subtitle}</p>
+                  <h4 className="truncate text-sm font-semibold text-white">{item.name}</h4>
+                  <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{item.description || "Public playlist"}</p>
                 </article>
               ))}
             </div>

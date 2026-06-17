@@ -32,8 +32,8 @@ interface Message {
 
 // 🟢 Định nghĩa Interface chuẩn cho phần Context nhận từ AppLayout xuống
 interface OutletContextType {
-  currentSongId: number | null;
-  setCurrentSongId: (id: number | null) => void;
+  currentSongId: string | number | null;
+  setCurrentSongId: (id: string | number | null) => void;
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
   // songs: any[];
@@ -114,7 +114,7 @@ const ShareInboxPage = () => {
   const [activeTab, setActiveTab] = useState<"received" | "sent">("received");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 3;
-  const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
+  const currentUserId = localStorage.getItem("currentUserId") || "";
   const [apiMessages, setApiMessages] = useState<Message[]>([]);
   const [isLoadingShares, setIsLoadingShares] = useState(false);
   const [shareError, setShareError] = useState("");

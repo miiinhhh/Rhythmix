@@ -1,12 +1,12 @@
 import apiClient from './apiClient';
-import type { PlaylistDto, CreatePlaylistDto, MediaItemDto, ApiResponse } from '../types/api';
+import type { PlaylistDto, PlaylistDetailDto, CreatePlaylistDto, PlaylistTrackDto, ApiResponse } from '../types/api';
 
 export const playlistService = {
   /**
    * Get all playlists for the current user
    */
   getAll: async () => {
-    const res = await apiClient.get<ApiResponse<PlaylistDto[]>>('/playlists');
+    const res = await apiClient.get<ApiResponse<PlaylistDto[]>>('/playlists/my-playlists');
     return res.data.data;
   },
 
@@ -14,7 +14,7 @@ export const playlistService = {
    * Get a single playlist by ID
    */
   getById: async (playlistId: string) => {
-    const res = await apiClient.get<ApiResponse<PlaylistDto>>(`/playlists/${playlistId}`);
+    const res = await apiClient.get<ApiResponse<PlaylistDetailDto>>(`/playlists/${playlistId}`);
     return res.data.data;
   },
 
@@ -22,7 +22,17 @@ export const playlistService = {
    * Get all media items in a playlist
    */
   getMediaItems: async (playlistId: string) => {
-    const res = await apiClient.get<ApiResponse<MediaItemDto[]>>(`/playlists/${playlistId}/media`);
+    const res = await apiClient.get<ApiResponse<PlaylistDetailDto>>(`/playlists/${playlistId}`);
+    return res.data.data.tracks;
+  },
+
+  getTracks: async (playlistId: string) => {
+    const res = await apiClient.get<ApiResponse<PlaylistDetailDto>>(`/playlists/${playlistId}`);
+    return res.data.data.tracks;
+  },
+
+  addTrack: async (playlistId: string, mediaId: string, sortOrder = 0) => {
+    const res = await apiClient.post<ApiResponse<PlaylistTrackDto>>(`/playlists/${playlistId}/tracks`, { mediaId, sortOrder });
     return res.data.data;
   },
 
@@ -49,7 +59,7 @@ export const playlistService = {
    * Requires: Ownership or admin
    */
   addMedia: async (playlistId: string, mediaId: string) => {
-    const res = await apiClient.post<ApiResponse<void>>(`/playlists/${playlistId}/media`, { mediaId });
+    const res = await apiClient.post<ApiResponse<void>>(`/playlists/${playlistId}/tracks`, { mediaId, sortOrder: 0 });
     return res.data.success;
   },
 
@@ -58,7 +68,7 @@ export const playlistService = {
    * Requires: Ownership or admin
    */
   removeMedia: async (playlistId: string, mediaId: string) => {
-    const res = await apiClient.delete<ApiResponse<void>>(`/playlists/${playlistId}/media/${mediaId}`);
+    const res = await apiClient.delete<ApiResponse<void>>(`/playlists/${playlistId}/tracks/${mediaId}`);
     return res.data.success;
   },
 
