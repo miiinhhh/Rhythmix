@@ -5,7 +5,10 @@
       "Bash(dotnet build Rhythmix.API/Rhythmix.API.csproj --no-restore --no-incremental)",
       "Bash(taskkill /F /PID 28808)",
       "Bash(dotnet build Rhythmix.API/Rhythmix.API.csproj --no-restore --p:UseCommonOutputDirectory=false -p:OutputPath=\"c:/Users/phamh/Downloads/CSharp/DoAn/Backend/Rhythmix.API/bin/test/\")",
-      "Bash(dotnet build Rhythmix.API/Rhythmix.API.csproj --no-restore -p:OutputPath=\"bin/test/\")"
+      "Bash(dotnet build Rhythmix.API/Rhythmix.API.csproj --no-restore -p:OutputPath=\"bin/test/\")",
+      "Bash(npm run build)",
+      "Bash(npx tsc --noEmit src/pages/HomePage.tsx src/api/aiService.ts)",
+      "Bash(dotnet build --no-restore -v q)"
     ]
   }
 }

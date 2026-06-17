@@ -33,7 +33,9 @@ public static class DependencyInjection
         services.AddScoped<INotificationHub, NotificationService>();
 
         // Đăng ký Anthropic AI service
-        services.Configure<AnthropicOptions>(configuration.GetSection("Anthropic"));
+        var anthropicOptions = new AnthropicOptions();
+        configuration.GetSection("Anthropic").Bind(anthropicOptions);
+        services.AddSingleton(anthropicOptions);
         services.AddScoped<IAnthropicService, AnthropicService>();
 
         return services;
