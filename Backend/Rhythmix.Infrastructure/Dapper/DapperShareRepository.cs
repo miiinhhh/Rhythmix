@@ -41,16 +41,27 @@ public sealed class DapperShareRepository : IShareRepository
     {
         const string sql = @"
             SELECT 
-                ShareId AS Id,
-                SenderId,
-                ReceiverId,
-                MediaId,
-                PlaylistId,
-                Message,
-                SharedAt
-            FROM [MediaShares]
-            WHERE ReceiverId = @UserId
-            ORDER BY SharedAt DESC";
+                ms.ShareId AS Id,
+                ms.SenderId,
+                COALESCE(senderProfile.FullName, sender.UserName) AS SenderName,
+                ms.ReceiverId,
+                COALESCE(receiverProfile.FullName, receiver.UserName) AS ReceiverName,
+                ms.MediaId,
+                media.Title AS MediaTitle,
+                media.MediaType,
+                ms.PlaylistId,
+                playlist.Name AS PlaylistName,
+                ms.Message,
+                ms.SharedAt
+            FROM [MediaShares] ms
+            INNER JOIN [AspNetUsers] sender ON sender.Id = ms.SenderId
+            LEFT JOIN [UserProfiles] senderProfile ON senderProfile.UserId = sender.Id
+            INNER JOIN [AspNetUsers] receiver ON receiver.Id = ms.ReceiverId
+            LEFT JOIN [UserProfiles] receiverProfile ON receiverProfile.UserId = receiver.Id
+            LEFT JOIN [MediaItems] media ON media.MediaId = ms.MediaId
+            LEFT JOIN [Playlists] playlist ON playlist.PlaylistId = ms.PlaylistId
+            WHERE ms.ReceiverId = @UserId
+            ORDER BY ms.SharedAt DESC";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -61,16 +72,27 @@ public sealed class DapperShareRepository : IShareRepository
     {
         const string sql = @"
             SELECT 
-                ShareId AS Id,
-                SenderId,
-                ReceiverId,
-                MediaId,
-                PlaylistId,
-                Message,
-                SharedAt
-            FROM [MediaShares]
-            WHERE SenderId = @UserId
-            ORDER BY SharedAt DESC";
+                ms.ShareId AS Id,
+                ms.SenderId,
+                COALESCE(senderProfile.FullName, sender.UserName) AS SenderName,
+                ms.ReceiverId,
+                COALESCE(receiverProfile.FullName, receiver.UserName) AS ReceiverName,
+                ms.MediaId,
+                media.Title AS MediaTitle,
+                media.MediaType,
+                ms.PlaylistId,
+                playlist.Name AS PlaylistName,
+                ms.Message,
+                ms.SharedAt
+            FROM [MediaShares] ms
+            INNER JOIN [AspNetUsers] sender ON sender.Id = ms.SenderId
+            LEFT JOIN [UserProfiles] senderProfile ON senderProfile.UserId = sender.Id
+            INNER JOIN [AspNetUsers] receiver ON receiver.Id = ms.ReceiverId
+            LEFT JOIN [UserProfiles] receiverProfile ON receiverProfile.UserId = receiver.Id
+            LEFT JOIN [MediaItems] media ON media.MediaId = ms.MediaId
+            LEFT JOIN [Playlists] playlist ON playlist.PlaylistId = ms.PlaylistId
+            WHERE ms.SenderId = @UserId
+            ORDER BY ms.SharedAt DESC";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -84,8 +106,8 @@ public sealed class DapperShareRepository : IShareRepository
             FROM [MediaShares]
             WHERE SenderId = @SenderId 
                 AND ReceiverId = @ReceiverId 
-                AND MediaId = @MediaId 
-                AND PlaylistId = @PlaylistId";
+                AND ((MediaId = @MediaId) OR (MediaId IS NULL AND @MediaId IS NULL))
+                AND ((PlaylistId = @PlaylistId) OR (PlaylistId IS NULL AND @PlaylistId IS NULL))";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -115,15 +137,26 @@ public sealed class DapperShareRepository : IShareRepository
     {
         const string sql = @"
             SELECT 
-                ShareId AS Id,
-                SenderId,
-                ReceiverId,
-                MediaId,
-                PlaylistId,
-                Message,
-                SharedAt
-            FROM [MediaShares]
-            WHERE ShareId = @ShareId";
+                ms.ShareId AS Id,
+                ms.SenderId,
+                COALESCE(senderProfile.FullName, sender.UserName) AS SenderName,
+                ms.ReceiverId,
+                COALESCE(receiverProfile.FullName, receiver.UserName) AS ReceiverName,
+                ms.MediaId,
+                media.Title AS MediaTitle,
+                media.MediaType,
+                ms.PlaylistId,
+                playlist.Name AS PlaylistName,
+                ms.Message,
+                ms.SharedAt
+            FROM [MediaShares] ms
+            INNER JOIN [AspNetUsers] sender ON sender.Id = ms.SenderId
+            LEFT JOIN [UserProfiles] senderProfile ON senderProfile.UserId = sender.Id
+            INNER JOIN [AspNetUsers] receiver ON receiver.Id = ms.ReceiverId
+            LEFT JOIN [UserProfiles] receiverProfile ON receiverProfile.UserId = receiver.Id
+            LEFT JOIN [MediaItems] media ON media.MediaId = ms.MediaId
+            LEFT JOIN [Playlists] playlist ON playlist.PlaylistId = ms.PlaylistId
+            WHERE ms.ShareId = @ShareId";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();

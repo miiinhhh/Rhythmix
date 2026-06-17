@@ -8,12 +8,10 @@ namespace Rhythmix.Application.UseCases.Share.Handlers;
 public sealed class CreateShareCommandHandler : IRequestHandler<CreateShareCommand, ShareItemDto>
 {
     private readonly IShareRepository _shareRepository;
-    private readonly IUserRepository _userRepository;
 
-    public CreateShareCommandHandler(IShareRepository shareRepository, IUserRepository userRepository)
+    public CreateShareCommandHandler(IShareRepository shareRepository)
     {
         _shareRepository = shareRepository;
-        _userRepository = userRepository;
     }
 
     public async Task<ShareItemDto> Handle(CreateShareCommand request, CancellationToken cancellationToken)
@@ -49,19 +47,22 @@ public sealed class CreateShareCommandHandler : IRequestHandler<CreateShareComma
 
         await _shareRepository.CreateShareAsync(share);
 
-        // Get sender info
-        var sender = await _userRepository.GetByIdAsync(request.SenderId);
+        var createdShare = await _shareRepository.GetByIdAsync(share.Id) ?? share;
 
         return new ShareItemDto
         {
-            Id = share.Id,
-            SenderId = share.SenderId,
-            SenderName = sender?.DisplayName ?? sender?.UserName ?? "Unknown",
-            ReceiverId = share.ReceiverId,
-            MediaId = share.MediaId,
-            PlaylistId = share.PlaylistId,
-            Message = share.Message,
-            SharedAt = share.SharedAt
+            Id = createdShare.Id,
+            SenderId = createdShare.SenderId,
+            SenderName = createdShare.SenderName,
+            ReceiverId = createdShare.ReceiverId,
+            ReceiverName = createdShare.ReceiverName,
+            MediaId = createdShare.MediaId,
+            MediaTitle = createdShare.MediaTitle,
+            MediaType = createdShare.MediaType,
+            PlaylistId = createdShare.PlaylistId,
+            PlaylistName = createdShare.PlaylistName,
+            Message = createdShare.Message,
+            SharedAt = createdShare.SharedAt
         };
     }
 }

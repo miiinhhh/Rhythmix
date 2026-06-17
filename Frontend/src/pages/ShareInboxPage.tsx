@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { useNotifications } from "../context/NotificationContext";
 import { useSearchParams } from "react-router-dom";
+import { shareService } from "../api/shareService";
+import type { ShareItemDto } from "../types/api";
 
 interface Message {
   id: string;
@@ -24,7 +26,7 @@ interface Message {
   sharedType: "song" | "video" | "playlist";
   time: string;
   avatarColor?: string;
-  trackData?: { id: number; title: string; artist: string };
+  trackData?: { id: string | number; title: string; artist: string };
   playlistData?: { id: string; title: string; description: string };
 }
 
@@ -66,6 +68,39 @@ const formatTimeAgo = (isoString: string): string => {
   }
 }
 
+const mapShareToMessage = (share: ShareItemDto): Message => {
+  const sharedType: Message["sharedType"] = share.playlistId
+    ? "playlist"
+    : share.mediaType?.toLowerCase() === "video"
+      ? "video"
+      : "song";
+
+  return {
+    id: share.id,
+    senderId: share.senderId,
+    senderName: share.senderName || "Nguoi gui",
+    receiverId: share.receiverId,
+    receiverName: share.receiverName || "Nguoi nhan",
+    sharedType,
+    time: share.sharedAt,
+    avatarColor: "bg-green-500",
+    trackData: share.mediaId
+      ? {
+          id: share.mediaId,
+          title: share.mediaTitle || "Untitled media",
+          artist: share.senderName || "Unknown",
+        }
+      : undefined,
+    playlistData: share.playlistId
+      ? {
+          id: share.playlistId,
+          title: share.playlistName || "Untitled playlist",
+          description: share.message || "Playlist duoc chia se",
+        }
+      : undefined,
+  };
+};
+
 const ShareInboxPage = () => {
   // 1. Lấy dữ liệu Context trước
   const { allMessages } = useNotifications(); 
@@ -80,10 +115,14 @@ const ShareInboxPage = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 3;
   const currentUserId = localStorage.getItem("currentUserId") || "user-alex";
+  const [apiMessages, setApiMessages] = useState<Message[]>([]);
+  const [isLoadingShares, setIsLoadingShares] = useState(false);
+  const [shareError, setShareError] = useState("");
 
   // 3. TÍNH TOÁN CÁC BIẾN CẦN THIẾT (Phải nằm TRƯỚC useEffect)
-  const receivedMessages = typedMessages.filter((msg) => msg.receiverId === currentUserId);
-  const sentMessages = typedMessages.filter((msg) => msg.senderId === currentUserId);
+  const sourceMessages = apiMessages.length > 0 ? apiMessages : typedMessages;
+  const receivedMessages = sourceMessages.filter((msg) => msg.receiverId === currentUserId);
+  const sentMessages = sourceMessages.filter((msg) => msg.senderId === currentUserId);
   const currentMessages = activeTab === "received" ? receivedMessages : sentMessages;
   const isSentTab = activeTab === "sent";
   
@@ -91,6 +130,43 @@ const ShareInboxPage = () => {
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = currentMessages.slice(indexOfFirstItem, indexOfLastItem);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadShares = async () => {
+      try {
+        setIsLoadingShares(true);
+        setShareError("");
+
+        const [inbox, outbox] = await Promise.all([
+          shareService.getInbox(),
+          shareService.getOutbox(),
+        ]);
+
+        if (cancelled) return;
+
+        const mapped = [...inbox, ...outbox]
+          .map(mapShareToMessage)
+          .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
+        setApiMessages(mapped);
+      } catch (error: any) {
+        if (cancelled) return;
+        setShareError(
+          error?.response?.data?.message || error?.message || "Khong tai duoc danh sach chia se."
+        );
+      } finally {
+        if (!cancelled) setIsLoadingShares(false);
+      }
+    };
+
+    loadShares();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 4. BÂY GIỜ MỚI ĐẾN CÁC useEffect
   useEffect(() => {
@@ -190,6 +266,18 @@ const ShareInboxPage = () => {
       </div>
 
       {/* Danh sách hiển thị tin nhắn/bài nhạc */}
+      {isLoadingShares && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-400">
+          Dang tai danh sach chia se...
+        </div>
+      )}
+
+      {shareError && (
+        <div className="rounded-lg border border-red-900/60 bg-red-950/30 px-4 py-3 text-sm text-red-300">
+          {shareError}
+        </div>
+      )}
+
       <div className="space-y-3">
         {currentMessages.length > 0 ? (
           currentItems.map((item) => {
@@ -265,6 +353,7 @@ const ShareInboxPage = () => {
                         onClick={() => {
                           const trackId = item.trackData?.id;
                           if (trackId === undefined) return;
+                          if (typeof trackId !== "number") return;
 
                           const isCurrentPlaying = currentSongId === trackId;
                           if (setCurrentSongId) setCurrentSongId(trackId);
@@ -277,7 +366,7 @@ const ShareInboxPage = () => {
                         className="mt-2 flex items-center gap-3 bg-zinc-950/60 p-2 rounded-lg border border-zinc-800 max-w-sm group/item hover:border-zinc-700 transition-colors cursor-pointer active:scale-[0.98] select-none"
                       >
                         <div className="size-10 bg-zinc-800 rounded flex items-center justify-center text-zinc-400 shrink-0 relative">
-                          {currentSongId === item.trackData.id && isPlaying ? (
+                          {typeof item.trackData.id === "number" && currentSongId === item.trackData.id && isPlaying ? (
                             <Pause className="size-4 fill-white text-white absolute opacity-100 transition-opacity" />
                           ) : (
                             <>

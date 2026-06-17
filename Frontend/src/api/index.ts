@@ -6,6 +6,7 @@ export * from './searchService';
 export * from './followService';
 export * from './interactionService';
 export * from './notificationService';
+export * from './shareService';
 export { signalRService } from './signalRService';
 export { default as apiClient } from './apiClient';
 

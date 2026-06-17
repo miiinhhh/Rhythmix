@@ -139,6 +139,29 @@ export interface FollowDto {
   createdAt: string;
 }
 
+// ============ Share DTOs ============
+export interface ShareItemDto {
+  id: string;
+  senderId: string;
+  senderName: string;
+  receiverId: string;
+  receiverName: string;
+  mediaId?: string;
+  mediaTitle?: string;
+  mediaType?: "audio" | "video" | string;
+  playlistId?: string;
+  playlistName?: string;
+  message?: string;
+  sharedAt: string;
+}
+
+export interface CreateShareDto {
+  receiverId: string;
+  mediaId?: string;
+  playlistId?: string;
+  message?: string;
+}
+
 // ============ Search Result ============
 export interface SearchResultDto {
   mediaItems: MediaItemDto[];

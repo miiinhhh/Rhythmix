@@ -7,12 +7,10 @@ namespace Rhythmix.Application.UseCases.Share.Handlers;
 public sealed class GetSharedWithMeQueryHandler : IRequestHandler<GetSharedWithMeQuery, IEnumerable<ShareItemDto>>
 {
     private readonly IShareRepository _shareRepository;
-    private readonly IUserRepository _userRepository;
 
-    public GetSharedWithMeQueryHandler(IShareRepository shareRepository, IUserRepository userRepository)
+    public GetSharedWithMeQueryHandler(IShareRepository shareRepository)
     {
         _shareRepository = shareRepository;
-        _userRepository = userRepository;
     }
 
     public async Task<IEnumerable<ShareItemDto>> Handle(GetSharedWithMeQuery request, CancellationToken cancellationToken)
@@ -22,16 +20,18 @@ public sealed class GetSharedWithMeQueryHandler : IRequestHandler<GetSharedWithM
         var result = new List<ShareItemDto>();
         foreach (var share in shares)
         {
-            var sender = await _userRepository.GetByIdAsync(share.SenderId);
-
             result.Add(new ShareItemDto
             {
                 Id = share.Id,
                 SenderId = share.SenderId,
-                SenderName = sender?.DisplayName ?? sender?.UserName ?? "Unknown",
+                SenderName = share.SenderName,
                 ReceiverId = share.ReceiverId,
+                ReceiverName = share.ReceiverName,
                 MediaId = share.MediaId,
+                MediaTitle = share.MediaTitle,
+                MediaType = share.MediaType,
                 PlaylistId = share.PlaylistId,
+                PlaylistName = share.PlaylistName,
                 Message = share.Message,
                 SharedAt = share.SharedAt
             });
