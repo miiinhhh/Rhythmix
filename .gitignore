@@ -1,2 +1,9 @@
 **/bin/
 **/obj/
+
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.svg
