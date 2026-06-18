@@ -41,6 +41,8 @@ export interface MediaItemDto {
   thumbnailUrl?: string;
   mimeType?: string;
   fileSize?: number;
+  artistId?: string;
+  artistName?: string;
   albumId?: string;
   genreId?: string;
   ownerId: string;
@@ -55,6 +57,7 @@ export interface UploadMediaDto {
   file: File;
   coverImage?: File;
   title: string;
+  artistName?: string;
   description?: string;
   isPublic?: boolean;
   albumId?: string;
@@ -66,6 +69,17 @@ export interface GenreDto {
   genreId: string;
   name: string;
   description?: string;
+}
+
+export interface ArtistDto {
+  artistId: string;
+  name: string;
+  description?: string;
+  avatarUrl?: string;
+  coverImageUrl?: string;
+  createdAt?: string;
+  trackCount?: number;
+  followerCount?: number;
 }
 
 // ============ Album DTOs ============
@@ -107,6 +121,7 @@ export interface PlaylistTrackDto {
   mediaId: string;
   sortOrder: number;
   title: string;
+  artistName?: string;
   filePath: string;
   thumbnailUrl?: string;
   duration: number;
@@ -217,6 +232,8 @@ export interface SearchMediaDto {
   mediaType: string;
   duration: number;
   thumbnailUrl?: string;
+  artistId?: string;
+  artistName?: string;
   genreId?: string;
   viewCount: number;
   createdAt: string;

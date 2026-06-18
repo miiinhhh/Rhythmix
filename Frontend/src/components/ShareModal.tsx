@@ -20,6 +20,14 @@ const isGuid = (value: string | number) =>
   typeof value === "string" &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
+const API_ORIGIN = "http://localhost:5269";
+
+const resolveAssetUrl = (url?: string) => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) return url;
+  return `${API_ORIGIN}${url}`;
+};
+
 const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModalProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sentRecords, setSentRecords] = useState<string[]>([]);
@@ -112,6 +120,7 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
           {filteredUsers.map((user) => {
             const currentRecordKey = `${user.id}-${itemToShare.type}`;
             const hasSent = sentRecords.includes(currentRecordKey);
+            const avatarUrl = resolveAssetUrl(user.avatarUrl);
 
             return (
               <div
@@ -119,8 +128,8 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
                 className="flex items-center justify-between rounded-lg bg-zinc-800/40 p-2 transition-colors hover:bg-zinc-800/80"
               >
                 <div className="flex min-w-0 items-center gap-2.5">
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.displayName || user.userName} className="size-8 rounded-full object-cover" />
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={user.displayName || user.userName} className="size-8 rounded-full object-cover" />
                   ) : (
                     <div className="flex size-8 items-center justify-center rounded-full bg-zinc-700 text-xs font-bold text-white">
                       {(user.displayName || user.userName || user.email).slice(0, 1).toUpperCase()}

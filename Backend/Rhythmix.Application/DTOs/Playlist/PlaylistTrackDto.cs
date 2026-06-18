@@ -6,6 +6,7 @@ public class PlaylistTrackDto
     public int SortOrder { get; set; }
     
     public string Title { get; set; } = string.Empty;
+    public string ArtistName { get; set; } = string.Empty;
     public string FilePath { get; set; } = string.Empty;
     public string ThumbnailUrl { get; set; } = string.Empty;
     public int Duration { get; set; }

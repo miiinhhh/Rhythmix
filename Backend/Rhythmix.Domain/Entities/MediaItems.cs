@@ -11,6 +11,8 @@ public class MediaItem
     public string ThumbnailUrl { get; set; } = string.Empty; 
     public string MimeType { get; set; } = string.Empty;
     public long FileSize { get; set; }
+    public Guid? ArtistId { get; set; }
+    public string ArtistName { get; set; } = string.Empty;
     public Guid? AlbumId { get; set; } 
     public Guid? GenreId { get; set; }
     public Guid OwnerId { get; set; }

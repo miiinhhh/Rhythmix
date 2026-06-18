@@ -9,13 +9,16 @@ namespace Rhythmix.Application.UseCases.Media;
 public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, MediaDto>
 {
     private readonly IMediaRepository _mediaRepository;
+    private readonly IArtistRepository _artistRepository;
     private readonly IFileStorageService _fileStorageService;
 
     public UploadMediaCommandHandler(
         IMediaRepository mediaRepository,
+        IArtistRepository artistRepository,
         IFileStorageService fileStorageService)
     {
         _mediaRepository = mediaRepository;
+        _artistRepository = artistRepository;
         _fileStorageService = fileStorageService;
     }
 
@@ -29,6 +32,7 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
         var filePath = await _fileStorageService.SaveFileAsync(request.FileStream, request.FileName, mediaType);
         var thumbnailUrl = await SaveCoverImageAsync(request);
         var duration = await GetDurationAsync(filePath);
+        var artist = await GetOrCreateArtistAsync(request.ArtistName);
 
         var media = new MediaItem
         {
@@ -41,6 +45,8 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             ThumbnailUrl = thumbnailUrl,
             MimeType = request.ContentType,
             FileSize = request.FileLength,
+            ArtistId = artist?.ArtistId,
+            ArtistName = artist?.Name ?? string.Empty,
             AlbumId = request.AlbumId,
             GenreId = request.GenreId,
             OwnerId = request.OwnerId,
@@ -62,6 +68,8 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             ThumbnailUrl = media.ThumbnailUrl,
             MimeType = media.MimeType,
             FileSize = media.FileSize,
+            ArtistId = media.ArtistId,
+            ArtistName = media.ArtistName,
             AlbumId = media.AlbumId,
             GenreId = media.GenreId,
             OwnerId = media.OwnerId,
@@ -69,6 +77,31 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             ViewCount = media.ViewCount,
             CreatedAt = media.CreatedAt
         };
+    }
+
+    private async Task<Artist?> GetOrCreateArtistAsync(string? artistName)
+    {
+        if (string.IsNullOrWhiteSpace(artistName))
+        {
+            return null;
+        }
+
+        var name = artistName.Trim();
+        var existing = await _artistRepository.GetByNameAsync(name);
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        var artist = new Artist
+        {
+            ArtistId = Guid.NewGuid(),
+            Name = name,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _artistRepository.AddAsync(artist);
+        return artist;
     }
 
     private async Task<string> SaveCoverImageAsync(UploadMediaCommand request)

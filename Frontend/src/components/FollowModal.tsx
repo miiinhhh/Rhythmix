@@ -1,15 +1,29 @@
 import { useNavigate } from "react-router-dom";
-import { X } from "lucide-react"; // Dùng icon X cho chuyên nghiệp
+import { X } from "lucide-react";
 
-const FollowModal = ({ isOpen, onClose, title, list }: { isOpen: boolean, onClose: () => void, title: string, list: any[] }) => {
+type FollowModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  list: any[];
+};
+
+const API_ORIGIN = "http://localhost:5269";
+
+const resolveAssetUrl = (url?: string) => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) return url;
+  return `${API_ORIGIN}${url}`;
+};
+
+const FollowModal = ({ isOpen, onClose, title, list }: FollowModalProps) => {
   const navigate = useNavigate();
 
   if (!isOpen) return null;
 
-  // Hàm xử lý click chuyển trang
   const handleUserClick = (userId: string) => {
     navigate(`/profile/${userId}`);
-    onClose(); // Đóng modal sau khi click
+    onClose();
   };
 
   return (
@@ -22,21 +36,40 @@ const FollowModal = ({ isOpen, onClose, title, list }: { isOpen: boolean, onClos
           </button>
         </div>
 
-        {/* Thêm max-h-80 và overflow-y-auto để nếu danh sách dài quá sẽ tự scroll */}
         <div className="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
           {list.length > 0 ? (
-            list.map((u) => (
-              <div 
-                key={u.id} 
-                onClick={() => handleUserClick(u.id)} // Click để chuyển trang
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800 cursor-pointer transition-colors"
-              >
-                <img src={u.avatarUrl} className="size-10 rounded-full object-cover" alt={u.name} />
-                <span className="text-white font-medium truncate">{u.name}</span>
-              </div>
-            ))
+            list.map((u) => {
+              const isArtist = u.itemType === "artist" || u.artistId || u.ArtistId;
+              const id = u.id || u.Id;
+              const name = u.displayName || u.DisplayName || u.userName || u.UserName || u.name || u.Name || u.email || "Unknown";
+              const avatarUrl = resolveAssetUrl(u.avatarUrl || u.AvatarUrl || u.coverImageUrl || u.CoverImageUrl || "");
+
+              return (
+                <div
+                  key={id || u.artistId || u.ArtistId}
+                  onClick={() => {
+                    if (!isArtist && id) handleUserClick(id);
+                  }}
+                  className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                    isArtist ? "cursor-default" : "hover:bg-zinc-800 cursor-pointer"
+                  }`}
+                >
+                  {avatarUrl ? (
+                    <img src={avatarUrl} className={`size-10 object-cover ${isArtist ? "rounded-md" : "rounded-full"}`} alt={name} />
+                  ) : (
+                    <div className={`flex size-10 items-center justify-center bg-zinc-800 text-sm font-bold text-white ${isArtist ? "rounded-md" : "rounded-full"}`}>
+                      {name.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="truncate text-white font-medium">{name}</div>
+                    {isArtist && <div className="text-xs text-zinc-500">Artist</div>}
+                  </div>
+                </div>
+              );
+            })
           ) : (
-            <p className="text-zinc-500 text-sm text-center py-4">Chưa có ai ở đây cả...</p>
+            <p className="text-zinc-500 text-sm text-center py-4">Chua co ai o day.</p>
           )}
         </div>
       </div>

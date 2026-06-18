@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
-import { ListMusic, Play, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ImagePlus, ListMusic, Mic2, Play, Search } from "lucide-react";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import { artistService } from "../api/artistService";
+import { followService } from "../api/followService";
 import { searchService } from "../api/searchService";
 import { userService } from "../api/userService";
-import type { SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
-import type { SongType } from "../utils/mediaMapping";
+import type { ArtistDto, MediaItemDto, SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
+import { mapMediaToSong, resolveArtistName, type SongType } from "../utils/mediaMapping";
 
 interface OutletContextType {
   setCurrentSongId: (id: string | null) => void;
@@ -43,7 +45,7 @@ const mapSearchMediaToSong = (media: SearchMediaDto): SongType => {
   return {
     id: media.mediaId,
     title: media.title,
-    artist: "Rhythmix artist",
+    artist: resolveArtistName(media.artistName, undefined, media.title),
     album: "Search result",
     duration: formatDuration(media.duration),
     isLiked: false,
@@ -61,6 +63,13 @@ const SearchPage = () => {
   const [mediaResults, setMediaResults] = useState<SearchMediaDto[]>([]);
   const [playlistResults, setPlaylistResults] = useState<SearchPlaylistDto[]>([]);
   const [genrePlaylists, setGenrePlaylists] = useState<SearchGenrePlaylistDto[]>([]);
+  const [artistResults, setArtistResults] = useState<ArtistDto[]>([]);
+  const [selectedArtist, setSelectedArtist] = useState<ArtistDto | null>(null);
+  const [artistTracks, setArtistTracks] = useState<MediaItemDto[]>([]);
+  const [isLoadingArtistTracks, setIsLoadingArtistTracks] = useState(false);
+  const [isUploadingArtistCover, setIsUploadingArtistCover] = useState(false);
+  const [followedArtistIds, setFollowedArtistIds] = useState<Record<string, boolean>>({});
+  const artistCoverInputRef = useRef<HTMLInputElement>(null);
   const [isSearching, setIsSearching] = useState(false);
   const { setCurrentSongId, setIsPlaying, songs, setSongs } = useOutletContext<OutletContextType>();
 
@@ -76,20 +85,28 @@ const SearchPage = () => {
       setMediaResults([]);
       setPlaylistResults([]);
       setGenrePlaylists([]);
+      setArtistResults([]);
+      setSelectedArtist(null);
+      setArtistTracks([]);
       return;
     }
 
     const timeoutId = window.setTimeout(async () => {
       setIsSearching(true);
       try {
-        const result = await searchService.search(query.trim());
+        const [result, artists] = await Promise.all([
+          searchService.search(query.trim()),
+          artistService.search(query.trim()),
+        ]);
         setMediaResults(result.media || []);
         setPlaylistResults(result.playlists || []);
         setGenrePlaylists(result.genrePlaylists || []);
+        setArtistResults(artists || []);
       } catch {
         setMediaResults([]);
         setPlaylistResults([]);
         setGenrePlaylists([]);
+        setArtistResults([]);
       } finally {
         setIsSearching(false);
       }
@@ -111,6 +128,91 @@ const SearchPage = () => {
     setSongs((current) => (current.some((item) => item.id === song.id) ? current : [song, ...current]));
     setCurrentSongId(song.id);
     setIsPlaying(true);
+  };
+
+  useEffect(() => {
+    const artistIds = Array.from(
+      new Set([
+        ...mediaResults.map((item) => item.artistId).filter(Boolean),
+        ...artistResults.map((item) => item.artistId).filter(Boolean),
+        selectedArtist?.artistId,
+      ].filter(Boolean))
+    ) as string[];
+    if (artistIds.length === 0) return;
+
+    let cancelled = false;
+    const loadStatuses = async () => {
+      const entries = await Promise.all(
+        artistIds.map(async (artistId) => {
+          try {
+            return [artistId, await followService.isFollowingArtist(artistId)] as const;
+          } catch {
+            return [artistId, false] as const;
+          }
+        })
+      );
+
+      if (!cancelled) {
+        setFollowedArtistIds((current) => ({ ...current, ...Object.fromEntries(entries) }));
+      }
+    };
+
+    void loadStatuses();
+    return () => {
+      cancelled = true;
+    };
+  }, [artistResults, mediaResults, selectedArtist]);
+
+  const toggleArtistFollow = async (artistId?: string) => {
+    if (!artistId) return;
+
+    const previous = followedArtistIds[artistId] ?? false;
+    setFollowedArtistIds((current) => ({ ...current, [artistId]: !previous }));
+
+    try {
+      const result = await followService.toggleArtist(artistId);
+      const next = result?.isFollowing ?? result?.IsFollowing ?? !previous;
+      setFollowedArtistIds((current) => ({ ...current, [artistId]: next }));
+    } catch {
+      setFollowedArtistIds((current) => ({ ...current, [artistId]: previous }));
+    }
+  };
+
+  const openArtist = async (artist: ArtistDto) => {
+    setSelectedArtist(artist);
+    setIsLoadingArtistTracks(true);
+    try {
+      const tracks = await artistService.getMedia(artist.artistId);
+      setArtistTracks(tracks || []);
+    } catch {
+      setArtistTracks([]);
+    } finally {
+      setIsLoadingArtistTracks(false);
+    }
+  };
+
+  const playArtistTrack = (media: MediaItemDto) => {
+    const song = mapMediaToSong(media);
+    setSongs((current) => (current.some((item) => item.id === song.id) ? current : [song, ...current]));
+    setCurrentSongId(song.id);
+    setIsPlaying(true);
+  };
+
+  const uploadSelectedArtistCover = async (file?: File) => {
+    if (!file || !selectedArtist) return;
+
+    setIsUploadingArtistCover(true);
+    try {
+      const coverImageUrl = await artistService.uploadCover(selectedArtist.artistId, file);
+      const updatedArtist = { ...selectedArtist, coverImageUrl };
+      setSelectedArtist(updatedArtist);
+      setArtistResults((current) =>
+        current.map((artist) => (artist.artistId === selectedArtist.artistId ? updatedArtist : artist))
+      );
+    } finally {
+      setIsUploadingArtistCover(false);
+      if (artistCoverInputRef.current) artistCoverInputRef.current.value = "";
+    }
   };
 
   const playGenrePlaylist = (playlist: SearchGenrePlaylistDto) => {
@@ -177,6 +279,154 @@ const SearchPage = () => {
               </div>
             )}
 
+            {artistResults.length > 0 && (
+              <div>
+                <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Artists</h2>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {artistResults.map((artist) => {
+                    const avatarUrl = resolveAssetUrl(artist.avatarUrl);
+                    const coverUrl = resolveAssetUrl(artist.coverImageUrl);
+                    return (
+                      <div
+                        key={artist.artistId}
+                        onClick={() => void openArtist(artist)}
+                        className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 hover:bg-zinc-800"
+                        style={coverUrl ? { backgroundImage: `linear-gradient(to right, rgba(24,24,27,.92), rgba(24,24,27,.72)), url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+                      >
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt={artist.name} className="size-12 rounded-full object-cover" />
+                        ) : (
+                          <div className="flex size-12 items-center justify-center rounded-full bg-zinc-800 text-zinc-400">
+                            <Mic2 className="size-6" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold text-white">{artist.name}</div>
+                          <div className="truncate text-xs text-zinc-400">
+                            {artist.trackCount ?? 0} songs - {artist.followerCount ?? 0} followers
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void toggleArtistFollow(artist.artistId);
+                          }}
+                          className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
+                            followedArtistIds[artist.artistId]
+                              ? "bg-zinc-700 text-white"
+                              : "bg-white text-black hover:bg-zinc-200"
+                          }`}
+                        >
+                          {followedArtistIds[artist.artistId] ? "Following" : "Follow"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {selectedArtist && (
+              <div>
+                <div className="mb-4 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/60">
+                  <div
+                    className="flex min-h-36 items-end justify-between gap-4 bg-zinc-800 p-4"
+                    style={
+                      selectedArtist.coverImageUrl
+                        ? {
+                            backgroundImage: `linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,.25)), url(${resolveAssetUrl(selectedArtist.coverImageUrl)})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="min-w-0">
+                      <div className="mb-2 flex size-14 items-center justify-center overflow-hidden rounded-full bg-zinc-900/70 text-zinc-300">
+                        {selectedArtist.avatarUrl ? (
+                          <img src={resolveAssetUrl(selectedArtist.avatarUrl)} alt={selectedArtist.name} className="size-full object-cover" />
+                        ) : (
+                          <Mic2 className="size-7" />
+                        )}
+                      </div>
+                      <h2 className="truncate text-2xl font-black tracking-tight text-white">{selectedArtist.name}</h2>
+                      <p className="mt-1 text-xs font-semibold text-zinc-300">
+                        {selectedArtist.trackCount ?? artistTracks.length} songs - {selectedArtist.followerCount ?? 0} followers
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <input
+                        ref={artistCoverInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(event) => void uploadSelectedArtistCover(event.target.files?.[0])}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => artistCoverInputRef.current?.click()}
+                        disabled={isUploadingArtistCover}
+                        className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-black hover:bg-zinc-200 disabled:opacity-60"
+                      >
+                        <ImagePlus className="size-4" />
+                        {isUploadingArtistCover ? "Uploading" : "Cover"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void toggleArtistFollow(selectedArtist.artistId)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                          followedArtistIds[selectedArtist.artistId] ? "bg-zinc-700 text-white" : "bg-green-500 text-black"
+                        }`}
+                      >
+                        {followedArtistIds[selectedArtist.artistId] ? "Following" : "Follow"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 className="text-lg font-bold tracking-tight text-white">
+                    {selectedArtist.name} songs
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedArtist(null);
+                      setArtistTracks([]);
+                    }}
+                    className="rounded-full border border-zinc-700 px-3 py-1 text-xs font-bold text-zinc-300 hover:bg-zinc-800"
+                  >
+                    Close
+                  </button>
+                </div>
+                {isLoadingArtistTracks ? (
+                  <p className="text-sm text-zinc-400">Loading songs...</p>
+                ) : artistTracks.length === 0 ? (
+                  <p className="text-sm text-zinc-400">No public songs from this artist yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {artistTracks.map((track) => {
+                      const song = mapMediaToSong(track);
+                      return (
+                        <button
+                          key={track.mediaId}
+                          type="button"
+                          onClick={() => playArtistTrack(track)}
+                          className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-left hover:bg-zinc-800"
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-white">{song.title}</div>
+                            <div className="truncate text-xs text-zinc-400">{song.artist}</div>
+                          </div>
+                          <span className="text-xs text-zinc-500">{song.duration}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {playlistResults.length > 0 && (
               <div>
                 <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Playlists</h2>
@@ -214,8 +464,12 @@ const SearchPage = () => {
                       onClick={() => navigate(`/profile/${user.id}`)}
                       className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 hover:bg-zinc-800"
                     >
-                      {user.avatarUrl ? (
-                        <img src={user.avatarUrl} className="size-10 rounded-full object-cover" />
+                      {resolveAssetUrl(user.avatarUrl) ? (
+                        <img
+                          src={resolveAssetUrl(user.avatarUrl)}
+                          alt={user.displayName || user.userName || user.email}
+                          className="size-10 rounded-full object-cover"
+                        />
                       ) : (
                         <div className="flex size-10 items-center justify-center rounded-full bg-zinc-800 text-sm font-bold text-white">
                           {(user.displayName || user.userName || user.email).slice(0, 1).toUpperCase()}
@@ -244,7 +498,25 @@ const SearchPage = () => {
                           <div className="truncate text-sm font-semibold text-white">{song.title}</div>
                           <div className="truncate text-xs text-zinc-400">{song.artist} - {song.album}</div>
                         </div>
-                        <span className="text-xs text-zinc-500">{song.duration}</span>
+                        <div className="flex shrink-0 items-center gap-3">
+                          {media.artistId && (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void toggleArtistFollow(media.artistId);
+                              }}
+                              className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
+                                followedArtistIds[media.artistId]
+                                  ? "bg-zinc-800 text-white"
+                                  : "bg-white text-black hover:bg-zinc-200"
+                              }`}
+                            >
+                              {followedArtistIds[media.artistId] ? "Following" : "Follow Artist"}
+                            </button>
+                          )}
+                          <span className="text-xs text-zinc-500">{song.duration}</span>
+                        </div>
                       </div>
                     );
                   })}
@@ -252,7 +524,7 @@ const SearchPage = () => {
               </div>
             )}
 
-            {!isSearching && mediaResults.length === 0 && playlistResults.length === 0 && genrePlaylists.length === 0 && filteredUsers.length === 0 && (
+            {!isSearching && mediaResults.length === 0 && playlistResults.length === 0 && genrePlaylists.length === 0 && artistResults.length === 0 && filteredUsers.length === 0 && (
               <p className="text-sm text-zinc-400">No results found.</p>
             )}
           </div>

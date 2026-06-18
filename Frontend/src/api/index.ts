@@ -6,6 +6,7 @@ export * from './playlistService';
 export * from './userService';
 export * from './searchService';
 export * from './followService';
+export * from './artistService';
 export * from './interactionService';
 export * from './notificationService';
 export * from './shareService';

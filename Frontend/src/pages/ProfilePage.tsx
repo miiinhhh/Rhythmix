@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Edit3,
   X,
@@ -17,15 +17,9 @@ import FollowModal from "../components/FollowModal";
 import { useNotifications } from "../context/NotificationContext";
 import { userService } from "../api/userService";
 import { playlistService } from "../api/playlistService";
-import type { PlaylistDto, UserProfileDto } from "../types/api";
+import { followService } from "../api/followService";
+import type { ArtistDto, PlaylistDto, UserProfileDto } from "../types/api";
 import type { SongType } from "../utils/mediaMapping";
-
-type FollowType = {
-  followerId: string;
-  followingId: string;
-  createdAt: string;
-};
-
 
 // Định nghĩa interface cho Context nhận từ AppLayout (giống bên LikedSongsPage)
 interface OutletContextType {
@@ -235,25 +229,67 @@ const ProfilePage = () => {
   };
 
 
-  const [follows, setFollows] = useState<FollowType[]>(() => {
-    const saved = localStorage.getItem("my_follows");
-    return saved ? (JSON.parse(saved) as FollowType[]) : [];
-  });
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersList, setFollowersList] = useState<UserProfileDto[]>([]);
+  const [followingList, setFollowingList] = useState<UserProfileDto[]>([]);
+  const [followingArtists, setFollowingArtists] = useState<ArtistDto[]>([]);
+  const [isFollowBusy, setIsFollowBusy] = useState(false);
 
-  const followersCount = useMemo(
-    () => follows.filter((f) => f.followingId === targetId).length,
-    [follows, targetId]
-  );
+  const refreshFollowData = async () => {
+    const [counts, followers, following, artists, status] = await Promise.all([
+      followService.getUserCounts(targetId),
+      followService.getFollowers(targetId),
+      followService.getFollowing(targetId),
+      followService.getFollowingArtistsByUser(targetId),
+      isMyProfile ? Promise.resolve(false) : followService.isFollowing(targetId),
+    ]);
 
-  const followingCount = useMemo(
-    () => follows.filter((f) => f.followerId === targetId).length,
-    [follows, targetId]
-  );
+    setFollowersCount(counts.followersCount);
+    setFollowingCount(counts.followingCount + (artists?.length ?? 0));
+    setFollowersList(followers || []);
+    setFollowingList(following || []);
+    setFollowingArtists(artists || []);
+    setIsFollowing(status);
+  };
 
-  const isFollowing = useMemo(
-    () => follows.some((f) => f.followerId === currentUserId && f.followingId === targetId),
-    [follows, currentUserId, targetId]
-  );
+  useEffect(() => {
+    if (!targetId) return;
+
+    let cancelled = false;
+    const loadFollowData = async () => {
+      try {
+        const [counts, followers, following, artists, status] = await Promise.all([
+          followService.getUserCounts(targetId),
+          followService.getFollowers(targetId),
+          followService.getFollowing(targetId),
+          followService.getFollowingArtistsByUser(targetId),
+          isMyProfile ? Promise.resolve(false) : followService.isFollowing(targetId),
+        ]);
+        if (cancelled) return;
+        setFollowersCount(counts.followersCount);
+        setFollowingCount(counts.followingCount + (artists?.length ?? 0));
+        setFollowersList(followers || []);
+        setFollowingList(following || []);
+        setFollowingArtists(artists || []);
+        setIsFollowing(status);
+      } catch {
+        if (cancelled) return;
+        setFollowersCount(0);
+        setFollowingCount(0);
+        setFollowersList([]);
+        setFollowingList([]);
+        setFollowingArtists([]);
+        setIsFollowing(false);
+      }
+    };
+
+    void loadFollowData();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetId, isMyProfile]);
 
   const currentUser = users.find((u) => u.id === currentUserId) || {
     id: "unknown",
@@ -264,23 +300,25 @@ const ProfilePage = () => {
 
   const { addNotification } = useNotifications();
 
-  const handleToggleFollow = () => {
-    setFollows((prev) => {
-      const following = prev.some(
-        (f) => f.followerId === currentUserId && f.followingId === targetId
-      );
+  const handleToggleFollow = async () => {
+    if (isFollowBusy || !targetId || isMyProfile) return;
 
-      let newFollows: FollowType[];
-      if (following) {
-        newFollows = prev.filter(
-          (f) => !(f.followerId === currentUserId && f.followingId === targetId)
-        );
-      } else {
-        newFollows = [
-          ...prev,
-          { followerId: currentUserId, followingId: targetId } as any,
-        ];
+    const previous = isFollowing;
+    setIsFollowBusy(true);
+    setIsFollowing(!previous);
+    setFollowersCount((count) => Math.max(0, count + (previous ? -1 : 1)));
 
+    try {
+      const result = await followService.toggleUser(targetId);
+      const message = result?.message ?? result?.Message ?? "";
+      const next = result?.isFollowing ?? result?.IsFollowing ?? !message.toLowerCase().includes("unfollow");
+      setIsFollowing(next);
+
+      if (next !== !previous) {
+        setFollowersCount((count) => Math.max(0, count + (next ? 1 : -1)));
+      }
+
+      if (next) {
         addNotification({
           id: Date.now().toString(),
           receiverId: targetId,
@@ -295,9 +333,13 @@ const ProfilePage = () => {
         } as any);
       }
 
-      localStorage.setItem("my_follows", JSON.stringify(newFollows));
-      return newFollows;
-    });
+      await refreshFollowData();
+    } catch {
+      setIsFollowing(previous);
+      setFollowersCount((count) => Math.max(0, count + (previous ? 1 : -1)));
+    } finally {
+      setIsFollowBusy(false);
+    }
   };
 
   const [followModal, setFollowModal] = useState<{
@@ -307,20 +349,16 @@ const ProfilePage = () => {
   }>({ isOpen: false, title: "", list: [] });
 
   const openFollowModal = (type: "followers" | "following") => {
-    const usersList =
-      type === "followers"
-        ? follows
-            .filter((f) => f.followingId === targetId)
-            .map((f) => users.find((u) => u.id === f.followerId))
-        : follows
-            .filter((f) => f.followerId === targetId)
-            .map((f) => users.find((u) => u.id === f.followingId));
-
-    const filteredList = usersList.filter((u) => u !== undefined);
     setFollowModal({
       isOpen: true,
       title: type === "followers" ? "Followers" : "Following",
-      list: filteredList as any[],
+      list:
+        type === "followers"
+          ? followersList
+          : [
+              ...followingList.map((item) => ({ ...item, itemType: "user" })),
+              ...followingArtists.map((item) => ({ ...item, itemType: "artist" })),
+            ],
     });
   };
 
@@ -398,6 +436,7 @@ const ProfilePage = () => {
             ) : (
               <button
                 onClick={handleToggleFollow}
+                disabled={isFollowBusy}
                 className={`px-6 py-2 rounded-full text-xs font-bold ${
                   isFollowing ? "bg-zinc-800 text-white" : "bg-white text-black"
                 }`}

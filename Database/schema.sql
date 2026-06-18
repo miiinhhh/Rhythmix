@@ -19,14 +19,15 @@ CREATE TABLE UserProfiles
         REFERENCES AspNetUsers(Id)
 );
 
--- CREATE TABLE Artists
--- (
---     ArtistId UNIQUEIDENTIFIER PRIMARY KEY,
---     Name NVARCHAR(200) NOT NULL,
---     Description NVARCHAR(MAX),
---     AvatarUrl NVARCHAR(500),
---     CreatedAt DATETIME2 DEFAULT GETDATE()
--- )
+CREATE TABLE Artists
+(
+    ArtistId UNIQUEIDENTIFIER PRIMARY KEY,
+    Name NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX),
+    AvatarUrl NVARCHAR(500),
+    CoverImageUrl NVARCHAR(500),
+    CreatedAt DATETIME2 DEFAULT GETDATE()
+);
 
 CREATE TABLE Albums
 (
@@ -60,6 +61,7 @@ CREATE TABLE MediaItems
     ThumbnailUrl NVARCHAR(500),
     MimeType NVARCHAR(100),
     FileSize BIGINT,
+    ArtistId UNIQUEIDENTIFIER NULL,
     AlbumId UNIQUEIDENTIFIER NULL,
     GenreId UNIQUEIDENTIFIER NULL,
     OwnerId UNIQUEIDENTIFIER NOT NULL,
@@ -67,6 +69,9 @@ CREATE TABLE MediaItems
     ViewCount INT DEFAULT 0,
     CreatedAt DATETIME2 DEFAULT GETDATE(),
 
+    FOREIGN KEY (ArtistId)
+        REFERENCES Artists(ArtistId),
+        
     FOREIGN KEY (AlbumId)
         REFERENCES Albums(AlbumId),
 
@@ -185,20 +190,16 @@ CREATE TABLE Follows
         REFERENCES AspNetUsers(Id)
 );
 
-CREATE TABLE PlayListTrack
+CREATE TABLE ArtistFollows
 (
-    PlaylistId UNIQUEIDENTIFIER NOT NULL,
-    MediaId UNIQUEIDENTIFIER NOT NULL,
-    SortOrder INT DEFAULT 0,    -- Cột thêm vào: Giúp kéo thả, sắp xếp thứ tự bài hát
-    
-    PRIMARY KEY (PlaylistId, MediaId), 
+    UserId UNIQUEIDENTIFIER NOT NULL,
+    ArtistId UNIQUEIDENTIFIER NOT NULL,
+    FollowedAt DATETIME2 DEFAULT GETDATE(),
 
-    CONSTRAINT FK_PlaylistItems_Playlists
-        FOREIGN KEY (PlaylistId) REFERENCES Playlists(PlaylistId) 
-        ON DELETE CASCADE, -- Nếu xóa playlist thì tự động xóa các liên kết bên trong
-
-    -- Khóa ngoại liên kết tới bảng MediaItems (Track)
-    CONSTRAINT FK_PlaylistItems_MediaItems
-        FOREIGN KEY (MediaId) REFERENCES MediaItems(MediaId)
-        ON DELETE CASCADE -- Nếu bài hát bị xóa khỏi hệ thống thì tự động biến mất khỏi playlist
+    PRIMARY KEY(UserId, ArtistId),
+    FOREIGN KEY(UserId)
+        REFERENCES AspNetUsers(Id),
+    FOREIGN KEY(ArtistId)
+        REFERENCES Artists(ArtistId)
 );
+
