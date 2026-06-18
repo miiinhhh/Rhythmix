@@ -43,6 +43,7 @@ public sealed class GetPlaylistByIdQueryHandler : IRequestHandler<GetPlaylistByI
             MediaId = track.MediaId,
             SortOrder = track.SortOrder,
             Title = mediaDict.ContainsKey(track.MediaId) ? mediaDict[track.MediaId].Title : string.Empty,
+            ArtistName = mediaDict.ContainsKey(track.MediaId) ? mediaDict[track.MediaId].ArtistName : string.Empty,
             FilePath = mediaDict.ContainsKey(track.MediaId) ? mediaDict[track.MediaId].FilePath : string.Empty,
             ThumbnailUrl = mediaDict.ContainsKey(track.MediaId) ? mediaDict[track.MediaId].ThumbnailUrl : string.Empty,
             Duration = mediaDict.ContainsKey(track.MediaId) ? mediaDict[track.MediaId].Duration : 0

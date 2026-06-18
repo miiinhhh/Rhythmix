@@ -66,6 +66,7 @@ public sealed class MediaController : ControllerBase
             var command = new UploadMediaCommand
             {
                 Title = request.Title,
+                ArtistName = request.ArtistName,
                 Description = request.Description,
                 AlbumId = request.AlbumId,
                 GenreId = request.GenreId,

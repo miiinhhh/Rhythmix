@@ -17,6 +17,7 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
 
         services.AddScoped<IUserRepository>(provider => new DapperUserRepository(connectionString));
+        services.AddScoped<IArtistRepository>(provider => new DapperArtistRepository(connectionString));
         services.AddScoped<IMediaRepository>(provider => new DapperMediaRepository(connectionString));
         services.AddScoped<IAlbumRepository>(provider => new DapperAlbumRepository(connectionString));
         services.AddScoped<IGenreRepository>(provider => new DapperGenreRepository(connectionString));

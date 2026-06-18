@@ -8,6 +8,7 @@ export const mediaService = {
     formData.append('file', data.file);
     if (data.coverImage) formData.append('coverImage', data.coverImage);
     formData.append('title', data.title);
+    if (data.artistName) formData.append('artistName', data.artistName);
     if (data.description) formData.append('description', data.description);
     if (data.isPublic !== undefined) formData.append('isPublic', String(data.isPublic));
     if (data.albumId) formData.append('albumId', data.albumId);

@@ -25,12 +25,14 @@ public sealed class DapperSearchRepository : ISearchRepository
             SELECT COUNT(1)
             FROM [MediaItems] m
             LEFT JOIN [Genres] g ON g.GenreId = m.GenreId
+            LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
             WHERE m.IsPublic = 1 
                 AND (
                     (@UseExactGenre = 1 AND LOWER(g.Name) = LOWER(@ExactQuery))
                     OR
                     (@UseExactGenre = 0 AND (
                         m.Title LIKE @Query
+                        OR a.Name LIKE @Query
                         OR g.Name LIKE @Query
                         OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = m.OwnerId AND u.UserName LIKE @Query)
                     ))
@@ -47,6 +49,8 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.ThumbnailUrl,
                 m.MimeType,
                 m.FileSize,
+                m.ArtistId,
+                a.Name AS ArtistName,
                 m.AlbumId,
                 m.GenreId,
                 m.OwnerId,
@@ -55,12 +59,14 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.CreatedAt
             FROM [MediaItems] m
             LEFT JOIN [Genres] g ON g.GenreId = m.GenreId
+            LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
             WHERE m.IsPublic = 1 
                 AND (
                     (@UseExactGenre = 1 AND LOWER(g.Name) = LOWER(@ExactQuery))
                     OR
                     (@UseExactGenre = 0 AND (
                         m.Title LIKE @Query
+                        OR a.Name LIKE @Query
                         OR g.Name LIKE @Query
                         OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = m.OwnerId AND u.UserName LIKE @Query)
                     ))
@@ -114,6 +120,8 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.ThumbnailUrl,
                 m.MimeType,
                 m.FileSize,
+                m.ArtistId,
+                a.Name AS ArtistName,
                 m.AlbumId,
                 m.GenreId,
                 m.OwnerId,
@@ -122,6 +130,7 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.CreatedAt
             FROM [Genres] g
             INNER JOIN [MediaItems] m ON m.GenreId = g.GenreId AND m.IsPublic = 1
+            LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
             WHERE LOWER(g.Name) = LOWER(@ExactQuery)
             ORDER BY g.Name, m.ViewCount DESC, m.CreatedAt DESC";
 
@@ -245,24 +254,27 @@ public sealed class DapperSearchRepository : ISearchRepository
 
         const string dataSql = @"
             SELECT 
-                MediaId,
-                Title,
-                Description,
-                MediaType,
-                Duration,
-                FilePath,
-                ThumbnailUrl,
-                MimeType,
-                FileSize,
-                AlbumId,
-                GenreId,
-                OwnerId,
-                IsPublic,
-                ViewCount,
-                CreatedAt
-            FROM [MediaItems]
-            WHERE IsPublic = 1
-            ORDER BY ViewCount DESC, CreatedAt DESC
+                m.MediaId,
+                m.Title,
+                m.Description,
+                m.MediaType,
+                m.Duration,
+                m.FilePath,
+                m.ThumbnailUrl,
+                m.MimeType,
+                m.FileSize,
+                m.ArtistId,
+                a.Name AS ArtistName,
+                m.AlbumId,
+                m.GenreId,
+                m.OwnerId,
+                m.IsPublic,
+                m.ViewCount,
+                m.CreatedAt
+            FROM [MediaItems] m
+            LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
+            WHERE m.IsPublic = 1
+            ORDER BY m.ViewCount DESC, m.CreatedAt DESC
             OFFSET @Offset ROWS
             FETCH NEXT @PageSize ROWS ONLY";
 

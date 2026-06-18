@@ -142,6 +142,7 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
         await mediaService.uploadMedia({
           file: selectedFile || selectedVideoFile!,
           title: title.trim(),
+          artistName: artist.trim(),
           description: description.trim() || undefined,
           isPublic: true,
           albumId: selectedAlbumId || undefined,

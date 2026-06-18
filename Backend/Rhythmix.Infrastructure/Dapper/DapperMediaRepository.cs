@@ -20,11 +20,13 @@ public sealed class DapperMediaRepository : IMediaRepository
     {
         const string sql = @"
             SELECT 
-                MediaId, Title, Description, MediaType, Duration, 
-                FilePath, ThumbnailUrl, MimeType, FileSize, 
-                AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
-            FROM [MediaItems]
-            WHERE MediaId = @MediaId";
+                m.MediaId, m.Title, m.Description, m.MediaType, m.Duration, 
+                m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, 
+                m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
+                m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
+            FROM [MediaItems] m
+            LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
+            WHERE m.MediaId = @MediaId";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -38,11 +40,13 @@ public sealed class DapperMediaRepository : IMediaRepository
 
         const string sql = @"
             SELECT 
-                MediaId, Title, Description, MediaType, Duration, 
-                FilePath, ThumbnailUrl, MimeType, FileSize, 
-                AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
-            FROM [MediaItems]
-            WHERE MediaId IN @Ids";
+                m.MediaId, m.Title, m.Description, m.MediaType, m.Duration, 
+                m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, 
+                m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
+                m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
+            FROM [MediaItems] m
+            LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
+            WHERE m.MediaId IN @Ids";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -55,11 +59,11 @@ public sealed class DapperMediaRepository : IMediaRepository
             INSERT INTO [MediaItems] (
                 MediaId, Title, Description, MediaType, Duration, 
                 FilePath, ThumbnailUrl, MimeType, FileSize, 
-                AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
+                ArtistId, AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
             ) VALUES (
                 @MediaId, @Title, @Description, @MediaType, @Duration, 
                 @FilePath, @ThumbnailUrl, @MimeType, @FileSize, 
-                @AlbumId, @GenreId, @OwnerId, @IsPublic, @ViewCount, @CreatedAt
+                @ArtistId, @AlbumId, @GenreId, @OwnerId, @IsPublic, @ViewCount, @CreatedAt
             )";
 
         await using var connection = new SqlConnection(_connectionString);
@@ -81,6 +85,7 @@ public sealed class DapperMediaRepository : IMediaRepository
                 ThumbnailUrl = @ThumbnailUrl,
                 MimeType = @MimeType,
                 FileSize = @FileSize,
+                ArtistId = @ArtistId,
                 AlbumId = @AlbumId,
                 GenreId = @GenreId,
                 IsPublic = @IsPublic
@@ -112,12 +117,14 @@ public sealed class DapperMediaRepository : IMediaRepository
     {
         const string sql = @"
             SELECT 
-                MediaId, Title, Description, MediaType, Duration, 
-                FilePath, ThumbnailUrl, MimeType, FileSize, 
-                AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
-            FROM [MediaItems]
-            WHERE OwnerId = @OwnerId
-            ORDER BY CreatedAt DESC
+                m.MediaId, m.Title, m.Description, m.MediaType, m.Duration, 
+                m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, 
+                m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
+                m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
+            FROM [MediaItems] m
+            LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
+            WHERE m.OwnerId = @OwnerId
+            ORDER BY m.CreatedAt DESC
             OFFSET @Offset ROWS
             FETCH NEXT @PageSize ROWS ONLY";
 
@@ -135,12 +142,14 @@ public sealed class DapperMediaRepository : IMediaRepository
     {
         const string sql = @"
             SELECT
-                MediaId, Title, Description, MediaType, Duration,
-                FilePath, ThumbnailUrl, MimeType, FileSize,
-                AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
-            FROM [MediaItems]
-            WHERE AlbumId = @AlbumId
-            ORDER BY CreatedAt ASC";
+                m.MediaId, m.Title, m.Description, m.MediaType, m.Duration,
+                m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize,
+                m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
+                m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
+            FROM [MediaItems] m
+            LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
+            WHERE m.AlbumId = @AlbumId
+            ORDER BY m.CreatedAt ASC";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -159,21 +168,25 @@ public sealed class DapperMediaRepository : IMediaRepository
         var sql = hasIsPublicColumn
             ? @"
                 SELECT 
-                    MediaId, Title, Description, MediaType, Duration, 
-                    FilePath, ThumbnailUrl, MimeType, FileSize, 
-                    AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
-                FROM [MediaItems]
-                WHERE IsPublic = 1
-                ORDER BY CreatedAt DESC
+                    m.MediaId, m.Title, m.Description, m.MediaType, m.Duration, 
+                    m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, 
+                    m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
+                    m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
+                FROM [MediaItems] m
+                LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
+                WHERE m.IsPublic = 1
+                ORDER BY m.CreatedAt DESC
                 OFFSET @Offset ROWS
                 FETCH NEXT @PageSize ROWS ONLY"
             : @"
                 SELECT 
-                    MediaId, Title, Description, MediaType, Duration, 
-                    FilePath, ThumbnailUrl, MimeType, FileSize, 
-                    AlbumId, GenreId, OwnerId, CAST(1 AS bit) AS IsPublic, ViewCount, CreatedAt
-                FROM [MediaItems]
-                ORDER BY CreatedAt DESC
+                    m.MediaId, m.Title, m.Description, m.MediaType, m.Duration, 
+                    m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, 
+                    m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
+                    m.OwnerId, CAST(1 AS bit) AS IsPublic, m.ViewCount, m.CreatedAt
+                FROM [MediaItems] m
+                LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
+                ORDER BY m.CreatedAt DESC
                 OFFSET @Offset ROWS
                 FETCH NEXT @PageSize ROWS ONLY";
 

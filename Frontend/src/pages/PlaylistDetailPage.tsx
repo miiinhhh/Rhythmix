@@ -17,7 +17,7 @@ import ShareModal from "../components/ShareModal";
 import { playlistService } from "../api/playlistService";
 import { mediaService } from "../api/mediaService";
 import type { PlaylistDetailDto, PlaylistTrackDto } from "../types/api";
-import type { SongType } from "../utils/mediaMapping";
+import { resolveArtistName, type SongType } from "../utils/mediaMapping";
 
 interface OutletContextType {
   currentSongId: string | null;
@@ -39,7 +39,7 @@ const formatDuration = (seconds?: number) => {
 const mapTrackToSong = (track: PlaylistTrackDto): SongType => ({
   id: track.mediaId,
   title: track.title,
-  artist: "Unknown artist",
+  artist: resolveArtistName(track.artistName, undefined, track.title),
   album: "Playlist",
   duration: formatDuration(track.duration),
   isLiked: false,

@@ -4,7 +4,7 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import { searchService } from "../api/searchService";
 import { userService } from "../api/userService";
 import type { SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
-import type { SongType } from "../utils/mediaMapping";
+import { resolveArtistName, type SongType } from "../utils/mediaMapping";
 
 interface OutletContextType {
   setCurrentSongId: (id: string | null) => void;
@@ -43,7 +43,7 @@ const mapSearchMediaToSong = (media: SearchMediaDto): SongType => {
   return {
     id: media.mediaId,
     title: media.title,
-    artist: "Rhythmix artist",
+    artist: resolveArtistName(media.artistName, undefined, media.title),
     album: "Search result",
     duration: formatDuration(media.duration),
     isLiked: false,

@@ -28,6 +28,8 @@ public sealed class GetRecentMediaQueryHandler : IRequestHandler<GetRecentMediaQ
             ThumbnailUrl = media.ThumbnailUrl,
             MimeType = media.MimeType,
             FileSize = media.FileSize,
+            ArtistId = media.ArtistId,
+            ArtistName = media.ArtistName,
             AlbumId = media.AlbumId,
             GenreId = media.GenreId,
             OwnerId = media.OwnerId,

@@ -7,6 +7,7 @@ namespace Rhythmix.Application.UseCases.Media;
 public sealed class UploadMediaCommand : IRequest<MediaDto>
 {
     public string Title { get; init; } = string.Empty;
+    public string? ArtistName { get; init; }
     public string? Description { get; init; }
     public Guid? AlbumId { get; init; }
     public Guid? GenreId { get; init; }

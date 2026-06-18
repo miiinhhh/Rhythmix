@@ -32,6 +32,16 @@ const resolveAssetUrl = (url?: string) => {
   return `${API_ORIGIN}${url}`;
 };
 
+export const resolveArtistName = (artistName?: string, ownerName?: string, title?: string) => {
+  if (artistName?.trim()) return artistName.trim();
+  if (ownerName?.trim()) return ownerName.trim();
+
+  const titlePrefix = title?.split("_")[0]?.trim();
+  if (titlePrefix && titlePrefix !== title) return titlePrefix;
+
+  return "Unknown artist";
+};
+
 export const mapMediaToSong = (media: MediaItemDto): SongType => {
   const mediaType = media.mediaType?.toLowerCase() || "audio";
   const streamUrl = mediaService.getMediaStream(media.mediaId);
@@ -39,7 +49,7 @@ export const mapMediaToSong = (media: MediaItemDto): SongType => {
   return {
     id: media.mediaId,
     title: media.title,
-    artist: media.ownerName || "Unknown artist",
+    artist: resolveArtistName(media.artistName, media.ownerName, media.title),
     album: "Single",
     duration: formatDuration(media.duration),
     isLiked: false,
