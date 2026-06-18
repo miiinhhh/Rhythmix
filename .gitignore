@@ -1,9 +1,12 @@
 **/bin/
 **/obj/
-
+**/appsettings.json
+**/appsettings.Development.json
 **/*.png
 **/*.jpg
 **/*.jpeg
 **/*.gif
 **/*.webp
 **/*.svg
+**/*.mp3
+**/*.mp4

@@ -13,7 +13,7 @@ export const searchService = {
    */
   search: async (query: string) => {
     const res = await apiClient.get<ApiResponse<SearchResultDto>>(
-      `/search?q=${encodeURIComponent(query)}`
+      `/search?query=${encodeURIComponent(query)}`
     );
     return res.data.data;
   },
@@ -23,7 +23,7 @@ export const searchService = {
    */
   searchMedia: async (query: string) => {
     const res = await apiClient.get<ApiResponse<any[]>>(
-      `/search/media?q=${encodeURIComponent(query)}`
+      `/search/media?query=${encodeURIComponent(query)}`
     );
     return res.data.data;
   },
@@ -33,7 +33,7 @@ export const searchService = {
    */
   searchPlaylists: async (query: string) => {
     const res = await apiClient.get<ApiResponse<any[]>>(
-      `/search/playlists?q=${encodeURIComponent(query)}`
+      `/search/playlists?query=${encodeURIComponent(query)}`
     );
     return res.data.data;
   },
@@ -43,7 +43,7 @@ export const searchService = {
    */
   searchUsers: async (query: string) => {
     const res = await apiClient.get<ApiResponse<any[]>>(
-      `/search/users?q=${encodeURIComponent(query)}`
+      `/search/users?query=${encodeURIComponent(query)}`
     );
     return res.data.data;
   },

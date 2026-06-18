@@ -21,6 +21,11 @@ public sealed class DapperSearchRepository : ISearchRepository
     public async Task<(IEnumerable<MediaItem> Items, int TotalCount)> SearchMediaAsync(
         string query, int page = 1, int pageSize = 10, IDbTransaction? transaction = null)
     {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return (Enumerable.Empty<MediaItem>(), 0);
+        }
+
         const string countSql = @"
             SELECT COUNT(1)
             FROM [MediaItems] m
@@ -99,6 +104,12 @@ public sealed class DapperSearchRepository : ISearchRepository
         int tracksPerGenre = 10,
         IDbTransaction? transaction = null)
     {
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return Enumerable.Empty<(Genre Genre, IEnumerable<MediaItem> Tracks)>();
+        }
+
         const string sql = @"
             SELECT
                 g.GenreId,
@@ -158,32 +169,43 @@ public sealed class DapperSearchRepository : ISearchRepository
     /// <summary>
     /// Tìm kiếm playlist theo tên hoặc tên chủ sở hữu
     public async Task<(IEnumerable<Playlist> Items, int TotalCount)> SearchPlaylistAsync(
-        string query, int page = 1, int pageSize = 10, IDbTransaction? transaction = null)
+    string query, int page = 1, int pageSize = 10, IDbTransaction? transaction = null)
     {
-        const string countSql = @"
-            SELECT COUNT(1)
-            FROM [Playlists] p
-            WHERE p.IsPublic = 1 
-                AND (p.Name LIKE @Query 
-                     OR p.Description LIKE @Query
-                     OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = p.OwnerId AND u.UserName LIKE @Query))";
 
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return (Enumerable.Empty<Playlist>(), 0);
+        }
+
+        const string countSql = @"
+        SELECT COUNT(1)
+        FROM [Playlists] p
+        WHERE p.IsPublic = 1 
+            AND (p.Name LIKE @Query 
+                 OR p.Description LIKE @Query
+                 OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = p.OwnerId AND u.UserName LIKE @Query))";
+
+        // ✅ SQL có JOIN với PlayListTrack để đếm số lượng track
         const string dataSql = @"
-            SELECT 
-                p.PlaylistId AS Id,
-                p.Name,
-                p.Description,
-                p.IsPublic,
-                p.OwnerId,
-                p.CreatedAt
-            FROM [Playlists] p
-            WHERE p.IsPublic = 1 
-                AND (p.Name LIKE @Query 
-                     OR p.Description LIKE @Query
-                     OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = p.OwnerId AND u.UserName LIKE @Query))
-            ORDER BY p.CreatedAt DESC
-            OFFSET @Offset ROWS
-            FETCH NEXT @PageSize ROWS ONLY";
+        SELECT 
+            p.PlaylistId AS Id,
+            p.Name,
+            p.Description,
+            p.IsPublic,
+            p.OwnerId,
+            p.CreatedAt,
+            COUNT(pt.MediaId) AS TrackCount
+        FROM [Playlists] p
+        LEFT JOIN [PlayListTrack] pt ON p.PlaylistId = pt.PlaylistId
+        WHERE p.IsPublic = 1 
+            AND (p.Name LIKE @Query 
+                 OR p.Description LIKE @Query
+                 OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = p.OwnerId AND u.UserName LIKE @Query))
+        GROUP BY p.PlaylistId, p.Name, p.Description, p.IsPublic, p.OwnerId, p.CreatedAt
+        ORDER BY p.CreatedAt DESC
+        OFFSET @Offset ROWS
+        FETCH NEXT @PageSize ROWS ONLY";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -197,30 +219,37 @@ public sealed class DapperSearchRepository : ISearchRepository
             Offset = (page - 1) * pageSize,
             PageSize = pageSize
         }, transaction);
+        
 
         return (items, totalCount);
     }
+    
+
 
     /// <summary>
     /// Lấy tất cả các playlist công khai với phân trang
     public async Task<(IEnumerable<Playlist> Items, int TotalCount)> GetPublicPlaylistsAsync(
-        int page = 1, int pageSize = 10, IDbTransaction? transaction = null)
+    int page = 1, int pageSize = 10, IDbTransaction? transaction = null)
     {
         const string countSql = @"SELECT COUNT(1) FROM [Playlists] WHERE IsPublic = 1";
 
+        // ✅ SỬA: Thêm COUNT(pt.MediaId) AS TrackCount
         const string dataSql = @"
-            SELECT 
-                PlaylistId AS Id, 
-                Name, 
-                Description, 
-                IsPublic, 
-                OwnerId, 
-                CreatedAt
-            FROM [Playlists]
-            WHERE IsPublic = 1
-            ORDER BY CreatedAt DESC
-            OFFSET @Offset ROWS
-            FETCH NEXT @PageSize ROWS ONLY";
+        SELECT 
+            p.PlaylistId AS Id, 
+            p.Name, 
+            p.Description, 
+            p.IsPublic, 
+            p.OwnerId, 
+            p.CreatedAt,
+            COUNT(pt.MediaId) AS TrackCount
+        FROM [Playlists] p
+        LEFT JOIN [PlayListTrack] pt ON p.PlaylistId = pt.PlaylistId
+        WHERE p.IsPublic = 1
+        GROUP BY p.PlaylistId, p.Name, p.Description, p.IsPublic, p.OwnerId, p.CreatedAt
+        ORDER BY p.CreatedAt DESC
+        OFFSET @Offset ROWS
+        FETCH NEXT @PageSize ROWS ONLY";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -235,7 +264,6 @@ public sealed class DapperSearchRepository : ISearchRepository
 
         return (items, totalCount);
     }
-
     /// <summary>
     /// Lấy tất cả các bài hát công khai với phân trang
     public async Task<(IEnumerable<MediaItem> Items, int TotalCount)> GetPublicMediaAsync(

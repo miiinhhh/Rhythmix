@@ -9,4 +9,6 @@ public class Playlist
     public bool IsPublic {get;set;} = false;
     public Guid OwnerId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public int TrackCount { get; set; } 
 }
