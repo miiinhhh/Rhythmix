@@ -17,4 +17,7 @@ public sealed class UploadMediaCommand : IRequest<MediaDto>
     public string FileName { get; init; } = string.Empty;
     public string ContentType { get; init; } = string.Empty;
     public long FileLength { get; init; }
+
+    public Stream? CoverImageStream { get; init; }
+    public string? CoverImageFileName { get; init; }
 }

@@ -9,4 +9,5 @@ public class UploadMediaRequestDto
     public Guid? GenreId { get; set; }
     public bool IsPublic { get; set; } = true;
     public IFormFile File { get; set; } = null!;
+    public IFormFile? CoverImage { get; set; }
 }

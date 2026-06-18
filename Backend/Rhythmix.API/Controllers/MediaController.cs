@@ -46,9 +46,22 @@ public sealed class MediaController : ControllerBase
             return BadRequest(new { success = false, message = "Invalid file format. Only audio and video files are allowed." });
         }
 
+        if (request.CoverImage is { Length: > 0 })
+        {
+            var coverExtension = Path.GetExtension(request.CoverImage.FileName).ToLowerInvariant();
+            var allowedCoverExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            if (!allowedCoverExtensions.Contains(coverExtension))
+            {
+                return BadRequest(new { success = false, message = "Invalid cover image format. Only jpg, png and webp files are allowed." });
+            }
+        }
+
         try
         {
             using var stream = request.File.OpenReadStream();
+            using var coverStream = request.CoverImage is { Length: > 0 }
+                ? request.CoverImage.OpenReadStream()
+                : null;
 
             var command = new UploadMediaCommand
             {
@@ -61,7 +74,9 @@ public sealed class MediaController : ControllerBase
                 FileStream = stream,
                 FileName = request.File.FileName,
                 ContentType = request.File.ContentType,
-                FileLength = request.File.Length
+                FileLength = request.File.Length,
+                CoverImageStream = coverStream,
+                CoverImageFileName = request.CoverImage?.FileName
             };
 
             var result = await _mediator.Send(command);

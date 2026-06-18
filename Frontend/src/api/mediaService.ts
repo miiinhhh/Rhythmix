@@ -6,6 +6,7 @@ export const mediaService = {
   uploadMedia: async (data: UploadMediaDto) => {
     const formData = new FormData();
     formData.append('file', data.file);
+    if (data.coverImage) formData.append('coverImage', data.coverImage);
     formData.append('title', data.title);
     if (data.description) formData.append('description', data.description);
     if (data.isPublic !== undefined) formData.append('isPublic', String(data.isPublic));

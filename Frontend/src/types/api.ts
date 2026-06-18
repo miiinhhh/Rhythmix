@@ -53,6 +53,7 @@ export interface MediaItemDto {
 
 export interface UploadMediaDto {
   file: File;
+  coverImage?: File;
   title: string;
   description?: string;
   isPublic?: boolean;

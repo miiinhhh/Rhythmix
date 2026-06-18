@@ -26,6 +26,7 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
     const [selectedGenres, setSelectedGenres] = useState<string[]>([])
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
+    const [selectedCoverImage, setSelectedCoverImage] = useState<File | null>(null)
   
     // 2. Giả lập danh sách Albums hiện có
     const [myAlbums, setMyAlbums] = useState<AlbumDto[]>([])
@@ -124,6 +125,7 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
           description: description.trim() || undefined,
           isPublic: true,
           albumId: selectedAlbumId || undefined,
+          coverImage: selectedCoverImage || undefined,
         })
 
         await onUploaded?.()
@@ -134,6 +136,7 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
         setSelectedGenres([])
         setSelectedFile(null)
         setSelectedVideoFile(null)
+        setSelectedCoverImage(null)
         onClose()
       } catch {
         setErrors((prev) => ({ ...prev, submit: "Upload thất bại. Vui lòng kiểm tra lại API hoặc file media." }))
@@ -302,9 +305,14 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
               <input 
                 type="file" 
                 accept="image/*" 
-                onChange={() => undefined} 
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSelectedCoverImage(e.target.files[0])
+                  }
+                }} 
                 className="w-full rounded-lg bg-zinc-950 px-4 py-2.5 text-sm text-zinc-400 border border-zinc-800 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white file:cursor-pointer" 
               />
+              {selectedCoverImage && <p className="text-xs text-zinc-500">{selectedCoverImage.name}</p>}
             </div>
           </div>
 
