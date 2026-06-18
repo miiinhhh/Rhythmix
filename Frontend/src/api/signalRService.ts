@@ -15,7 +15,7 @@ class SignalRService {
     }
 
     this.connection = new HubConnectionBuilder()
-      .withUrl('http://localhost:5269/api/notifications-hub', {
+      .withUrl('http://localhost:5269/hub/notifications', {
         accessTokenFactory: () => token,
         transport: HttpTransportType.WebSockets,
         skipNegotiation: true,
