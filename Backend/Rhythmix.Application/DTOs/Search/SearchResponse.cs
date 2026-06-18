@@ -14,6 +14,15 @@ public sealed class SearchMediaDto
     public Guid OwnerId { get; set; }
 }
 
+public sealed class SearchGenrePlaylistDto
+{
+    public Guid GenreId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public int TrackCount { get; set; }
+    public List<SearchMediaDto> Tracks { get; set; } = new();
+}
+
 public sealed class SearchPlaylistDto
 {
     public Guid PlaylistId { get; set; }
@@ -39,5 +48,6 @@ public sealed class SearchResponse
 {
     public List<SearchMediaDto> Media { get; set; } = new();
     public List<SearchPlaylistDto> Playlists { get; set; } = new();
+    public List<SearchGenrePlaylistDto> GenrePlaylists { get; set; } = new();
     public PaginationInfo Pagination { get; set; } = new();
 }

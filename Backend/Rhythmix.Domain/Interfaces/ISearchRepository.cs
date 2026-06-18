@@ -39,4 +39,9 @@ public interface ISearchRepository
         int page = 1, 
         int pageSize = 10, 
         IDbTransaction? transaction = null);
+
+    Task<IEnumerable<(Genre Genre, IEnumerable<MediaItem> Tracks)>> SearchGenrePlaylistsAsync(
+        string query,
+        int tracksPerGenre = 10,
+        IDbTransaction? transaction = null);
 }

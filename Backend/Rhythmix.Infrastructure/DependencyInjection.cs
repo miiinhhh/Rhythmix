@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository>(provider => new DapperUserRepository(connectionString));
         services.AddScoped<IMediaRepository>(provider => new DapperMediaRepository(connectionString));
         services.AddScoped<IAlbumRepository>(provider => new DapperAlbumRepository(connectionString));
+        services.AddScoped<IGenreRepository>(provider => new DapperGenreRepository(connectionString));
         services.AddScoped<IPlaylistRepository>(provider => new DapperPlaylistRepository(connectionString));
         services.AddScoped<IPlaylistTrackRepository>(provider => new DapperPlaylistTrackRepository(connectionString));
         services.AddScoped<ISearchRepository>(provider => new DapperSearchRepository(connectionString));

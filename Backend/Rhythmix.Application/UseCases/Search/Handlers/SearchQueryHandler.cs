@@ -74,10 +74,53 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
             }
         }
 
+        if (request.SearchType == SearchType.All || request.SearchType == SearchType.Playlist)
+        {
+            var genrePlaylists = await _searchRepository.SearchGenrePlaylistsAsync(request.QueryText);
+            response.GenrePlaylists = genrePlaylists
+                .Select(MapGenrePlaylist)
+                .Where(g => g.TrackCount > 0)
+                .ToList();
+
+            response.Pagination.TotalItems += response.GenrePlaylists.Count;
+        }
+
         response.Pagination.Page = request.Page;
         response.Pagination.PageSize = request.PageSize;
 
         return response;
+    }
+
+    private static SearchMediaDto MapMedia(Rhythmix.Domain.Entities.MediaItem m) => new()
+    {
+        MediaId = m.MediaId,
+        Title = m.Title,
+        Description = m.Description,
+        MediaType = m.MediaType,
+        Duration = m.Duration,
+        ThumbnailUrl = m.ThumbnailUrl ?? string.Empty,
+        GenreId = m.GenreId,
+        ViewCount = m.ViewCount,
+        CreatedAt = m.CreatedAt,
+        OwnerId = m.OwnerId
+    };
+
+    private static SearchGenrePlaylistDto MapGenrePlaylist(
+        (Rhythmix.Domain.Entities.Genre Genre, IEnumerable<Rhythmix.Domain.Entities.MediaItem> Tracks) item)
+    {
+        var tracks = item.Tracks
+            .Where(track => track.GenreId == item.Genre.GenreId)
+            .Select(MapMedia)
+            .ToList();
+
+        return new SearchGenrePlaylistDto
+        {
+            GenreId = item.Genre.GenreId,
+            Name = $"{item.Genre.Name} Mix",
+            Description = item.Genre.Description ?? $"Playlist đề xuất theo thể loại {item.Genre.Name}",
+            TrackCount = tracks.Count,
+            Tracks = tracks
+        };
     }
 
     private async Task<SearchResponse> GetTrendingAsync(SearchQuery request, CancellationToken cancellationToken)

@@ -1,8 +1,9 @@
 import { X, ChevronDown, ChevronUp } from "lucide-react"
 import { useEffect, useState } from "react"
 import { albumService } from "../api/albumService"
+import { genreService } from "../api/genreService"
 import { mediaService } from "../api/mediaService"
-import type { AlbumDto } from "../types/api"
+import type { AlbumDto, GenreDto } from "../types/api"
 interface UploadMediaModalProps {
   isOpen: boolean
   onClose: () => void
@@ -13,7 +14,7 @@ interface FormErrors {
   artist?: string
   selectedFile?: string
   newAlbumTitle?: string
-  selectedGenres?: string
+  selectedGenreId?: string
   submit?: string
 }
 
@@ -23,14 +24,14 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
     const [artist, setArtist] = useState("")
     const [description, setDescription] = useState("")
     const [selectedAlbumId, setSelectedAlbumId] = useState("")
-    const [selectedGenres, setSelectedGenres] = useState<string[]>([])
+    const [selectedGenreId, setSelectedGenreId] = useState("")
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null)
     const [selectedCoverImage, setSelectedCoverImage] = useState<File | null>(null)
   
     // 2. Giả lập danh sách Albums hiện có
     const [myAlbums, setMyAlbums] = useState<AlbumDto[]>([])
-    const [myGenres] = useState<{ id: string; title: string }[]>([])
+    const [myGenres, setMyGenres] = useState<GenreDto[]>([])
     const [isLoadingAlbums, setIsLoadingAlbums] = useState(false)
     const [isSavingAlbum, setIsSavingAlbum] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
@@ -69,6 +70,25 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
       }
 
       void loadAlbums()
+      return () => {
+        cancelled = true
+      }
+    }, [isOpen])
+
+    useEffect(() => {
+      if (!isOpen) return
+
+      let cancelled = false
+      const loadGenres = async () => {
+        try {
+          const genres = await genreService.getAll()
+          if (!cancelled) setMyGenres(genres)
+        } catch {
+          if (!cancelled) setMyGenres([])
+        }
+      }
+
+      void loadGenres()
       return () => {
         cancelled = true
       }
@@ -125,6 +145,7 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
           description: description.trim() || undefined,
           isPublic: true,
           albumId: selectedAlbumId || undefined,
+          genreId: selectedGenreId || undefined,
           coverImage: selectedCoverImage || undefined,
         })
 
@@ -133,7 +154,7 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
         setArtist("")
         setDescription("")
         setSelectedAlbumId("")
-        setSelectedGenres([])
+        setSelectedGenreId("")
         setSelectedFile(null)
         setSelectedVideoFile(null)
         setSelectedCoverImage(null)
@@ -223,12 +244,12 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
               
               {/* Danh sách tag đã chọn */}
               <div className="flex flex-wrap gap-2 mb-2">
-                {selectedGenres.map((catId) => {
-                  const cat = myGenres.find(c => c.id === catId);
+                {[selectedGenreId].filter(Boolean).map((catId) => {
+                  const cat = myGenres.find(c => c.genreId === catId);
                   return (
                     <span key={catId} className="flex items-center gap-1 bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs border border-green-500/50">
-                      {cat?.title}
-                      <button type="button" onClick={() => setSelectedGenres(prev => prev.filter(id => id !== catId))}>
+                      {cat?.name}
+                      <button type="button" onClick={() => setSelectedGenreId("")}>
                         <X className="size-3 cursor-pointer" />
                       </button>
                     </span>
@@ -241,21 +262,21 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
                 value=""
                 onChange={(e) => {
                   const val = e.target.value;
-                  if (val && !selectedGenres.includes(val)) {
-                    setSelectedGenres([...selectedGenres, val]);
-                    clearFieldError("selectedGenres");
+                  if (val) {
+                    setSelectedGenreId(val);
+                    clearFieldError("selectedGenreId");
                   }
                 }}
-                className={`w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm text-white border outline-none cursor-pointer ${errors.selectedGenres ? "border-red-500" : "border-zinc-800"}`}
+                className={`w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm text-white border outline-none cursor-pointer ${errors.selectedGenreId ? "border-red-500" : "border-zinc-800"}`}
               >
                 <option value="">Chọn thể loại</option>
                 {myGenres.map((cat) => (
-                  <option key={cat.id} value={cat.id} disabled={selectedGenres.includes(cat.id)}>
-                    {cat.title}
+                  <option key={cat.genreId} value={cat.genreId} disabled={selectedGenreId === cat.genreId}>
+                    {cat.name}
                   </option>
                 ))}
               </select>
-              {errors.selectedGenres && <p className="text-xs text-red-500">{errors.selectedGenres}</p>}
+              {errors.selectedGenreId && <p className="text-xs text-red-500">{errors.selectedGenreId}</p>}
             </div>
           </div>
 

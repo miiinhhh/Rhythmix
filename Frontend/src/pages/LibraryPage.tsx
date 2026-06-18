@@ -187,9 +187,17 @@ const LibraryPage = () => {
           >
             <div className="relative mb-3">
               {/* Nếu là mục "Liked Songs" thì bo tròn hình tròn, còn lại (Playlist/Album) bo góc vuông */}
-              <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 shadow-lg">
-                <Music2 className="size-10 text-zinc-400" />
-              </div>
+              {item.posterUrl ? (
+                <img
+                  src={item.posterUrl}
+                  alt={item.title}
+                  className="aspect-square w-full rounded-md object-cover shadow-lg"
+                />
+              ) : (
+                <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 shadow-lg">
+                  <Music2 className="size-10 text-zinc-400" />
+                </div>
+              )}
 
               {/* Nút Play màu xanh lá hiện lên khi hover */}
               <button

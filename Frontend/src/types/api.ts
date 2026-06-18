@@ -61,6 +61,13 @@ export interface UploadMediaDto {
   genreId?: string;
 }
 
+// ============ Genre DTOs ============
+export interface GenreDto {
+  genreId: string;
+  name: string;
+  description?: string;
+}
+
 // ============ Album DTOs ============
 export interface AlbumDto {
   albumId: string;
@@ -200,9 +207,48 @@ export interface CreateShareDto {
 }
 
 // ============ Search Result ============
+export interface SearchMediaDto {
+  mediaId: string;
+  title: string;
+  description?: string;
+  mediaType: string;
+  duration: number;
+  thumbnailUrl?: string;
+  genreId?: string;
+  viewCount: number;
+  createdAt: string;
+  ownerId: string;
+}
+
+export interface SearchPlaylistDto {
+  playlistId: string;
+  name: string;
+  description?: string;
+  isPublic: boolean;
+  ownerId: string;
+  trackCount: number;
+  createdAt: string;
+}
+
+export interface SearchGenrePlaylistDto {
+  genreId: string;
+  name: string;
+  description?: string;
+  trackCount: number;
+  tracks: SearchMediaDto[];
+}
+
 export interface SearchResultDto {
-  mediaItems: MediaItemDto[];
-  playlists: PlaylistDto[];
-  users: UserProfileDto[];
+  media: SearchMediaDto[];
+  playlists: SearchPlaylistDto[];
+  genrePlaylists: SearchGenrePlaylistDto[];
+  pagination?: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
 }
 

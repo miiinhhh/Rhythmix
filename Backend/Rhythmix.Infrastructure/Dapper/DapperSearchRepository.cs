@@ -24,9 +24,17 @@ public sealed class DapperSearchRepository : ISearchRepository
         const string countSql = @"
             SELECT COUNT(1)
             FROM [MediaItems] m
+            LEFT JOIN [Genres] g ON g.GenreId = m.GenreId
             WHERE m.IsPublic = 1 
-                AND (m.Title LIKE @Query 
-                     OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = m.OwnerId AND u.UserName LIKE @Query))";
+                AND (
+                    (@UseExactGenre = 1 AND LOWER(g.Name) = LOWER(@ExactQuery))
+                    OR
+                    (@UseExactGenre = 0 AND (
+                        m.Title LIKE @Query
+                        OR g.Name LIKE @Query
+                        OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = m.OwnerId AND u.UserName LIKE @Query)
+                    ))
+                )";
 
         const string dataSql = @"
             SELECT 
@@ -46,9 +54,17 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.ViewCount,
                 m.CreatedAt
             FROM [MediaItems] m
+            LEFT JOIN [Genres] g ON g.GenreId = m.GenreId
             WHERE m.IsPublic = 1 
-                AND (m.Title LIKE @Query 
-                     OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = m.OwnerId AND u.UserName LIKE @Query))
+                AND (
+                    (@UseExactGenre = 1 AND LOWER(g.Name) = LOWER(@ExactQuery))
+                    OR
+                    (@UseExactGenre = 0 AND (
+                        m.Title LIKE @Query
+                        OR g.Name LIKE @Query
+                        OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = m.OwnerId AND u.UserName LIKE @Query)
+                    ))
+                )
             ORDER BY m.ViewCount DESC, m.CreatedAt DESC
             OFFSET @Offset ROWS
             FETCH NEXT @PageSize ROWS ONLY";
@@ -57,16 +73,86 @@ public sealed class DapperSearchRepository : ISearchRepository
         await connection.OpenAsync();
 
         var queryParam = $"%{query}%";
-        int totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { Query = queryParam }, transaction);
+        var exactQuery = query.Trim();
+        var useExactGenre = await connection.ExecuteScalarAsync<int>(
+            "SELECT CASE WHEN EXISTS (SELECT 1 FROM [Genres] WHERE LOWER(Name) = LOWER(@ExactQuery)) THEN 1 ELSE 0 END",
+            new { ExactQuery = exactQuery },
+            transaction) == 1;
+
+        var parameters = new { Query = queryParam, ExactQuery = exactQuery, UseExactGenre = useExactGenre ? 1 : 0 };
+        int totalCount = await connection.ExecuteScalarAsync<int>(countSql, parameters, transaction);
 
         var items = await connection.QueryAsync<MediaItem>(dataSql, new
         {
-            Query = queryParam,
+            parameters.Query,
+            parameters.ExactQuery,
+            parameters.UseExactGenre,
             Offset = (page - 1) * pageSize,
             PageSize = pageSize
         }, transaction);
 
         return (items, totalCount);
+    }
+
+    public async Task<IEnumerable<(Genre Genre, IEnumerable<MediaItem> Tracks)>> SearchGenrePlaylistsAsync(
+        string query,
+        int tracksPerGenre = 10,
+        IDbTransaction? transaction = null)
+    {
+        const string sql = @"
+            SELECT
+                g.GenreId,
+                g.Name,
+                g.Description,
+                g.CreatedAt,
+                m.MediaId,
+                m.Title,
+                m.Description,
+                m.MediaType,
+                m.Duration,
+                m.FilePath,
+                m.ThumbnailUrl,
+                m.MimeType,
+                m.FileSize,
+                m.AlbumId,
+                m.GenreId,
+                m.OwnerId,
+                m.IsPublic,
+                m.ViewCount,
+                m.CreatedAt
+            FROM [Genres] g
+            INNER JOIN [MediaItems] m ON m.GenreId = g.GenreId AND m.IsPublic = 1
+            WHERE LOWER(g.Name) = LOWER(@ExactQuery)
+            ORDER BY g.Name, m.ViewCount DESC, m.CreatedAt DESC";
+
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var exactQuery = query.Trim();
+        var grouped = new Dictionary<Guid, (Genre Genre, List<MediaItem> Tracks)>();
+
+        await connection.QueryAsync<Genre, MediaItem, Genre>(
+            sql,
+            (genre, media) =>
+            {
+                if (!grouped.TryGetValue(genre.GenreId, out var entry))
+                {
+                    entry = (genre, new List<MediaItem>());
+                    grouped.Add(genre.GenreId, entry);
+                }
+
+                if (entry.Tracks.Count < tracksPerGenre)
+                {
+                    entry.Tracks.Add(media);
+                }
+
+                return genre;
+            },
+            new { ExactQuery = exactQuery },
+            transaction,
+            splitOn: "MediaId");
+
+        return grouped.Values.Select(x => (x.Genre, x.Tracks.AsEnumerable()));
     }
 
     /// <summary>
