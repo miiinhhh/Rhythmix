@@ -3,7 +3,7 @@ import { ListMusic, Play, Search } from "lucide-react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { searchService } from "../api/searchService";
 import { userService } from "../api/userService";
-import type { SearchGenrePlaylistDto, SearchMediaDto, UserProfileDto } from "../types/api";
+import type { SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
 import type { SongType } from "../utils/mediaMapping";
 
 interface OutletContextType {
@@ -59,6 +59,7 @@ const SearchPage = () => {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<UserProfileDto[]>([]);
   const [mediaResults, setMediaResults] = useState<SearchMediaDto[]>([]);
+  const [playlistResults, setPlaylistResults] = useState<SearchPlaylistDto[]>([]);
   const [genrePlaylists, setGenrePlaylists] = useState<SearchGenrePlaylistDto[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const { setCurrentSongId, setIsPlaying, songs, setSongs } = useOutletContext<OutletContextType>();
@@ -73,6 +74,7 @@ const SearchPage = () => {
   useEffect(() => {
     if (!hasQuery) {
       setMediaResults([]);
+      setPlaylistResults([]);
       setGenrePlaylists([]);
       return;
     }
@@ -82,9 +84,11 @@ const SearchPage = () => {
       try {
         const result = await searchService.search(query.trim());
         setMediaResults(result.media || []);
+        setPlaylistResults(result.playlists || []);
         setGenrePlaylists(result.genrePlaylists || []);
       } catch {
         setMediaResults([]);
+        setPlaylistResults([]);
         setGenrePlaylists([]);
       } finally {
         setIsSearching(false);
@@ -173,6 +177,33 @@ const SearchPage = () => {
               </div>
             )}
 
+            {playlistResults.length > 0 && (
+              <div>
+                <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Playlists</h2>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {playlistResults.map((playlist) => (
+                    <button
+                      key={playlist.playlistId}
+                      type="button"
+                      onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left hover:bg-zinc-800"
+                    >
+                      <div className="flex size-12 items-center justify-center rounded-md bg-zinc-800 text-zinc-400">
+                        <ListMusic className="size-6" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-white">{playlist.name}</div>
+                        <div className="truncate text-xs text-zinc-400">
+                          {playlist.trackCount} songs - {playlist.isPublic ? "Public" : "Private"}
+                        </div>
+                      </div>
+                      <Play className="size-4 text-zinc-400" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {filteredUsers.length > 0 && (
               <div>
                 <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Users</h2>
@@ -221,7 +252,7 @@ const SearchPage = () => {
               </div>
             )}
 
-            {!isSearching && mediaResults.length === 0 && genrePlaylists.length === 0 && filteredUsers.length === 0 && (
+            {!isSearching && mediaResults.length === 0 && playlistResults.length === 0 && genrePlaylists.length === 0 && filteredUsers.length === 0 && (
               <p className="text-sm text-zinc-400">No results found.</p>
             )}
           </div>

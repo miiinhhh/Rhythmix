@@ -131,6 +131,22 @@ public sealed class DapperMediaRepository : IMediaRepository
         }, transaction);
     }
 
+    public async Task<IEnumerable<MediaItem>> GetByAlbumIdAsync(Guid albumId, IDbTransaction? transaction = null)
+    {
+        const string sql = @"
+            SELECT
+                MediaId, Title, Description, MediaType, Duration,
+                FilePath, ThumbnailUrl, MimeType, FileSize,
+                AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
+            FROM [MediaItems]
+            WHERE AlbumId = @AlbumId
+            ORDER BY CreatedAt ASC";
+
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+        return await connection.QueryAsync<MediaItem>(sql, new { AlbumId = albumId }, transaction);
+    }
+
     public async Task<IEnumerable<MediaItem>> GetRecentAsync(int page = 1, int pageSize = 20, IDbTransaction? transaction = null)
     {
         await using var connection = new SqlConnection(_connectionString);

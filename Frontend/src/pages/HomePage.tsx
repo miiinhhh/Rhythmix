@@ -1,6 +1,10 @@
-import { Music2, Play } from "lucide-react";
-import { useOutletContext } from "react-router-dom";
-import type { SongType } from "../utils/mediaMapping";
+import { useEffect, useState } from "react";
+import { Disc3, ListMusic, Music2, Play } from "lucide-react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import { albumService } from "../api/albumService";
+import { playlistService } from "../api/playlistService";
+import type { AlbumDto, PlaylistDto } from "../types/api";
+import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
 
 interface OutletContextType {
   currentSongId: string | null;
@@ -8,11 +12,28 @@ interface OutletContextType {
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
   songs: SongType[];
+  setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
 }
 
+const API_ORIGIN = "http://localhost:5269";
+
+const resolveAssetUrl = (url?: string) => {
+  if (!url) return undefined;
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) return url;
+  return `${API_ORIGIN}${url}`;
+};
+
 const HomePage = () => {
-  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, songs } =
+  const navigate = useNavigate();
+  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, songs, setSongs } =
     useOutletContext<OutletContextType>();
+  const [playlists, setPlaylists] = useState<PlaylistDto[]>([]);
+  const [albums, setAlbums] = useState<AlbumDto[]>([]);
+
+  useEffect(() => {
+    playlistService.getAll().then(setPlaylists).catch(() => setPlaylists([]));
+    albumService.getMyAlbums().then(setAlbums).catch(() => setAlbums([]));
+  }, []);
 
   const handlePlay = (song: SongType) => {
     if (currentSongId === song.id) {
@@ -24,14 +45,102 @@ const HomePage = () => {
     setIsPlaying(true);
   };
 
+  const handlePlayAlbum = async (album: AlbumDto) => {
+    const detail = await albumService.getById(album.albumId);
+    const albumSongs = detail.tracks.map((track) => ({
+      ...mapMediaToSong(track),
+      album: detail.title,
+    }));
+
+    if (albumSongs.length === 0) return;
+
+    const albumSongIds = new Set(albumSongs.map((song) => song.id));
+    setSongs((current) => [...albumSongs, ...current.filter((song) => !albumSongIds.has(song.id))]);
+    setCurrentSongId(albumSongs[0].id);
+    setIsPlaying(true);
+  };
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-white">Home</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Songs loaded from your Rhythmix database.
+          Songs, playlists, and albums loaded from your Rhythmix database.
         </p>
       </div>
+
+      <section>
+        <h2 className="mb-4 text-xl font-semibold text-white">Your Playlists</h2>
+        {playlists.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-zinc-800 py-10 text-center text-sm text-zinc-400">
+            No playlists yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {playlists.map((playlist) => (
+              <article
+                key={playlist.playlistId}
+                onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
+                className="group cursor-pointer rounded-md bg-zinc-900/70 p-4 transition-colors hover:bg-zinc-800"
+              >
+                <div className="relative mb-3 flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 shadow-lg">
+                  <ListMusic className="size-10 text-zinc-400" />
+                  <button
+                    type="button"
+                    className="absolute bottom-2 right-2 flex size-11 translate-y-2 items-center justify-center rounded-full bg-green-500 opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
+                  >
+                    <Play className="size-5 fill-black text-black" />
+                  </button>
+                </div>
+                <h3 className="truncate text-sm font-semibold text-white">{playlist.name}</h3>
+                <p className="mt-1 truncate text-xs text-zinc-400">
+                  Playlist - {playlist.isPublic ? "Public" : "Private"}
+                </p>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-xl font-semibold text-white">Your Albums</h2>
+        {albums.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-zinc-800 py-10 text-center text-sm text-zinc-400">
+            No albums yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {albums.map((album) => {
+              const coverUrl = resolveAssetUrl(album.coverImageUrl);
+              return (
+                <article
+                  key={album.albumId}
+                  onClick={() => handlePlayAlbum(album)}
+                  className="group cursor-pointer rounded-md bg-zinc-900/70 p-4 transition-colors hover:bg-zinc-800"
+                >
+                  <div className="relative mb-3">
+                    {coverUrl ? (
+                      <img src={coverUrl} alt={album.title} className="aspect-square w-full rounded-md object-cover shadow-lg" />
+                    ) : (
+                      <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 shadow-lg">
+                        <Disc3 className="size-10 text-zinc-400" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="absolute bottom-2 right-2 flex size-11 translate-y-2 items-center justify-center rounded-full bg-green-500 opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100"
+                    >
+                      <Play className="size-5 fill-black text-black" />
+                    </button>
+                  </div>
+                  <h3 className="truncate text-sm font-semibold text-white">{album.title}</h3>
+                  <p className="mt-1 truncate text-xs text-zinc-400">Album - {album.trackCount} songs</p>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <section>
         <h2 className="mb-4 text-xl font-semibold text-white">All Songs</h2>

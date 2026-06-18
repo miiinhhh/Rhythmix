@@ -3,10 +3,11 @@ import { Library, Music2, ListMusic, Play, Plus, Heart } from "lucide-react"; //
 import UploadMediaModal from "../components/UploadMediaModal"
 import { useNavigate, useOutletContext } from "react-router-dom";
 import CreatePlaylistModal from "../components/CreatePlaylistModal";
+import { albumService } from "../api/albumService";
 import { mediaService } from "../api/mediaService";
 import { playlistService } from "../api/playlistService";
 import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
-import type { PlaylistDto } from "../types/api";
+import type { AlbumDto, PlaylistDto } from "../types/api";
 
 interface OutletContextType {
   setCurrentSongId: (id: string | null) => void;
@@ -33,6 +34,7 @@ const LibraryPage = () => {
   const { setCurrentSongId, setIsPlaying, songs, setSongs } = useOutletContext<OutletContextType>();
   const [myMedia, setMyMedia] = useState<SongType[]>([]);
   const [playlists, setPlaylists] = useState<PlaylistDto[]>([]);
+  const [albums, setAlbums] = useState<AlbumDto[]>([]);
 
   const loadMyMedia = async () => {
     const mediaItems = await mediaService.getMyMedia();
@@ -49,14 +51,36 @@ const LibraryPage = () => {
     setPlaylists(items);
   };
 
+  const loadAlbums = async () => {
+    const items = await albumService.getMyAlbums();
+    setAlbums(items);
+  };
+
   useEffect(() => {
     loadMyMedia().catch(() => setMyMedia([]));
     loadPlaylists().catch(() => setPlaylists([]));
+    loadAlbums().catch(() => setAlbums([]));
   }, []);
 
-  const visibleMedia = activeTab === "playlists" ? [] : myMedia;
+  const visibleMedia = activeTab === "playlists" || activeTab === "albums" ? [] : myMedia;
   const visiblePlaylists = activeTab === "albums" ? [] : playlists;
+  const visibleAlbums = activeTab === "playlists" ? [] : albums;
   const likedCount = songs.filter((song) => song.isLiked).length;
+
+  const playAlbum = async (album: AlbumDto) => {
+    const detail = await albumService.getById(album.albumId);
+    const albumSongs = detail.tracks.map((track) => ({
+      ...mapMediaToSong(track),
+      album: detail.title,
+    }));
+
+    if (albumSongs.length === 0) return;
+
+    const albumSongIds = new Set(albumSongs.map((song) => song.id));
+    setSongs((current) => [...albumSongs, ...current.filter((song) => !albumSongIds.has(song.id))]);
+    setCurrentSongId(albumSongs[0].id);
+    setIsPlaying(true);
+  };
 
   return (
     <div className="space-y-6 select-none">
@@ -176,6 +200,39 @@ const LibraryPage = () => {
             </p>
           </article>
         ))}
+        {visibleAlbums.map((album) => (
+          <article
+            key={album.albumId}
+            onClick={() => playAlbum(album)}
+            className="group cursor-pointer rounded-md bg-zinc-900/40 p-4 transition-colors hover:bg-zinc-800"
+          >
+            <div className="relative mb-3">
+              {album.coverImageUrl ? (
+                <img
+                  src={album.coverImageUrl.startsWith("http") ? album.coverImageUrl : `http://localhost:5269${album.coverImageUrl}`}
+                  alt={album.title}
+                  className="aspect-square w-full rounded-md object-cover shadow-lg"
+                />
+              ) : (
+                <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 shadow-lg">
+                  <Music2 className="size-10 text-zinc-400" />
+                </div>
+              )}
+              <button
+                type="button"
+                className="absolute bottom-2 right-2 flex size-12 translate-y-2 items-center justify-center rounded-full bg-green-500 opacity-0 shadow-xl transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+              >
+                <Play className="size-5 fill-black text-black" />
+              </button>
+            </div>
+            <h3 className="truncate text-sm font-semibold text-white">
+              {album.title}
+            </h3>
+            <p className="mt-1 line-clamp-2 text-xs text-zinc-400">
+              Album · {album.trackCount} songs
+            </p>
+          </article>
+        ))}
         {visibleMedia.map((item) => (
           <article
             key={item.id}
@@ -218,7 +275,7 @@ const LibraryPage = () => {
       </div>
 
       {/* Hiển thị thông báo này nếu mảng sau khi lọc bị trống */}
-      {visibleMedia.length === 0 && visiblePlaylists.length === 0 && (
+      {visibleMedia.length === 0 && visiblePlaylists.length === 0 && visibleAlbums.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 py-20 text-center">
           <ListMusic className="mb-3 size-8 text-zinc-500" />
           <p className="text-sm text-zinc-400">Nothing here yet.</p>
@@ -227,7 +284,10 @@ const LibraryPage = () => {
       <UploadMediaModal 
         isOpen={isUploadOpen} 
         onClose={() => setIsUploadOpen(false)}
-        onUploaded={loadMyMedia}
+        onUploaded={async () => {
+          await loadMyMedia();
+          await loadAlbums();
+        }}
       />
       <CreatePlaylistModal
         isOpen={isCreatePlaylistOpen}

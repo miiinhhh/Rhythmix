@@ -1,7 +1,6 @@
-// Rhythmix.Application/UseCases/Album/Handlers/GetAlbumByIdQueryHandler.cs
 using MediatR;
-using Rhythmix.Application.DTOs.Media;
 using Rhythmix.Application.DTOs.Album;
+using Rhythmix.Application.DTOs.Media;
 using Rhythmix.Domain.Interfaces;
 
 namespace Rhythmix.Application.UseCases.Album;
@@ -24,10 +23,7 @@ public sealed class GetAlbumByIdQueryHandler : IRequestHandler<GetAlbumByIdQuery
         var album = await _albumRepository.GetByIdAsync(request.AlbumId);
         if (album == null) return null;
 
-        var trackCount = await _albumRepository.GetTrackCountAsync(request.AlbumId);
-        
-        // Lấy tracks nếu cần
-        // var tracks = await _mediaRepository.GetByAlbumIdAsync(request.AlbumId);
+        var tracks = (await _mediaRepository.GetByAlbumIdAsync(request.AlbumId)).ToList();
 
         return new AlbumDetailDto
         {
@@ -38,13 +34,31 @@ public sealed class GetAlbumByIdQueryHandler : IRequestHandler<GetAlbumByIdQuery
             ReleaseDate = album.ReleaseDate,
             CreatedAt = album.CreatedAt,
             OwnerId = album.OwnerId,
-            TrackCount = trackCount,
-            Tracks = new List<MediaDto>()
+            TrackCount = tracks.Count,
+            Tracks = tracks.Select(ToMediaDto).ToList()
         };
     }
+
+    private static MediaDto ToMediaDto(Rhythmix.Domain.Entities.MediaItem media) => new()
+    {
+        MediaId = media.MediaId,
+        Title = media.Title,
+        Description = media.Description,
+        MediaType = media.MediaType,
+        Duration = media.Duration,
+        FilePath = media.FilePath,
+        ThumbnailUrl = media.ThumbnailUrl,
+        MimeType = media.MimeType,
+        FileSize = media.FileSize,
+        AlbumId = media.AlbumId,
+        GenreId = media.GenreId,
+        OwnerId = media.OwnerId,
+        IsPublic = media.IsPublic,
+        ViewCount = media.ViewCount,
+        CreatedAt = media.CreatedAt
+    };
 }
 
-// Rhythmix.Application/UseCases/Album/Handlers/GetMyAlbumsQueryHandler.cs
 public sealed class GetMyAlbumsQueryHandler : IRequestHandler<GetMyAlbumsQuery, IEnumerable<AlbumDto>>
 {
     private readonly IAlbumRepository _albumRepository;
