@@ -11,7 +11,7 @@ import {
   Share2,
   Trash2,
 } from "lucide-react";
-import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams, useLocation } from "react-router-dom";
 import AddSongModal from "../components/AddSongModal";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import ShareModal from "../components/ShareModal";
@@ -57,6 +57,7 @@ const mapTrackToSong = (track: PlaylistTrackDto): SongType => ({
 
 const PlaylistDetailPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const {
     currentSongId,
@@ -179,6 +180,7 @@ const PlaylistDetailPage = () => {
       </div>
     );
   }
+  const thumbnailFromState = location.state?.thumbnail;
 
   return (
     <div className="min-h-screen grow bg-zinc-900 p-6 text-white">
@@ -190,8 +192,20 @@ const PlaylistDetailPage = () => {
       </button>
 
       <div className="mb-8 flex items-end gap-6">
-        <div className="flex h-44 w-44 shrink-0 items-center justify-center rounded-lg bg-zinc-800 shadow-2xl">
+        <div className="flex h-44 w-44 shrink-0 items-center justify-center rounded-lg bg-zinc-800 shadow-2xl overflow-hidden">
+          {playlistInfo?.thumbnailUrl || thumbnailFromState ? (
+          <img
+            src={
+              (playlistInfo?.thumbnailUrl || thumbnailFromState).startsWith("http")
+                ? (playlistInfo?.thumbnailUrl || thumbnailFromState)
+                : `http://localhost:5269${playlistInfo?.thumbnailUrl || thumbnailFromState}`
+            }
+            alt={playlistInfo?.name || "Playlist"}
+            className="h-full w-full object-cover"
+          />
+        ) : (
           <ListMusic className="size-16 text-zinc-400" />
+        )}
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">

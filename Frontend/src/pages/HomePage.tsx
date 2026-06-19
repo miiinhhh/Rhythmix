@@ -84,7 +84,9 @@ const HomePage = () => {
               return (
                 <article
                   key={playlist.playlistId}
-                  onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
+                  onClick={() => navigate(`/playlist/${playlist.playlistId}`, { 
+                    state: { thumbnail: playlist.thumbnailUrl } 
+                  })}
                   className="group cursor-pointer rounded-md bg-zinc-900/70 p-4 transition-colors hover:bg-zinc-800"
                 >
                   <div className="relative mb-3">
