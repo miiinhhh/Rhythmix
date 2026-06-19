@@ -56,6 +56,7 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
         };
 
         await _mediaRepository.AddAsync(media);
+        await _mediaRepository.SetGenresAsync(media.MediaId, request.GenreIds);
 
         return new MediaDto
         {
