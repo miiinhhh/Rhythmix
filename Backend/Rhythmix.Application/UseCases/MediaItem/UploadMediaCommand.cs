@@ -11,6 +11,7 @@ public sealed class UploadMediaCommand : IRequest<MediaDto>
     public string? Description { get; init; }
     public Guid? AlbumId { get; init; }
     public Guid? GenreId { get; init; }
+    public IReadOnlyCollection<Guid> GenreIds { get; init; } = Array.Empty<Guid>();
     public bool IsPublic { get; init; } = true;
     public Guid OwnerId { get; init; }
     

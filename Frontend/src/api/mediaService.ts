@@ -13,6 +13,7 @@ export const mediaService = {
     if (data.isPublic !== undefined) formData.append('isPublic', String(data.isPublic));
     if (data.albumId) formData.append('albumId', data.albumId);
     if (data.genreId) formData.append('genreId', data.genreId);
+    data.genreIds?.forEach((genreId) => formData.append('genreIds', genreId));
 
     const res = await apiClient.post<ApiResponse<MediaItemDto>>('/media/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

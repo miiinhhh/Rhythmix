@@ -96,6 +96,32 @@ public sealed class DapperMediaRepository : IMediaRepository
         await connection.ExecuteAsync(sql, media, transaction);
     }
 
+    public async Task SetGenresAsync(Guid mediaId, IEnumerable<Guid> genreIds, IDbTransaction? transaction = null)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await connection.ExecuteAsync(
+            "DELETE FROM [MediaItemGenres] WHERE MediaId = @MediaId",
+            new { MediaId = mediaId },
+            transaction);
+
+        var distinctGenreIds = genreIds.Distinct().ToArray();
+        if (distinctGenreIds.Length == 0)
+        {
+            return;
+        }
+
+        const string sql = @"
+            INSERT INTO [MediaItemGenres] (MediaId, GenreId)
+            VALUES (@MediaId, @GenreId)";
+
+        await connection.ExecuteAsync(
+            sql,
+            distinctGenreIds.Select(genreId => new { MediaId = mediaId, GenreId = genreId }),
+            transaction);
+    }
+
     public async Task DeleteAsync(Guid mediaId, IDbTransaction? transaction = null)
     {
         const string sql = "DELETE FROM [MediaItems] WHERE MediaId = @MediaId";

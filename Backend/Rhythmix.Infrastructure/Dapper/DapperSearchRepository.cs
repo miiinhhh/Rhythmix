@@ -27,9 +27,10 @@ public sealed class DapperSearchRepository : ISearchRepository
         }
 
         const string countSql = @"
-            SELECT COUNT(1)
+            SELECT COUNT(DISTINCT m.MediaId)
             FROM [MediaItems] m
-            LEFT JOIN [Genres] g ON g.GenreId = m.GenreId
+            LEFT JOIN [MediaItemGenres] mig ON mig.MediaId = m.MediaId
+            LEFT JOIN [Genres] g ON g.GenreId = COALESCE(mig.GenreId, m.GenreId)
             LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
             WHERE m.IsPublic = 1 
                 AND (
@@ -44,7 +45,7 @@ public sealed class DapperSearchRepository : ISearchRepository
                 )";
 
         const string dataSql = @"
-            SELECT 
+            SELECT DISTINCT
                 m.MediaId,
                 m.Title,
                 m.Description,
@@ -63,7 +64,8 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.ViewCount,
                 m.CreatedAt
             FROM [MediaItems] m
-            LEFT JOIN [Genres] g ON g.GenreId = m.GenreId
+            LEFT JOIN [MediaItemGenres] mig ON mig.MediaId = m.MediaId
+            LEFT JOIN [Genres] g ON g.GenreId = COALESCE(mig.GenreId, m.GenreId)
             LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
             WHERE m.IsPublic = 1 
                 AND (
@@ -140,7 +142,8 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.ViewCount,
                 m.CreatedAt
             FROM [Genres] g
-            INNER JOIN [MediaItems] m ON m.GenreId = g.GenreId AND m.IsPublic = 1
+            INNER JOIN [MediaItemGenres] mig ON mig.GenreId = g.GenreId
+            INNER JOIN [MediaItems] m ON m.MediaId = mig.MediaId AND m.IsPublic = 1
             LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
             WHERE LOWER(g.Name) = LOWER(@ExactQuery)
             ORDER BY g.Name, m.ViewCount DESC, m.CreatedAt DESC";
