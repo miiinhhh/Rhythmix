@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Disc3, ListMusic, Music2, Play } from "lucide-react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { albumService } from "../api/albumService";
+import { aiService } from "../api/aiService";
 import { playlistService } from "../api/playlistService";
 import type { AlbumDto, PlaylistDto } from "../types/api";
 import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
@@ -30,11 +31,16 @@ const HomePage = () => {
   const [myPlaylists, setMyPlaylists] = useState<PlaylistDto[]>([]);
   const [publicPlaylists, setPublicPlaylists] = useState<PlaylistDto[]>([]);
   const [albums, setAlbums] = useState<AlbumDto[]>([]);
+  const [recommendations, setRecommendations] = useState<SongType[]>([]);
 
   useEffect(() => {
     playlistService.getAll().then(setMyPlaylists).catch(() => setMyPlaylists([]));
     playlistService.getPublic().then(setPublicPlaylists).catch(() => setPublicPlaylists([]));
     albumService.getMyAlbums().then(setAlbums).catch(() => setAlbums([]));
+    aiService
+      .getRecommendations(8)
+      .then((items) => setRecommendations(items.map((item) => mapMediaToSong(item))))
+      .catch(() => setRecommendations([]));
   }, []);
 
   const handlePlay = (song: SongType) => {
@@ -70,6 +76,38 @@ const HomePage = () => {
           Songs, playlists, and albums loaded from your Rhythmix database.
         </p>
       </div>
+
+      <section>
+        <h2 className="mb-4 text-xl font-semibold text-white">Dành cho bạn</h2>
+        {recommendations.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-zinc-800 py-10 text-center text-sm text-zinc-400">
+            Chưa có bài hát để đề xuất.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {recommendations.map((song) => (
+              <article
+                key={song.id}
+                onClick={() => handlePlay(song)}
+                className="group flex cursor-pointer items-center gap-3 rounded-md bg-zinc-900 p-3 transition-colors hover:bg-zinc-800"
+              >
+                <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-800">
+                  {song.posterUrl ? (
+                    <img src={song.posterUrl} alt={song.title} className="size-full object-cover" />
+                  ) : (
+                    <Music2 className="size-5 text-zinc-400" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-sm font-semibold text-white">{song.title}</h3>
+                  <p className="truncate text-xs text-zinc-400">{song.artist}</p>
+                </div>
+                <Play className="size-4 shrink-0 text-green-400 opacity-0 transition-opacity group-hover:opacity-100" />
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section>
         <h2 className="mb-4 text-xl font-semibold text-white">Your Playlists</h2>

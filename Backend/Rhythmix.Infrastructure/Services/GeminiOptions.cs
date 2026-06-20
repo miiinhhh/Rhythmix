@@ -1,7 +1,7 @@
 namespace Rhythmix.Infrastructure.Services;
 
-public class AnthropicOptions
+public sealed class GeminiOptions
 {
     public string ApiKey { get; set; } = string.Empty;
-    public string Model { get; set; } = "claude-sonnet-4-6";
+    public string Model { get; set; } = "gemini-2.0-flash";
 }

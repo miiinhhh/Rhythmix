@@ -36,11 +36,14 @@ public static class DependencyInjection
         // Đăng ký NotificationService để inject INotificationHub qua SignalR
         services.AddScoped<INotificationHub, NotificationService>();
 
-        // Đăng ký Anthropic AI service
-        var anthropicOptions = new AnthropicOptions();
-        configuration.GetSection("Anthropic").Bind(anthropicOptions);
-        services.AddSingleton(anthropicOptions);
-        services.AddScoped<IAnthropicService, AnthropicService>();
+        // Register Gemini recommendation service.
+        var geminiOptions = new GeminiOptions();
+        configuration.GetSection("Gemini").Bind(geminiOptions);
+        services.AddSingleton(geminiOptions);
+        services.AddHttpClient<IGeminiRecommendationService, GeminiRecommendationService>(client =>
+        {
+            client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/");
+        });
 
         return services;
     }
