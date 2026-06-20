@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Rhythmix.Application.UseCases.AI;
 
-public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery, List<MediaItem>>
+public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery, RecommendationResult>
 {
     private readonly IDbConnectionFactory _connectionFactory;
     private readonly IGeminiRecommendationService _geminiRecommendationService;
@@ -24,7 +24,7 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
         _geminiRecommendationService = geminiRecommendationService;
     }
 
-    public async Task<List<MediaItem>> Handle(GetRecommendationsQuery request, CancellationToken cancellationToken)
+    public async Task<RecommendationResult> Handle(GetRecommendationsQuery request, CancellationToken cancellationToken)
     {
         var limit = Math.Clamp(request.Limit, 1, 20);
 
@@ -33,22 +33,31 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
 
         // 2. Lấy danh sách yêu thích
         var favorites = await GetFavoritesAsync(request.UserId);
+        var catalog = await GetPublicCatalogAsync();
 
         try
         {
         // 3. Request recommendations from Gemini.
         var recommendedSongs = await _geminiRecommendationService.GetRecommendationsAsync(
-            recentHistory, favorites, limit);
+            recentHistory, favorites, catalog, limit);
 
         // 4. Tra cứu trong CSDL
         var matches = await SearchMediaItemsAsync(recommendedSongs);
         return matches.Count > 0
-            ? matches
-            : await GetDatabaseRecommendationsAsync(request.UserId, limit);
+            ? new RecommendationResult(matches, "gemini")
+            : new RecommendationResult(await GetDatabaseRecommendationsAsync(request.UserId, limit), "database", "gemini_no_library_match");
         }
         catch (InvalidOperationException)
         {
-            return await GetDatabaseRecommendationsAsync(request.UserId, limit);
+            return new RecommendationResult(await GetDatabaseRecommendationsAsync(request.UserId, limit), "database", "gemini_key_missing");
+        }
+        catch (HttpRequestException)
+        {
+            return new RecommendationResult(await GetDatabaseRecommendationsAsync(request.UserId, limit), "database", "gemini_request_failed");
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return new RecommendationResult(await GetDatabaseRecommendationsAsync(request.UserId, limit), "database", "gemini_invalid_response");
         }
     }
 
@@ -79,6 +88,21 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
             ORDER BY f.CreatedAt DESC";
 
         var result = await connection.QueryAsync<(string Title, string Artist)>(sql, new { UserId = userId });
+        return result.ToList();
+    }
+
+    private async Task<List<(string Title, string Artist)>> GetPublicCatalogAsync()
+    {
+        using var connection = _connectionFactory.CreateConnection();
+
+        const string sql = @"
+            SELECT TOP (100) m.Title, COALESCE(a.Name, 'Unknown Artist') AS Artist
+            FROM MediaItems m
+            LEFT JOIN Artists a ON a.ArtistId = m.ArtistId
+            WHERE m.IsPublic = 1
+            ORDER BY m.ViewCount DESC, m.CreatedAt DESC";
+
+        var result = await connection.QueryAsync<(string Title, string Artist)>(sql);
         return result.ToList();
     }
 

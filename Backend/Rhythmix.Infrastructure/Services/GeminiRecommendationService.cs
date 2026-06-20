@@ -18,6 +18,7 @@ public sealed class GeminiRecommendationService : IGeminiRecommendationService
     public async Task<List<(string Title, string Artist)>> GetRecommendationsAsync(
         List<(string Title, string Artist)> history,
         List<(string Title, string Artist)> favorites,
+        List<(string Title, string Artist)> catalog,
         int limit)
     {
         if (string.IsNullOrWhiteSpace(_options.ApiKey))
@@ -33,7 +34,7 @@ public sealed class GeminiRecommendationService : IGeminiRecommendationService
                 new
                 {
                     role = "user",
-                    parts = new[] { new { text = BuildPrompt(history, favorites, limit) } }
+                    parts = new[] { new { text = BuildPrompt(history, favorites, catalog, limit) } }
                 }
             },
             generationConfig = new
@@ -75,15 +76,18 @@ public sealed class GeminiRecommendationService : IGeminiRecommendationService
     private static string BuildPrompt(
         IEnumerable<(string Title, string Artist)> history,
         IEnumerable<(string Title, string Artist)> favorites,
+        IEnumerable<(string Title, string Artist)> catalog,
         int limit)
     {
         var historyText = string.Join(", ", history.Select(song => $"{song.Title} by {song.Artist}"));
         var favoriteText = string.Join(", ", favorites.Select(song => $"{song.Title} by {song.Artist}"));
+        var catalogText = string.Join(", ", catalog.Select(song => $"{song.Title} by {song.Artist}"));
 
         return $"You recommend songs available in a user's music library. " +
                $"Listening history: {(string.IsNullOrWhiteSpace(historyText) ? "None" : historyText)}. " +
                $"Favorites: {(string.IsNullOrWhiteSpace(favoriteText) ? "None" : favoriteText)}. " +
-               $"Suggest at most {limit} songs. Prefer titles and artists likely to exist in the library.";
+               $"Available library catalog: {(string.IsNullOrWhiteSpace(catalogText) ? "None" : catalogText)}. " +
+               $"Suggest at most {limit} songs and select only exact title and artist pairs from the available library catalog.";
     }
 
     private static string ExtractOutputText(JsonElement response)

@@ -32,6 +32,7 @@ const HomePage = () => {
   const [publicPlaylists, setPublicPlaylists] = useState<PlaylistDto[]>([]);
   const [albums, setAlbums] = useState<AlbumDto[]>([]);
   const [recommendations, setRecommendations] = useState<SongType[]>([]);
+  const [recommendationSource, setRecommendationSource] = useState<"gemini" | "database" | "">("");
 
   useEffect(() => {
     playlistService.getAll().then(setMyPlaylists).catch(() => setMyPlaylists([]));
@@ -39,8 +40,14 @@ const HomePage = () => {
     albumService.getMyAlbums().then(setAlbums).catch(() => setAlbums([]));
     aiService
       .getRecommendations(8)
-      .then((items) => setRecommendations(items.map((item) => mapMediaToSong(item))))
-      .catch(() => setRecommendations([]));
+      .then(({ items, source }) => {
+        setRecommendations(items.map((item) => mapMediaToSong(item)));
+        setRecommendationSource(source);
+      })
+      .catch(() => {
+        setRecommendations([]);
+        setRecommendationSource("");
+      });
   }, []);
 
   const handlePlay = (song: SongType) => {
@@ -78,7 +85,14 @@ const HomePage = () => {
       </div>
 
       <section>
-        <h2 className="mb-4 text-xl font-semibold text-white">Dành cho bạn</h2>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-white">Dành cho bạn</h2>
+          {recommendationSource && (
+            <span className="text-xs font-medium text-zinc-400">
+              {recommendationSource === "gemini" ? "Gợi ý bởi Gemini" : "Gợi ý từ thư viện"}
+            </span>
+          )}
+        </div>
         {recommendations.length === 0 ? (
           <div className="rounded-lg border border-dashed border-zinc-800 py-10 text-center text-sm text-zinc-400">
             Chưa có bài hát để đề xuất.

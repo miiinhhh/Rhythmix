@@ -1,5 +1,10 @@
 import apiClient from './apiClient';
-import type { ApiResponse } from '../types/api';
+type RecommendationResponse = {
+  success: boolean;
+  data: any[];
+  source: "gemini" | "database";
+  reason?: string;
+};
 
 /**
  * AI Recommendation service
@@ -12,9 +17,9 @@ export const aiService = {
    * @returns List of recommended MediaItem
    */
   getRecommendations: async (limit: number = 10) => {
-    const res = await apiClient.get<ApiResponse<any[]>>(
+    const res = await apiClient.get<RecommendationResponse>(
       `/ai/recommendations?limit=${limit}`
     );
-    return res.data.data;
+    return { items: res.data.data, source: res.data.source, reason: res.data.reason };
   },
 };
