@@ -1,6 +1,7 @@
-import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
 
+import LandingPage from "./pages/LandingPage";
 import HomePage from "./pages/HomePage";
 import SearchPage from "./pages/SearchPage";
 import LibraryPage from "./pages/LibraryPage";
@@ -16,10 +17,13 @@ import { LoadingProvider } from "./context/LoadingContext";
 // Tạo bộ định tuyến cấu hình đường dẫn URL
 const router = createBrowserRouter([
   {
-    // Dùng AppLayout làm khung bao bọc tất cả các trang
+    path: "/",
+    element: <LandingPage />,
+  },
+  {
+        // Dùng AppLayout làm khung bao bọc tất cả các trang
     element: <AppLayout />,
     children: [
-      { path: "/", element: <Navigate to="/home" replace /> },
       { path: "/home", element: <HomePage /> },
       { path: "/search", element: <SearchPage /> },
       { path: "/library", element: <LibraryPage /> },
