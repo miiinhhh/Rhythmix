@@ -5,6 +5,7 @@ public interface IMediaRepository
     Task<MediaItem?> GetByIdAsync(Guid mediaId, IDbTransaction? transaction = null);
     Task<IEnumerable<MediaItem>> GetByIdsAsync(IEnumerable<Guid> mediaIds, IDbTransaction? transaction = null);
     Task<Guid> AddAsync(MediaItem media, IDbTransaction? transaction = null);
+    Task SetGenresAsync(Guid mediaId, IEnumerable<Guid> genreIds, IDbTransaction? transaction = null);
     Task UpdateAsync(MediaItem media, IDbTransaction? transaction = null);
     Task DeleteAsync(Guid mediaId, IDbTransaction? transaction = null);
     Task<bool> ExistsAsync(Guid mediaId, IDbTransaction? transaction = null);

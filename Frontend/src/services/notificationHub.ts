@@ -1,8 +1,9 @@
 import * as signalR from "@microsoft/signalr";
 import { useNotificationStore } from "../store/useNotificationStore";
+import { API_BASE_URL } from "../config/apiConfig";
 
 // Đảm bảo URL này khớp với cổng Backend của bạn đang lắng nghe
-const HUB_URL = "http://localhost:5269/notificationHub";
+const HUB_URL = `${API_BASE_URL}/notificationHub`;
 
 class NotificationHub {
   private connection: signalR.HubConnection;

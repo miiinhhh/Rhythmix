@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import { API_BASE_URL } from '../config/apiConfig';
 import type { ApiResponse, MediaItemDto, UploadMediaDto } from '../types/api';
 
 export const mediaService = {
@@ -13,6 +14,7 @@ export const mediaService = {
     if (data.isPublic !== undefined) formData.append('isPublic', String(data.isPublic));
     if (data.albumId) formData.append('albumId', data.albumId);
     if (data.genreId) formData.append('genreId', data.genreId);
+    data.genreIds?.forEach((genreId) => formData.append('genreIds', genreId));
 
     const res = await apiClient.post<ApiResponse<MediaItemDto>>('/media/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -28,7 +30,7 @@ export const mediaService = {
 
   // Stream a media file
   getMediaStream: (mediaId: string) => {
-    return `http://localhost:5269/api/media/${mediaId}/stream`;
+    return `${API_BASE_URL}/api/media/${mediaId}/stream`;
   },
 
   // Get discovery/recommended media

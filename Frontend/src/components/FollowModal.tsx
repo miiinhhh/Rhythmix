@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
+import { API_BASE_URL } from "../config/apiConfig";
 
 type FollowModalProps = {
   isOpen: boolean;
@@ -8,7 +9,7 @@ type FollowModalProps = {
   list: any[];
 };
 
-const API_ORIGIN = "http://localhost:5269";
+const API_ORIGIN = `${API_BASE_URL}`;
 
 const resolveAssetUrl = (url?: string) => {
   if (!url) return "";

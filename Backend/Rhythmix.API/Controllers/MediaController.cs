@@ -69,7 +69,10 @@ public sealed class MediaController : ControllerBase
                 ArtistName = request.ArtistName,
                 Description = request.Description,
                 AlbumId = request.AlbumId,
-                GenreId = request.GenreId,
+                GenreId = request.GenreIds.Count > 0 ? request.GenreIds.First() : request.GenreId,
+                GenreIds = request.GenreIds.Count > 0
+                    ? request.GenreIds.Distinct().ToArray()
+                    : (request.GenreId.HasValue ? new[] { request.GenreId.Value } : Array.Empty<Guid>()),
                 IsPublic = request.IsPublic,
                 OwnerId = userId,
                 FileStream = stream,

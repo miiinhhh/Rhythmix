@@ -4,10 +4,15 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import AuthModal from "../components/AuthModal";
 import VideoPlayerModal from "../components/VideoPlayerModal";
+import QueueSidebar from "../components/QueueSidebar";
 import { mediaService, signalRService } from "../api";
-import { useNotifications, NotificationContext } from "../context/NotificationContext";
+import {
+  useNotifications,
+  NotificationContext,
+} from "../context/NotificationContext";
 import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
 import type { ShareItemDto } from "../types/api";
+import { userService } from "../api/userService";
 
 interface InboxMessageType {
   id: string;
@@ -34,7 +39,7 @@ const AppLayout = () => {
   const { addNotification, addMessage, allMessages } = useNotifications();
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    () => !!localStorage.getItem("token")
+    () => !!localStorage.getItem("token"),
   );
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
@@ -46,14 +51,45 @@ const AppLayout = () => {
   const [audioDuration, setAudioDuration] = useState(0);
   const [seekTrigger, setSeekTrigger] = useState<{ time: number } | null>(null);
 
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [playlistQueue, setPlaylistQueue] = useState<SongType[]>([]);
+
+  const handleSetPlaylistQueue = (_id: string, tracks: SongType[]) => {
+    setPlaylistQueue(tracks);
+  };
+  const currentIndex = playlistQueue.findIndex((t) => t.id === currentSongId);
+  const nextSongs = currentIndex !== -1 ? playlistQueue.slice(currentIndex + 1) : [];
+
   const currentTrack =
     songs.find((song) => song.id === currentSongId) ||
     allMessages.find((msg) => msg.trackData?.id === currentSongId)?.trackData ||
     null;
 
   const handleAuthSuccess = (_name: string) => {
-    setIsAuthenticated(true);
+      setIsAuthenticated(true);
+    };
+    const handleNext = () => {
+    const currentIndex = playlistQueue.findIndex((t) => t.id === currentSongId);
+  
+    // Nếu bài hiện tại không tìm thấy hoặc là bài cuối rồi thì dừng
+    if (currentIndex === -1 || currentIndex >= playlistQueue.length - 1) {
+      setIsPlaying(false);
+      setCurrentSongId(null);
+      return;
+    }
+
+    // Nếu còn bài tiếp theo thì chuyển
+    const next = playlistQueue[currentIndex + 1];
+    setCurrentSongId(next.id);
+    setIsPlaying(true);
   };
+
+const handlePrevious = () => {
+  const currentIndex = playlistQueue.findIndex((t) => t.id === currentSongId);
+  if (currentIndex > 0) {
+    setCurrentSongId(playlistQueue[currentIndex - 1].id);
+  }
+};
 
   useEffect(() => {
     let isMounted = true;
@@ -75,6 +111,28 @@ const AppLayout = () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (songs.length === 0) return;
+
+    const loadFavorites = async () => {
+      try {
+        const favorites = await userService.getFavorites();
+
+        setSongs((prev) =>
+          prev.map((song) => ({
+            ...song,
+            isLiked: favorites.includes(song.id)
+          }))
+        );
+      } catch {
+        // Nếu chưa đăng nhập hoặc token lỗi thì bỏ qua
+      }
+    };
+
+    void loadFavorites();
+  }, [songs.length]);
+
 
   // SignalR real-time notifications
   useEffect(() => {
@@ -103,7 +161,8 @@ const AppLayout = () => {
     share?: ShareItemDto
   ) => {
     const currentUserId = localStorage.getItem("currentUserId") || "";
-    const currentUserName = localStorage.getItem("currentUserName") || "Current user";
+    const currentUserName =
+      localStorage.getItem("currentUserName") || "Current user";
 
     const targetReceiverId = share?.receiverId || "";
     const targetReceiverName = share?.receiverName || receiverName;
@@ -114,7 +173,9 @@ const AppLayout = () => {
       senderName: share?.senderName || currentUserName,
       receiverId: targetReceiverId,
       receiverName: targetReceiverName,
-      avatarColor: currentUserId.includes("ross") ? "bg-purple-500" : "bg-blue-500",
+      avatarColor: currentUserId.includes("ross")
+        ? "bg-purple-500"
+        : "bg-blue-500",
       sharedType: type,
       time: share?.sharedAt || new Date().toISOString(),
     };
@@ -189,6 +250,15 @@ const AppLayout = () => {
                     },
                     seekTrigger,
                     setSeekTrigger,
+                    onSetPlaylistQueue: (
+                      playlistId: string,
+                      tracks: SongType[],
+                    ) => {
+                      handleSetPlaylistQueue(playlistId, tracks);
+                    },
+                    openQueue: () => setIsQueueOpen(true),
+                    closeQueue: () => setIsQueueOpen(false),
+                    toggleQueue: () => setIsQueueOpen((v) => !v),
                   } as any
                 }
               />
@@ -207,6 +277,17 @@ const AppLayout = () => {
             }}
             seekTrigger={seekTrigger}
             onShareSuccess={handleShareSuccess}
+            onToggleQueueSidebar={() => setIsQueueOpen((v) => !v)}
+            onTrackEnded={handleNext}
+            onNext={handleNext}
+            onPrevious={handlePrevious}
+          />
+
+          <QueueSidebar
+            isOpen={isQueueOpen}
+            onClose={() => setIsQueueOpen(false)}
+            currentTrack={currentTrack}
+            queue={nextSongs}
           />
         </>
       )}
@@ -230,4 +311,3 @@ const AppLayout = () => {
 };
 
 export default AppLayout;
-

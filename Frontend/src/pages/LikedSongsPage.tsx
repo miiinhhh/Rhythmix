@@ -3,6 +3,7 @@ import { Heart, Play, Pause, Music2, Clock, ArrowLeft, GripVertical } from "luci
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import type { SongType } from "../utils/mediaMapping";
+import { userService } from "../api/userService";
 // 1. Nhận hàm đổi bài hát từ Props truyền xuống (Ví dụ đặt tên là onPlayTrack)
 // 1. Định nghĩa chuẩn các thuộc tính nhận từ Outlet của AppLayout
 interface OutletContextType {
@@ -23,10 +24,46 @@ const LikedSongsPage = () => {
 //   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [likedPulse, setLikedPulse] = useState<string[]>([]);
+  const [isLoadingLiked, setIsLoadingLiked] = useState(true);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   useEffect(() => {
-    setLikedSongs(songs.filter((song) => song.isLiked));
-  }, [songs]);
+    let isMounted = true;
+
+    const fetchFavoriteIds = async () => {
+      try {
+        setIsLoadingLiked(true);
+
+        const ids = await userService.getFavorites();
+
+        if (!isMounted) return;
+
+        setFavoriteIds(ids.map(String));
+      } catch (error) {
+        console.error("Load favorite ids failed:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoadingLiked(false);
+        }
+      }
+    };
+
+    fetchFavoriteIds();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+  useEffect(() => {
+    const favoriteIdSet = new Set(favoriteIds);
+
+    const likedFromSongs = songs.filter((song) =>
+      favoriteIdSet.has(String(song.id))
+    );
+
+    setLikedSongs(likedFromSongs);
+  }, [favoriteIds, songs]);
+
 
   // Hàm xử lý sau khi kéo thả xong để cập nhật lại vị trí trong State
   const handleOnDragEnd = (result: DropResult) => {
@@ -52,21 +89,42 @@ const LikedSongsPage = () => {
       setIsPlaying(true);
     }
   };
-  const handleUnlike = (songId: string) => {
+  const handleUnlike = async (songId: string) => {
+    const currentSong = songs.find((song) => song.id === songId);
+    if (!currentSong) return;
+
     setLikedPulse((prev) => [...prev, songId]);
-      
-    setSongs((prev) => 
-      prev.map((s) => s.id === songId ? { ...s, isLiked: false } : s)
+
+    setSongs((prev) =>
+      prev.map((s) =>
+        s.id === songId ? { ...s, isLiked: false } : s
+      )
     );
-    
-    setTimeout(() => {
-      setLikedPulse((prev) => prev.filter((id) => id !== songId));
-      setLikedSongs((prev) => prev.filter((song) => song.id !== songId));
-    }, 220);
+
+    setLikedSongs((prev) => prev.filter((song) => song.id !== songId));
 
     if (currentSongId === songId) {
       setCurrentSongId(null);
       setIsPlaying(false);
+    }
+
+    try {
+      await userService.toggleFavorite(songId);
+    } catch {
+      // Nếu API lỗi thì trả lại trạng thái cũ
+      setSongs((prev) =>
+        prev.map((s) =>
+          s.id === songId ? { ...s, isLiked: true } : s
+        )
+      );
+
+      setLikedSongs((prev) => {
+        const alreadyExists = prev.some((song) => song.id === songId);
+        if (alreadyExists) return prev;
+        return [currentSong, ...prev];
+      });
+    } finally {
+      setLikedPulse((prev) => prev.filter((id) => id !== songId));
     }
   };
 
@@ -124,7 +182,7 @@ const LikedSongsPage = () => {
                   const isSelectedRow = song.id === selectedRowId;
 
                   return (
-                    <Draggable key={song.id.toString()} draggableId={song.id.toString()} index={index}>
+                    <Draggable key={song.id} draggableId={song.id} index={index}>
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
@@ -248,7 +306,7 @@ const LikedSongsPage = () => {
         </DragDropContext>
       </div>
       
-      {likedSongs.length === 0 && (
+      {!isLoadingLiked && likedSongs.length === 0 && (
         <div className="mt-10 flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 py-20 text-center">
           <Music2 className="mb-3 size-10 text-zinc-500" />
           <p className="text-sm text-zinc-400">No liked songs yet.</p>

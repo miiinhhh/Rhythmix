@@ -62,6 +62,7 @@ export interface UploadMediaDto {
   isPublic?: boolean;
   albumId?: string;
   genreId?: string;
+  genreIds?: string[];
 }
 
 // ============ Genre DTOs ============

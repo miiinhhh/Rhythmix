@@ -7,7 +7,9 @@ import { albumService } from "../api/albumService";
 import { mediaService } from "../api/mediaService";
 import { playlistService } from "../api/playlistService";
 import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
+import { userService } from "../api/userService";
 import type { AlbumDto, PlaylistDto } from "../types/api";
+import { API_BASE_URL } from "../config/apiConfig";
 
 interface OutletContextType {
   setCurrentSongId: (id: string | null) => void;
@@ -31,10 +33,11 @@ const LibraryPage = () => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
   // Logic lọc dữ liệu dựa trên Tab đang chọn
-  const { setCurrentSongId, setIsPlaying, songs, setSongs } = useOutletContext<OutletContextType>();
+  const { setCurrentSongId, setIsPlaying, setSongs } =useOutletContext<OutletContextType>();
   const [myMedia, setMyMedia] = useState<SongType[]>([]);
   const [playlists, setPlaylists] = useState<PlaylistDto[]>([]);
   const [albums, setAlbums] = useState<AlbumDto[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   const loadMyMedia = async () => {
     const mediaItems = await mediaService.getMyMedia();
@@ -56,16 +59,36 @@ const LibraryPage = () => {
     setAlbums(items);
   };
 
+  const loadFavoriteIds = async () => {
+    const favorites = await userService.getFavorites();
+
+    console.log("LIBRARY FAVORITES:", favorites);
+
+    const ids = favorites
+      .map((item: any) => String(item))
+      .filter((id: string) => id !== "");
+
+    setFavoriteIds(ids);
+
+    setSongs((prev) =>
+      prev.map((song) => ({
+        ...song,
+        isLiked: ids.includes(String(song.id)),
+      }))
+    );
+  };
+
   useEffect(() => {
     loadMyMedia().catch(() => setMyMedia([]));
     loadPlaylists().catch(() => setPlaylists([]));
     loadAlbums().catch(() => setAlbums([]));
+    loadFavoriteIds().catch(() => setFavoriteIds([]));
   }, []);
 
   const visibleMedia = activeTab === "playlists" || activeTab === "albums" ? [] : myMedia;
   const visiblePlaylists = activeTab === "albums" ? [] : playlists;
   const visibleAlbums = activeTab === "playlists" ? [] : albums;
-  const likedCount = songs.filter((song) => song.isLiked).length;
+  const likedCount = favoriteIds.length;
 
   const playAlbum = async (album: AlbumDto) => {
     const detail = await albumService.getById(album.albumId);
@@ -184,7 +207,7 @@ const LibraryPage = () => {
             <div className="relative mb-3">
               {playlist.thumbnailUrl ? (
                 <img
-                  src={playlist.thumbnailUrl.startsWith("http") ? playlist.thumbnailUrl : `http://localhost:5269${playlist.thumbnailUrl}`}
+                  src={playlist.thumbnailUrl.startsWith("http") ? playlist.thumbnailUrl : `${API_BASE_URL}${playlist.thumbnailUrl}`}
                   alt={playlist.name}
                   className="aspect-square w-full rounded-md object-cover shadow-lg"
                 />
@@ -217,7 +240,7 @@ const LibraryPage = () => {
             <div className="relative mb-3">
               {album.coverImageUrl ? (
                 <img
-                  src={album.coverImageUrl.startsWith("http") ? album.coverImageUrl : `http://localhost:5269${album.coverImageUrl}`}
+                  src={album.coverImageUrl.startsWith("http") ? album.coverImageUrl : `${API_BASE_URL}${album.coverImageUrl}`}
                   alt={album.title}
                   className="aspect-square w-full rounded-md object-cover shadow-lg"
                 />

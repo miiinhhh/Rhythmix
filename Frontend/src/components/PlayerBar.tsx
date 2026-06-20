@@ -3,18 +3,18 @@ import {
   Play,
   SkipBack,
   SkipForward,
-  Shuffle,
-  Repeat,
   Volume2,
   Heart,
   Music2,
   Maximize2,
   Share2,
+  ListMusic,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ShareModal from "./ShareModal";
 import type { ShareItemDto } from "../types/api";
 import type { SongType } from "../utils/mediaMapping";
+import { userService } from "../api/userService";
 
 interface PlayerBarProps {
   currentTrack: SongType | null;
@@ -30,6 +30,10 @@ interface PlayerBarProps {
     receiverName: string,
     share?: ShareItemDto,
   ) => void;
+  onToggleQueueSidebar?: () => void;
+  onTrackEnded?: () => void;
+  onNext: () => void;
+  onPrevious: () => void;
 }
 
 const PlayerBar = ({
@@ -41,6 +45,10 @@ const PlayerBar = ({
   onTimeUpdate,
   seekTrigger,
   onShareSuccess,
+  onToggleQueueSidebar,
+  onTrackEnded,
+  onNext,
+  onPrevious,
 }: PlayerBarProps) => {
   // 3. Tạo "điều khiển từ xa" để điều khiển thẻ audio ngầm của trình duyệt
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -126,6 +134,7 @@ const PlayerBar = ({
   // When track ends, update parent state
   const handleEnded = () => {
     setIsPlaying(false);
+    onTrackEnded?.();
   };
 
   // 🟢 State quản lý ẩn/hiển thị ShareModal
@@ -163,17 +172,22 @@ const PlayerBar = ({
         </div>
         <button
           type="button"
-          onClick={() => {
-            if (!currentTrack) return; // Nếu chưa phát bài nào thì không cho bấm
+          onClick={async () => {
+            if (!currentTrack) return;
 
-            // 🌟 Bắn lệnh thay đổi dữ liệu lên file cha AppLayout
-            setSongs((prev) =>
-              prev.map((song) =>
-                song.id === currentTrack.id
-                  ? { ...song, isLiked: !song.isLiked }
-                  : song,
-              ),
-            );
+            try {
+              await userService.toggleFavorite(currentTrack.id);
+
+              setSongs((prev) =>
+                prev.map((song) =>
+                  song.id === currentTrack.id
+                    ? { ...song, isLiked: !song.isLiked }
+                    : song,
+                ),
+              );
+            } catch (err) {
+              console.error("Toggle favorite failed:", err);
+            }
           }}
           className="ml-2 hidden text-zinc-400 transition-colors hover:text-white sm:block cursor-pointer"
           aria-label={currentTrack?.isLiked ? "Unlike" : "Like"}
@@ -201,10 +215,11 @@ const PlayerBar = ({
       {/* Controls */}
       <div className="flex max-w-md flex-1 flex-col items-center gap-2">
         <div className="flex items-center gap-4">
-          <button type="button" className="text-zinc-400 hover:text-white">
-            <Shuffle className="size-4" />
-          </button>
-          <button type="button" className="text-zinc-400 hover:text-white">
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="text-zinc-400 hover:text-white"
+          >
             <SkipBack className="size-5 fill-current" />
           </button>
           {/* NÚT PLAY/PAUSE THÔNG MINH ĐƯỢC THAY THẾ KHÚC NÀY */}
@@ -220,11 +235,12 @@ const PlayerBar = ({
               <Play className="size-4 fill-black text-black ml-0.5" />
             )}
           </button>
-          <button type="button" className="text-zinc-400 hover:text-white">
+          <button
+            type="button"
+            onClick={onNext}
+            className="text-zinc-400 hover:text-white"
+          >
             <SkipForward className="size-5 fill-current" />
-          </button>
-          <button type="button" className="text-zinc-400 hover:text-white">
-            <Repeat className="size-4" />
           </button>
         </div>
 
@@ -252,8 +268,16 @@ const PlayerBar = ({
         </div>
       </div>
 
-      {/* Volume UI */}
       <div className="hidden flex-1 items-center justify-end gap-2 md:flex">
+        <button
+          type="button"
+          onClick={() => onToggleQueueSidebar?.()}
+          className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+          aria-label="Open queue"
+        >
+          <ListMusic className="size-4" />
+        </button>
+        {/* Volume UI */}
         <Volume2 className="size-4 text-zinc-400" />
         <input
           type="range"

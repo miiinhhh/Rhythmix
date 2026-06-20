@@ -3,7 +3,7 @@ import { Check, Search, Send, X } from "lucide-react";
 import { shareService } from "../api/shareService";
 import { userService } from "../api/userService";
 import type { ShareItemDto, UserProfileDto } from "../types/api";
-
+import { API_BASE_URL } from "../config/apiConfig";
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,7 +20,7 @@ const isGuid = (value: string | number) =>
   typeof value === "string" &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
-const API_ORIGIN = "http://localhost:5269";
+const API_ORIGIN = `${API_BASE_URL}`;
 
 const resolveAssetUrl = (url?: string) => {
   if (!url) return "";
@@ -86,12 +86,12 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
         <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
           <div>
             <h3 className="text-sm font-bold text-white">
-              {itemToShare.type === "song" && "Chia se bai hat"}
-              {itemToShare.type === "video" && "Chia se video"}
-              {itemToShare.type === "playlist" && "Chia se playlist"}
+              {itemToShare.type === "song" && "Share a song"}
+              {itemToShare.type === "video" && "Share a video"}
+              {itemToShare.type === "playlist" && "Share a playlist"}
             </h3>
             <p className="mt-0.5 max-w-[250px] truncate text-xs text-zinc-400">
-              Dang chia se: {itemToShare.title}
+              Sharing: {itemToShare.title}
             </p>
           </div>
           <button onClick={onClose} className="cursor-pointer text-zinc-400 hover:text-white">

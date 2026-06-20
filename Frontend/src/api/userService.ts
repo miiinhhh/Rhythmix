@@ -2,7 +2,6 @@ import apiClient from './apiClient';
 import type {
   ApiResponse,
   MediaItemDto,
-  ToggleLikeDto,
   UpdateProfileDto,
   UserProfileDto,
 } from '../types/api';
@@ -61,9 +60,9 @@ export const userService = {
    * Get user's liked/favorite media items
    * Requires: Authorization
    */
-  getFavorites: async () => {
-    const res = await apiClient.get<ApiResponse<MediaItemDto[]>>('/user/favorites');
-    return res.data.data;
+  getFavorites: async (): Promise<string[]> => {
+    const res = await apiClient.get<ApiResponse<string[]>>("/Interactions/favorites");
+    return res.data.data ?? [];
   },
 
   /**
@@ -71,7 +70,10 @@ export const userService = {
    * Requires: Authorization
    */
   toggleFavorite: async (mediaId: string) => {
-    const res = await apiClient.post<ApiResponse<ToggleLikeDto>>('/user/favorites', { mediaId });
+    const res = await apiClient.post<ApiResponse<{ Message?: string; message?: string }>>(
+      `/Interactions/favorite/${mediaId}`
+    );
+
     return res.data.data;
   },
 

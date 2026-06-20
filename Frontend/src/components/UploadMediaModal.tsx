@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+﻿import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { albumService } from "../api/albumService";
 import { artistService } from "../api/artistService";
@@ -15,10 +15,9 @@ interface UploadMediaModalProps {
 interface FormErrors {
   title?: string;
   artist?: string;
-  newArtistName?: string;
   selectedFile?: string;
   newAlbumTitle?: string;
-  selectedGenreId?: string;
+  selectedGenreIds?: string;
   newGenreName?: string;
   submit?: string;
 }
@@ -26,31 +25,34 @@ interface FormErrors {
 const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps) => {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
+  const [isUnknownArtist, setIsUnknownArtist] = useState(false);
+  const [artistSearchTerm, setArtistSearchTerm] = useState("");
+  const [albumSearchTerm, setAlbumSearchTerm] = useState("");
+  const [genreSearchTerm, setGenreSearchTerm] = useState("");
   const [description, setDescription] = useState("");
   const [selectedAlbumId, setSelectedAlbumId] = useState("");
   const [selectedArtistId, setSelectedArtistId] = useState("");
-  const [selectedGenreId, setSelectedGenreId] = useState("");
+  const [selectedGenreIds, setSelectedGenreIds] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [selectedCoverImage, setSelectedCoverImage] = useState<File | null>(null);
 
   const [myAlbums, setMyAlbums] = useState<AlbumDto[]>([]);
-  const [myArtists, setMyArtists] = useState<ArtistDto[]>([]);
+  const [artistResults, setArtistResults] = useState<ArtistDto[]>([]);
   const [myGenres, setMyGenres] = useState<GenreDto[]>([]);
   const [isLoadingAlbums, setIsLoadingAlbums] = useState(false);
+  const [isSearchingArtists, setIsSearchingArtists] = useState(false);
   const [isSavingAlbum, setIsSavingAlbum] = useState(false);
-  const [isSavingArtist, setIsSavingArtist] = useState(false);
   const [isSavingGenre, setIsSavingGenre] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  const [isChoosingArtist, setIsChoosingArtist] = useState(false);
+  const [isChoosingAlbum, setIsChoosingAlbum] = useState(false);
+  const [isChoosingGenre, setIsChoosingGenre] = useState(false);
   const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
-  const [isCreatingArtist, setIsCreatingArtist] = useState(false);
   const [isCreatingGenre, setIsCreatingGenre] = useState(false);
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
   const [newAlbumDesc, setNewAlbumDesc] = useState("");
-  const [newArtistName, setNewArtistName] = useState("");
-  const [newArtistDesc, setNewArtistDesc] = useState("");
-  const [newArtistAvatar, setNewArtistAvatar] = useState<File | null>(null);
   const [newGenreName, setNewGenreName] = useState("");
   const [newGenreDesc, setNewGenreDesc] = useState("");
 
@@ -76,12 +78,12 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
 
         if (cancelled) return;
         setMyAlbums(albums);
-        setMyArtists(artists);
+        setArtistResults(artists);
         setMyGenres(genres);
       } catch {
         if (!cancelled) {
           setMyAlbums([]);
-          setMyArtists([]);
+          setArtistResults([]);
           setMyGenres([]);
           setErrors((prev) => ({ ...prev, submit: "Không tải được danh sách album, nghệ sĩ hoặc thể loại." }));
         }
@@ -95,6 +97,67 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
       cancelled = true;
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !isChoosingArtist) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setIsSearchingArtists(true);
+      try {
+        const artists = await artistService.search(artistSearchTerm.trim());
+        if (!cancelled) setArtistResults(artists);
+      } catch {
+        if (!cancelled) setArtistResults([]);
+      } finally {
+        if (!cancelled) setIsSearchingArtists(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [artistSearchTerm, isChoosingArtist, isOpen]);
+
+  const chooseArtist = (item: ArtistDto) => {
+    setSelectedArtistId(item.artistId);
+    setArtist(item.name);
+    setIsUnknownArtist(false);
+    setArtistSearchTerm(item.name);
+    setIsChoosingArtist(false);
+    clearFieldError("artist");
+  };
+
+  const chooseUnknownArtist = () => {
+    setSelectedArtistId("");
+    setArtist("");
+    setIsUnknownArtist(true);
+    setArtistSearchTerm("");
+    setIsChoosingArtist(false);
+    clearFieldError("artist");
+  };
+
+  const selectedAlbum = myAlbums.find((item) => item.albumId === selectedAlbumId);
+  const selectedGenres = myGenres.filter((item) => selectedGenreIds.includes(item.genreId));
+  const filteredAlbums = myAlbums.filter((item) => item.title.toLowerCase().includes(albumSearchTerm.trim().toLowerCase()));
+  const filteredGenres = myGenres.filter((item) => item.name.toLowerCase().includes(genreSearchTerm.trim().toLowerCase()));
+
+  const chooseAlbum = (item: AlbumDto) => {
+    setSelectedAlbumId(item.albumId);
+    setAlbumSearchTerm(item.title);
+    setIsChoosingAlbum(false);
+  };
+
+  const toggleGenre = (item: GenreDto) => {
+    setSelectedGenreIds((current) =>
+      current.includes(item.genreId)
+        ? current.filter((genreId) => genreId !== item.genreId)
+        : [...current, item.genreId]
+    );
+    setGenreSearchTerm("");
+    clearFieldError("selectedGenreIds");
+  };
 
   const handleSaveNewAlbum = async () => {
     setErrors((prev) => ({ ...prev, newAlbumTitle: undefined }));
@@ -112,9 +175,11 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
       });
       setMyAlbums((current) => [newAlbum, ...current]);
       setSelectedAlbumId(newAlbum.albumId);
+      setAlbumSearchTerm(newAlbum.title);
       setNewAlbumTitle("");
       setNewAlbumDesc("");
       setIsCreatingAlbum(false);
+      setIsChoosingAlbum(false);
     } catch {
       setErrors((prev) => ({ ...prev, newAlbumTitle: "Không tạo được album." }));
     } finally {
@@ -122,46 +187,8 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
     }
   };
 
-  const handleSaveNewArtist = async () => {
-    setErrors((prev) => ({ ...prev, newArtistName: undefined, artist: undefined }));
-
-    const name = newArtistName.trim();
-    if (!name) {
-      setErrors((prev) => ({ ...prev, newArtistName: "Vui lòng nhập tên nghệ sĩ." }));
-      return;
-    }
-
-    if (myArtists.some((item) => item.name.toLowerCase() === name.toLowerCase())) {
-      setErrors((prev) => ({ ...prev, newArtistName: "Tên nghệ sĩ đã tồn tại." }));
-      return;
-    }
-
-    setIsSavingArtist(true);
-    try {
-      const created = await artistService.create({
-        name,
-        description: newArtistDesc.trim() || undefined,
-        avatarImage: newArtistAvatar || undefined,
-      });
-      setMyArtists((current) => [created, ...current]);
-      setSelectedArtistId(created.artistId);
-      setArtist(created.name);
-      setNewArtistName("");
-      setNewArtistDesc("");
-      setNewArtistAvatar(null);
-      setIsCreatingArtist(false);
-    } catch (error: any) {
-      setErrors((prev) => ({
-        ...prev,
-        newArtistName: error?.response?.data?.errors?.[0] || error?.response?.data?.message || "Không tạo được nghệ sĩ.",
-      }));
-    } finally {
-      setIsSavingArtist(false);
-    }
-  };
-
   const handleSaveNewGenre = async () => {
-    setErrors((prev) => ({ ...prev, newGenreName: undefined, selectedGenreId: undefined }));
+    setErrors((prev) => ({ ...prev, newGenreName: undefined, selectedGenreIds: undefined }));
 
     const name = newGenreName.trim();
     if (!name) {
@@ -181,10 +208,12 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
         description: newGenreDesc.trim() || undefined,
       });
       setMyGenres((current) => [created, ...current]);
-      setSelectedGenreId(created.genreId);
+      setSelectedGenreIds((current) => [...new Set([...current, created.genreId])]);
+      setGenreSearchTerm(created.name);
       setNewGenreName("");
       setNewGenreDesc("");
       setIsCreatingGenre(false);
+      setIsChoosingGenre(false);
     } catch (error: any) {
       setErrors((prev) => ({
         ...prev,
@@ -195,12 +224,11 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
     const nextErrors: FormErrors = {};
     if (!title.trim()) nextErrors.title = "Vui lòng nhập tên bài hát.";
-    if (!artist.trim()) nextErrors.artist = "Vui lòng chọn hoặc tạo nghệ sĩ.";
     if (!selectedFile && !selectedVideoFile) nextErrors.selectedFile = "Vui lòng chọn file media.";
 
     if (Object.keys(nextErrors).length > 0) {
@@ -218,17 +246,22 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
         description: description.trim() || undefined,
         isPublic: true,
         albumId: selectedAlbumId || undefined,
-        genreId: selectedGenreId || undefined,
+        genreId: selectedGenreIds[0] || undefined,
+        genreIds: selectedGenreIds,
         coverImage: selectedCoverImage || undefined,
       });
 
       await onUploaded?.();
       setTitle("");
       setArtist("");
+      setIsUnknownArtist(false);
+      setArtistSearchTerm("");
+      setAlbumSearchTerm("");
+      setGenreSearchTerm("");
       setSelectedArtistId("");
       setDescription("");
       setSelectedAlbumId("");
-      setSelectedGenreId("");
+      setSelectedGenreIds([]);
       setSelectedFile(null);
       setSelectedVideoFile(null);
       setSelectedCoverImage(null);
@@ -267,8 +300,8 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
                 type="text"
                 placeholder="Tên bài hát..."
                 value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value);
+                onChange={(event) => {
+                  setTitle(event.target.value);
                   clearFieldError("title");
                 }}
                 className={`w-full rounded-lg border bg-zinc-900 px-4 py-3 text-sm text-white outline-none ${errors.title ? "border-red-500" : "border-zinc-800 focus:border-zinc-700"}`}
@@ -277,28 +310,23 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Nghệ sĩ *</label>
-                <button type="button" onClick={() => setIsCreatingArtist((current) => !current)} className="text-xs font-bold text-zinc-400 hover:text-white">
-                  + Tạo nghệ sĩ
-                </button>
-              </div>
-              <select
-                value={selectedArtistId}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  setSelectedArtistId(id);
-                  const selected = myArtists.find((item) => item.artistId === id);
-                  setArtist(selected?.name || "");
-                  clearFieldError("artist");
-                }}
-                className={`w-full rounded-lg border bg-zinc-900 px-4 py-3 text-sm text-white outline-none ${errors.artist ? "border-red-500" : "border-zinc-800 focus:border-zinc-700"}`}
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Nghệ sĩ</label>
+              <button
+                type="button"
+                onClick={() => setIsChoosingArtist(true)}
+                className={`w-full rounded-lg border bg-zinc-900 px-4 py-3 text-left text-sm outline-none transition hover:border-zinc-700 ${
+                  errors.artist ? "border-red-500" : "border-zinc-800"
+                }`}
               >
-                <option value="">Chọn nghệ sĩ có sẵn</option>
-                {myArtists.map((item) => (
-                  <option key={item.artistId} value={item.artistId}>{item.name}</option>
-                ))}
-              </select>
+                {artist || isUnknownArtist ? (
+                  <span className="flex items-center justify-between gap-3 text-white">
+                    <span className="truncate font-semibold">{isUnknownArtist ? "Không rõ nghệ sĩ" : artist}</span>
+                    <span className="shrink-0 text-xs font-bold text-green-400">Đổi</span>
+                  </span>
+                ) : (
+                  <span className="text-zinc-500">Chọn nghệ sĩ từ danh sách</span>
+                )}
+              </button>
               {errors.artist && <p className="text-xs font-medium text-red-500">{errors.artist}</p>}
             </div>
 
@@ -308,41 +336,27 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
                 rows={4}
                 placeholder="Thêm mô tả..."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(event) => setDescription(event.target.value)}
                 className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-white outline-none focus:border-zinc-700"
               />
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Thể loại</label>
-                <button type="button" onClick={() => setIsCreatingGenre((current) => !current)} className="text-xs font-bold text-zinc-400 hover:text-white">
-                  + Tạo thể loại
-                </button>
-              </div>
-              {selectedGenreId && (
-                <span className="inline-flex items-center gap-1 rounded border border-green-500/50 bg-green-500/20 px-2 py-1 text-xs text-green-400">
-                  {myGenres.find((item) => item.genreId === selectedGenreId)?.name}
-                  <button type="button" onClick={() => setSelectedGenreId("")}>
-                    <X className="size-3" />
-                  </button>
-                </span>
-              )}
-              <select
-                value=""
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setSelectedGenreId(e.target.value);
-                    clearFieldError("selectedGenreId");
-                  }
-                }}
-                className={`w-full rounded-lg border bg-zinc-900 px-4 py-3 text-sm text-white outline-none ${errors.selectedGenreId ? "border-red-500" : "border-zinc-800"}`}
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Thể loại</label>
+              <button
+                type="button"
+                onClick={() => setIsChoosingGenre(true)}
+                className={`w-full rounded-lg border bg-zinc-900 px-4 py-3 text-left text-sm outline-none transition hover:border-zinc-700 ${errors.selectedGenreIds ? "border-red-500" : "border-zinc-800"}`}
               >
-                <option value="">Chọn thể loại</option>
-                {myGenres.map((item) => (
-                  <option key={item.genreId} value={item.genreId} disabled={selectedGenreId === item.genreId}>{item.name}</option>
-                ))}
-              </select>
+                {selectedGenres.length > 0 ? (
+                  <span className="flex items-center justify-between gap-3 text-white">
+                    <span className="truncate font-semibold">{selectedGenres.map((item) => item.name).join(", ")}</span>
+                    <span className="shrink-0 text-xs font-bold text-green-400">Đổi</span>
+                  </span>
+                ) : (
+                  <span className="text-zinc-500">Chọn hoặc tạo thể loại</span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -350,21 +364,26 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
             <p className="border-b border-zinc-800 pb-2 text-sm font-bold uppercase tracking-widest text-green-500">2. Tệp media</p>
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Tệp âm thanh *</label>
-              <input type="file" accept="audio/mp3,audio/*" onChange={(e) => {
-                if (e.target.files?.[0]) {
-                  setSelectedFile(e.target.files[0]);
-                  clearFieldError("selectedFile");
-                }
-              }} className={`w-full rounded-lg border bg-zinc-950 px-4 py-2.5 text-sm text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white ${errors.selectedFile ? "border-red-500" : "border-zinc-800"}`} />
+              <input
+                type="file"
+                accept="audio/mp3,audio/*"
+                onChange={(event) => {
+                  if (event.target.files?.[0]) {
+                    setSelectedFile(event.target.files[0]);
+                    clearFieldError("selectedFile");
+                  }
+                }}
+                className={`w-full rounded-lg border bg-zinc-950 px-4 py-2.5 text-sm text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white ${errors.selectedFile ? "border-red-500" : "border-zinc-800"}`}
+              />
               {errors.selectedFile && <p className="text-xs font-medium text-red-500">{errors.selectedFile}</p>}
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Tệp video tùy chọn</label>
-              <input type="file" accept="video/mp4,video/*" onChange={(e) => setSelectedVideoFile(e.target.files?.[0] || null)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white" />
+              <input type="file" accept="video/mp4,video/*" onChange={(event) => setSelectedVideoFile(event.target.files?.[0] || null)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white" />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Ảnh bìa</label>
-              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setSelectedCoverImage(e.target.files?.[0] || null)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white" />
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setSelectedCoverImage(event.target.files?.[0] || null)} className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white" />
               {selectedCoverImage && <p className="text-xs text-zinc-500">{selectedCoverImage.name}</p>}
             </div>
           </div>
@@ -373,56 +392,21 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
             <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
                 <p className="text-sm font-bold uppercase tracking-widest text-green-500">3. Album</p>
-                <button type="button" onClick={() => setIsCreatingAlbum(!isCreatingAlbum)} className="flex items-center gap-1 text-xs font-bold text-zinc-400 hover:text-white">
-                  {isCreatingAlbum ? <>Hủy <ChevronUp className="size-3" /></> : <>+ Mới <ChevronDown className="size-3" /></>}
-                </button>
               </div>
-              {isCreatingAlbum ? (
-                <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
-                  <p className="text-xs font-black uppercase tracking-widest text-zinc-500">Tạo album mới</p>
-                  <input
-                    type="text"
-                    placeholder="Tên album mới... *"
-                    value={newAlbumTitle}
-                    onChange={(e) => {
-                      setNewAlbumTitle(e.target.value);
-                      clearFieldError("newAlbumTitle");
-                    }}
-                    className={`w-full rounded-lg border bg-zinc-950 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none transition-all ${
-                      errors.newAlbumTitle ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-zinc-700"
-                    }`}
-                  />
-                  {errors.newAlbumTitle && <p className="text-xs font-medium text-red-500">{errors.newAlbumTitle}</p>}
-                  <textarea
-                    rows={3}
-                    placeholder="Mô tả ngắn..."
-                    value={newAlbumDesc}
-                    onChange={(e) => setNewAlbumDesc(e.target.value)}
-                    className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-700"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSaveNewAlbum}
-                    disabled={isSavingAlbum}
-                    className="w-full cursor-pointer rounded-lg bg-zinc-200 py-2.5 text-sm font-bold text-black transition-all hover:bg-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isSavingAlbum ? "Đang tạo..." : "Tạo album"}
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <select
-                    value={selectedAlbumId}
-                    onChange={(e) => setSelectedAlbumId(e.target.value)}
-                    className="w-full cursor-pointer rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 text-base text-white outline-none focus:border-zinc-700"
-                  >
-                    <option value="">{isLoadingAlbums ? "Đang tải album..." : "-- Single --"}</option>
-                    {myAlbums.map((album) => (
-                      <option key={album.albumId} value={album.albumId}>{album.title}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => setIsChoosingAlbum(true)}
+                className="w-full cursor-pointer rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 text-left text-base text-white outline-none transition hover:border-zinc-700"
+              >
+                {selectedAlbum ? (
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="truncate font-semibold">{selectedAlbum.title}</span>
+                    <span className="shrink-0 text-xs font-bold text-green-400">Đổi</span>
+                  </span>
+                ) : (
+                  <span className="text-zinc-500">-- Single --</span>
+                )}
+              </button>
             </div>
             <div className="pt-8">
               <button type="submit" disabled={isUploading} className="w-full rounded-full bg-green-500 py-3.5 text-lg font-bold text-black shadow-lg shadow-green-500/20 transition-all hover:scale-[1.01] disabled:opacity-60">
@@ -433,36 +417,65 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
           </div>
         </form>
 
-        <CreateArtistPopup
-          open={isCreatingArtist}
-          name={newArtistName}
-          description={newArtistDesc}
-          avatar={newArtistAvatar}
-          error={errors.newArtistName}
-          saving={isSavingArtist}
-          onClose={() => {
-            setIsCreatingArtist(false);
-            setErrors((prev) => ({ ...prev, newArtistName: undefined }));
-          }}
-          onNameChange={(value) => {
-            setNewArtistName(value);
-            clearFieldError("newArtistName");
-          }}
-          onDescriptionChange={setNewArtistDesc}
-          onAvatarChange={setNewArtistAvatar}
-          onSubmit={handleSaveNewArtist}
+        <ChooseArtistPopup
+          open={isChoosingArtist}
+          searchTerm={artistSearchTerm}
+          artists={artistResults}
+          selectedArtistId={selectedArtistId}
+          searching={isSearchingArtists}
+          onClose={() => setIsChoosingArtist(false)}
+          onSearchChange={setArtistSearchTerm}
+          onChoose={chooseArtist}
+          onChooseUnknown={chooseUnknownArtist}
         />
 
-        <CreateGenrePopup
-          open={isCreatingGenre}
+        <ChooseAlbumPopup
+          open={isChoosingAlbum}
+          searchTerm={albumSearchTerm}
+          albums={filteredAlbums}
+          selectedAlbumId={selectedAlbumId}
+          isCreating={isCreatingAlbum}
+          newTitle={newAlbumTitle}
+          newDescription={newAlbumDesc}
+          titleError={errors.newAlbumTitle}
+          saving={isSavingAlbum}
+          loading={isLoadingAlbums}
+          onClose={() => setIsChoosingAlbum(false)}
+          onSearchChange={setAlbumSearchTerm}
+          onChoose={chooseAlbum}
+          onClear={() => {
+            setSelectedAlbumId("");
+            setAlbumSearchTerm("");
+            setIsChoosingAlbum(false);
+          }}
+          onToggleCreate={() => setIsCreatingAlbum((current) => !current)}
+          onTitleChange={(value) => {
+            setNewAlbumTitle(value);
+            clearFieldError("newAlbumTitle");
+          }}
+          onDescriptionChange={setNewAlbumDesc}
+          onCreate={handleSaveNewAlbum}
+        />
+
+        <ChooseGenrePopup
+          open={isChoosingGenre}
+          searchTerm={genreSearchTerm}
+          genres={filteredGenres}
+          selectedGenreIds={selectedGenreIds}
+          isCreating={isCreatingGenre}
           name={newGenreName}
           description={newGenreDesc}
           error={errors.newGenreName}
           saving={isSavingGenre}
-          onClose={() => {
-            setIsCreatingGenre(false);
-            setErrors((prev) => ({ ...prev, newGenreName: undefined }));
+          onClose={() => setIsChoosingGenre(false)}
+          onSearchChange={setGenreSearchTerm}
+          onToggle={toggleGenre}
+          onClear={() => {
+            setSelectedGenreIds([]);
+            setGenreSearchTerm("");
+            setIsChoosingGenre(false);
           }}
+          onToggleCreate={() => setIsCreatingGenre((current) => !current)}
           onNameChange={(value) => {
             setNewGenreName(value);
             clearFieldError("newGenreName");
@@ -475,33 +488,29 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
   );
 };
 
-type CreateArtistPopupProps = {
+type ChooseArtistPopupProps = {
   open: boolean;
-  name: string;
-  description: string;
-  avatar: File | null;
-  error?: string;
-  saving: boolean;
+  searchTerm: string;
+  artists: ArtistDto[];
+  selectedArtistId: string;
+  searching: boolean;
   onClose: () => void;
-  onNameChange: (value: string) => void;
-  onDescriptionChange: (value: string) => void;
-  onAvatarChange: (file: File | null) => void;
-  onSubmit: () => void;
+  onSearchChange: (value: string) => void;
+  onChoose: (artist: ArtistDto) => void;
+  onChooseUnknown: () => void;
 };
 
-const CreateArtistPopup = ({
+const ChooseArtistPopup = ({
   open,
-  name,
-  description,
-  avatar,
-  error,
-  saving,
+  searchTerm,
+  artists,
+  selectedArtistId,
+  searching,
   onClose,
-  onNameChange,
-  onDescriptionChange,
-  onAvatarChange,
-  onSubmit,
-}: CreateArtistPopupProps) => {
+  onSearchChange,
+  onChoose,
+  onChooseUnknown,
+}: ChooseArtistPopupProps) => {
   if (!open) return null;
 
   return (
@@ -509,86 +518,101 @@ const CreateArtistPopup = ({
       <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-black text-white">Tạo nghệ sĩ mới</h3>
-            <p className="mt-1 text-xs text-zinc-400">Tên nghệ sĩ sẽ được kiểm tra trùng trước khi lưu.</p>
+            <h3 className="text-lg font-black text-white">Chọn nghệ sĩ</h3>
+            <p className="mt-1 text-xs text-zinc-400">Tìm nghệ sĩ đã có trong hệ thống để gắn với bài hát.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-zinc-400 hover:bg-zinc-900 hover:text-white">
             <X className="size-5" />
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-400">Tên nghệ sĩ *</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => onNameChange(event.target.value)}
-              placeholder="Nhập tên nghệ sĩ..."
-              className={`w-full rounded-lg border bg-zinc-900 px-3 py-2 text-sm text-white outline-none ${error ? "border-red-500" : "border-zinc-800 focus:border-zinc-700"}`}
-            />
-            {error && <p className="mt-1 text-xs font-medium text-red-500">{error}</p>}
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-400">Mô tả</label>
-            <textarea
-              rows={3}
-              value={description}
-              onChange={(event) => onDescriptionChange(event.target.value)}
-              placeholder="Mô tả ngắn về nghệ sĩ..."
-              className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-zinc-700"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-400">Avatar nghệ sĩ</label>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(event) => onAvatarChange(event.target.files?.[0] || null)}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-400 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-800 file:px-3 file:py-1.5 file:text-[10px] file:font-semibold file:text-white"
-            />
-            {avatar && <p className="mt-1 text-xs text-zinc-500">{avatar.name}</p>}
-          </div>
-
+        <div className="space-y-3">
           <button
             type="button"
-            onClick={onSubmit}
-            disabled={saving}
-            className="w-full rounded-full bg-green-500 py-2.5 text-sm font-bold text-black hover:bg-green-400 disabled:opacity-60"
+            onClick={onChooseUnknown}
+            className="flex w-full items-center justify-between rounded-lg border border-zinc-700 bg-zinc-900 px-3.5 py-2.5 text-left text-sm font-medium text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-800"
           >
-            {saving ? "Đang tạo..." : "Tạo nghệ sĩ"}
+            <span>Không rõ nghệ sĩ</span>
+            <span className="text-xs text-zinc-400">Không gắn nghệ sĩ</span>
           </button>
+
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Nhập tên nghệ sĩ..."
+            autoFocus
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-700"
+          />
+
+          <div className="max-h-72 space-y-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-1.5">
+            {searching ? (
+              <p className="px-3 py-2 text-xs text-zinc-500">Đang tìm nghệ sĩ...</p>
+            ) : artists.length > 0 ? (
+              artists.map((item) => (
+                <button
+                  key={item.artistId}
+                  type="button"
+                  onClick={() => onChoose(item)}
+                  className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${
+                    selectedArtistId === item.artistId ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
+                  }`}
+                >
+                  <span className="truncate font-medium">{item.name}</span>
+                  {selectedArtistId === item.artistId && <span className="text-xs font-bold">Đã chọn</span>}
+                </button>
+              ))
+            ) : (
+              <p className="px-3 py-2 text-xs text-zinc-500">Không tìm thấy nghệ sĩ phù hợp.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-type CreateGenrePopupProps = {
+type ChooseAlbumPopupProps = {
   open: boolean;
-  name: string;
-  description: string;
-  error?: string;
+  searchTerm: string;
+  albums: AlbumDto[];
+  selectedAlbumId: string;
+  isCreating: boolean;
+  newTitle: string;
+  newDescription: string;
+  titleError?: string;
   saving: boolean;
+  loading: boolean;
   onClose: () => void;
-  onNameChange: (value: string) => void;
+  onSearchChange: (value: string) => void;
+  onChoose: (album: AlbumDto) => void;
+  onClear: () => void;
+  onToggleCreate: () => void;
+  onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
-  onSubmit: () => void;
+  onCreate: () => void;
 };
 
-const CreateGenrePopup = ({
+const ChooseAlbumPopup = ({
   open,
-  name,
-  description,
-  error,
+  searchTerm,
+  albums,
+  selectedAlbumId,
+  isCreating,
+  newTitle,
+  newDescription,
+  titleError,
   saving,
+  loading,
   onClose,
-  onNameChange,
+  onSearchChange,
+  onChoose,
+  onClear,
+  onToggleCreate,
+  onTitleChange,
   onDescriptionChange,
-  onSubmit,
-}: CreateGenrePopupProps) => {
+  onCreate,
+}: ChooseAlbumPopupProps) => {
   if (!open) return null;
 
   return (
@@ -596,50 +620,213 @@ const CreateGenrePopup = ({
       <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-black text-white">Tạo thể loại mới</h3>
-            <p className="mt-1 text-xs text-zinc-400">Tên thể loại sẽ được kiểm tra trùng trước khi lưu.</p>
+            <h3 className="text-lg font-black text-white">Chọn album</h3>
+            <p className="mt-1 text-xs text-zinc-400">Tìm album có sẵn, để single, hoặc tạo album mới.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-zinc-400 hover:bg-zinc-900 hover:text-white">
             <X className="size-5" />
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-400">Tên thể loại *</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => onNameChange(event.target.value)}
-              placeholder="Nhập tên thể loại..."
-              className={`w-full rounded-lg border bg-zinc-900 px-3 py-2 text-sm text-white outline-none ${error ? "border-red-500" : "border-zinc-800 focus:border-zinc-700"}`}
-            />
-            {error && <p className="mt-1 text-xs font-medium text-red-500">{error}</p>}
+        <div className="space-y-3">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Tìm album..."
+            autoFocus
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-700"
+          />
+
+          <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-1.5">
+            <button
+              type="button"
+              onClick={onClear}
+              className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${
+                !selectedAlbumId ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
+              }`}
+            >
+              <span className="truncate font-medium">-- Single --</span>
+              {!selectedAlbumId && <span className="text-xs font-bold">Đã chọn</span>}
+            </button>
+
+            {loading ? (
+              <p className="px-3 py-2 text-xs text-zinc-500">Đang tải album...</p>
+            ) : albums.length > 0 ? (
+              albums.map((item) => (
+                <button
+                  key={item.albumId}
+                  type="button"
+                  onClick={() => onChoose(item)}
+                  className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${
+                    selectedAlbumId === item.albumId ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
+                  }`}
+                >
+                  <span className="truncate font-medium">{item.title}</span>
+                  {selectedAlbumId === item.albumId && <span className="text-xs font-bold">Đã chọn</span>}
+                </button>
+              ))
+            ) : (
+              <p className="px-3 py-2 text-xs text-zinc-500">Không tìm thấy album phù hợp.</p>
+            )}
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-400">Mô tả</label>
-            <textarea
-              rows={3}
-              value={description}
-              onChange={(event) => onDescriptionChange(event.target.value)}
-              placeholder="Mô tả ngắn về thể loại..."
-              className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-zinc-700"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={saving}
-            className="w-full rounded-full bg-green-500 py-2.5 text-sm font-bold text-black hover:bg-green-400 disabled:opacity-60"
-          >
-            {saving ? "Đang tạo..." : "Tạo thể loại"}
+          <button type="button" onClick={onToggleCreate} className="w-full rounded-lg border border-zinc-800 py-2 text-sm font-bold text-zinc-300 hover:bg-zinc-900 hover:text-white">
+            {isCreating ? "Ẩn tạo album" : "+ Tạo album mới"}
           </button>
+
+          {isCreating && (
+            <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+              <input
+                type="text"
+                value={newTitle}
+                onChange={(event) => onTitleChange(event.target.value)}
+                placeholder="Tên album mới... *"
+                className={`w-full rounded-lg border bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none ${titleError ? "border-red-500" : "border-zinc-800 focus:border-zinc-700"}`}
+              />
+              {titleError && <p className="text-xs font-medium text-red-500">{titleError}</p>}
+              <textarea
+                rows={3}
+                value={newDescription}
+                onChange={(event) => onDescriptionChange(event.target.value)}
+                placeholder="Mô tả ngắn..."
+                className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none focus:border-zinc-700"
+              />
+              <button type="button" onClick={onCreate} disabled={saving} className="w-full rounded-lg bg-zinc-200 py-2.5 text-sm font-bold text-black hover:bg-white disabled:opacity-60">
+                {saving ? "Đang tạo..." : "Tạo album"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
+type ChooseGenrePopupProps = {
+  open: boolean;
+  searchTerm: string;
+  genres: GenreDto[];
+  selectedGenreIds: string[];
+  isCreating: boolean;
+  name: string;
+  description: string;
+  error?: string;
+  saving: boolean;
+  onClose: () => void;
+  onSearchChange: (value: string) => void;
+  onToggle: (genre: GenreDto) => void;
+  onClear: () => void;
+  onToggleCreate: () => void;
+  onNameChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onSubmit: () => void;
+};
+
+const ChooseGenrePopup = ({
+  open,
+  searchTerm,
+  genres,
+  selectedGenreIds,
+  isCreating,
+  name,
+  description,
+  error,
+  saving,
+  onClose,
+  onSearchChange,
+  onToggle,
+  onClear,
+  onToggleCreate,
+  onNameChange,
+  onDescriptionChange,
+  onSubmit,
+}: ChooseGenrePopupProps) => {
+  if (!open) return null;
+
+  return (
+    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/70 p-6 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-black text-white">Chọn thể loại</h3>
+            <p className="mt-1 text-xs text-zinc-400">Tìm thể loại có sẵn hoặc tạo thể loại mới.</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full p-1 text-zinc-400 hover:bg-zinc-900 hover:text-white">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Tìm thể loại..."
+            autoFocus
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-700"
+          />
+
+          <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-1.5">
+            <button
+              type="button"
+              onClick={onClear}
+              className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${
+                selectedGenreIds.length === 0 ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
+              }`}
+            >
+              <span className="truncate font-medium">Không chọn thể loại</span>
+              {selectedGenreIds.length === 0 && <span className="text-xs font-bold">Đã chọn</span>}
+            </button>
+
+            {genres.length > 0 ? (
+              genres.map((item) => (
+                <button
+                  key={item.genreId}
+                  type="button"
+                  onClick={() => onToggle(item)}
+                  className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${
+                    selectedGenreIds.includes(item.genreId) ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
+                  }`}
+                >
+                  <span className="truncate font-medium">{item.name}</span>
+                  {selectedGenreIds.includes(item.genreId) && <span className="text-xs font-bold">Đã chọn</span>}
+                </button>
+              ))
+            ) : (
+              <p className="px-3 py-2 text-xs text-zinc-500">Không tìm thấy thể loại phù hợp.</p>
+            )}
+          </div>
+
+          <button type="button" onClick={onToggleCreate} className="w-full rounded-lg border border-zinc-800 py-2 text-sm font-bold text-zinc-300 hover:bg-zinc-900 hover:text-white">
+            {isCreating ? "Ẩn tạo thể loại" : "+ Tạo thể loại mới"}
+          </button>
+
+          {isCreating && (
+            <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+              <input
+                type="text"
+                value={name}
+                onChange={(event) => onNameChange(event.target.value)}
+                placeholder="Tên thể loại mới... *"
+                className={`w-full rounded-lg border bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none ${error ? "border-red-500" : "border-zinc-800 focus:border-zinc-700"}`}
+              />
+              {error && <p className="text-xs font-medium text-red-500">{error}</p>}
+              <textarea
+                rows={3}
+                value={description}
+                onChange={(event) => onDescriptionChange(event.target.value)}
+                placeholder="Mô tả ngắn..."
+                className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none focus:border-zinc-700"
+              />
+              <button type="button" onClick={onSubmit} disabled={saving} className="w-full rounded-lg bg-green-500 py-2.5 text-sm font-bold text-black hover:bg-green-400 disabled:opacity-60">
+                {saving ? "Đang tạo..." : "Tạo thể loại"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 export default UploadMediaModal;

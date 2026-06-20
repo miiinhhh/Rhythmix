@@ -83,6 +83,19 @@ CREATE TABLE MediaItems
         REFERENCES AspNetUsers(Id)
 )
 
+CREATE TABLE MediaItemGenres
+(
+    MediaId UNIQUEIDENTIFIER NOT NULL,
+    GenreId UNIQUEIDENTIFIER NOT NULL,
+    CreatedAt DATETIME2 DEFAULT GETDATE(),
+    PRIMARY KEY (MediaId, GenreId),
+    FOREIGN KEY (MediaId)
+        REFERENCES MediaItems(MediaId)
+        ON DELETE CASCADE,
+    FOREIGN KEY (GenreId)
+        REFERENCES Genres(GenreId)
+)
+
 
 CREATE TABLE Playlists
 (

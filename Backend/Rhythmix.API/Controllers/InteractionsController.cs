@@ -60,5 +60,14 @@ namespace Rhythmix.API.Controllers
             var result = await _mediator.Send(new GetRecentPlayHistoryQuery(CurrentUserId));
             return Ok(ApiResponse<object>.ToSuccess(result));
         }
+        /// <summary>
+        /// Lấy danh sách MediaId mà người dùng hiện tại đã yêu thích
+        /// </summary>
+        [HttpGet("favorites")]
+        public async Task<IActionResult> GetFavorites()
+        {
+            var result = await _mediator.Send(new GetFavoritesQuery(CurrentUserId));
+            return Ok(ApiResponse<object>.ToSuccess(result));
+        }
     }
 }

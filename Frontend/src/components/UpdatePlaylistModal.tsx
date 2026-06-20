@@ -1,33 +1,33 @@
 import React, { useState, useEffect } from "react";
-import { Music, X, Globe, Lock } from "lucide-react"; 
+import { Music, X, Globe, Lock } from "lucide-react";
 
-// 1. Định nghĩa cấu trúc Object dữ liệu của Playlist
-interface PlaylistDataType {
-  id: string;
-  title: string;
-  description: string;
-  isPublic: boolean;
-}
+import type { PlaylistDetailDto, CreatePlaylistDto } from "../types/api";
+import { playlistService } from "../api/playlistService";
 
 interface UpdatePlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
-  playlistData: PlaylistDataType;
-  onUpdateSuccess: (updatedData: PlaylistDataType) => void;
+  playlistData: PlaylistDetailDto;
+  onUpdateSuccess: (updatedData: Partial<CreatePlaylistDto>) => void;
 }
 
-const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({ isOpen, onClose, playlistData, onUpdateSuccess }) => {
+const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({
+  isOpen,
+  onClose,
+  playlistData,
+  onUpdateSuccess,
+}) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [isPublic, setIsPublic] = useState(true); 
-  
+  const [isPublic, setIsPublic] = useState(true);
+
   // 🌟 State quản lý tin nhắn báo lỗi (Bình thường để rỗng)
-    const [error, setError] = useState(""); 
-    // 🌟 Đổ dữ liệu cũ của Playlist vào Form mỗi khi Modal được mở lên
+  const [error, setError] = useState("");
+  // 🌟 Đổ dữ liệu cũ của Playlist vào Form mỗi khi Modal được mở lên
   useEffect(() => {
     if (isOpen && playlistData) {
-      setName(playlistData.title);
-      setDescription(playlistData.description);
+      setName(playlistData.name);
+      setDescription(playlistData.description ?? "");
       setIsPublic(playlistData.isPublic);
       setError(""); // Xóa thông báo lỗi cũ nếu có
     }
@@ -37,56 +37,73 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({ isOpen, onClo
 
   // Hàm xử lý khi đóng modal (reset toàn bộ dữ liệu và lỗi cũ)
   const handleCloseModal = () => {
-    setError(""); 
+    setError("");
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
-        setError("Vui lòng nhập tên danh sách phát!");
-        return;
+      setError("Vui lòng nhập tên danh sách phát!");
+      return;
     }
 
-    // [THÊM MỚI] Gom dữ liệu đã chỉnh sửa
-    const updatedPlaylist = {
-        ...playlistData, // Giữ nguyên ID cũ (ví dụ: "p1")
-        title: name,     // Lấy tên mới từ ô input
-        description: description,
-        isPublic: isPublic,
-    };
+    try {
+      const updatedInfo = await playlistService.update(
+        playlistData.playlistId,
+        {
+          name,
+          description,
+        },
+      );
 
-    console.log("Dữ liệu chuẩn bị gửi xuống SQL Server hoặc API:", updatedPlaylist);
-    
-    // [SỬA] Bắn dữ liệu mới sửa về file cha để UI bên ngoài thay đổi lập tức
-    onUpdateSuccess(updatedPlaylist);
+      await playlistService.updateVisibility(playlistData.playlistId, {
+        isPublic,
+      });
 
-    handleCloseModal();
+      onUpdateSuccess({
+        name: updatedInfo.name,
+        description: updatedInfo.description ?? "",
+        isPublic,
+      });
+
+      handleCloseModal();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Cập nhật playlist thất bại.",
+      );
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease-out]">
       {/* Khung Modal */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-lg w-full max-w-lg p-6 shadow-2xl relative select-none">
-        
         {/* Nút đóng góc phải */}
-        <button 
+        <button
           type="button"
-          onClick={handleCloseModal} 
+          onClick={handleCloseModal}
           className="absolute top-4 right-4 text-zinc-400 hover:text-white cursor-pointer transition-colors"
         >
           <X size={20} />
         </button>
 
-        <h2 className="text-xl font-bold text-white mb-6">Cập nhật danh sách phát</h2>
+        <h2 className="text-xl font-bold text-white mb-6">
+          Cập nhật danh sách phát
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Cụm Layout chính (Bìa giả lập + Ô nhập liệu) */}
           <div className="flex gap-4">
             {/* Bên trái: Hộp vuông ảnh bìa mặc định */}
             <div className="w-40 h-40 bg-zinc-900 border border-zinc-800 rounded flex flex-col items-center justify-center text-zinc-500 shadow-inner shrink-0 group relative">
-              <Music size={44} className="text-zinc-600 group-hover:scale-110 transition-transform" />
+              <Music
+                size={44}
+                className="text-zinc-600 group-hover:scale-110 transition-transform"
+              />
               <span className="absolute bottom-2 text-[10px] text-zinc-500 font-medium text-center px-1">
                 Ảnh bìa tự động
               </span>
@@ -105,17 +122,17 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({ isOpen, onClo
                   onChange={(e) => {
                     setName(e.target.value);
                     // 🌟 UX cực tốt: Khi người dùng đang gõ lại chữ thì tự động ẩn dòng báo lỗi đỏ đi liền
-                    if (error) setError(""); 
+                    if (error) setError("");
                   }}
                   maxLength={255}
                   /* 🌟 Nếu có lỗi thì đổi viền đỏ rực (border-red-500), không có lỗi thì viền trong suốt như cũ */
                   className={`w-full bg-zinc-800 text-white text-sm p-2.5 rounded focus:outline-none transition-all placeholder-zinc-500 border ${
-                    error 
-                      ? "border-red-500 focus:border-red-500" 
+                    error
+                      ? "border-red-500 focus:border-red-500"
                       : "border-transparent focus:border-zinc-700"
                   }`}
                 />
-                
+
                 {/* 🌟 ĐOẠN HIỂN THỊ CHỮ ĐỎ BÁO LỖI (Y hệt mẫu ảnh bạn gửi) */}
                 {error && (
                   <p className="mt-1.5 text-xs font-medium text-red-500 animate-[fadeIn_0.15s_ease-out]">
@@ -125,7 +142,9 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({ isOpen, onClo
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">Mô tả</label>
+                <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                  Mô tả
+                </label>
                 <textarea
                   placeholder="Thêm mô tả (không bắt buộc)"
                   value={description}
@@ -150,15 +169,17 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({ isOpen, onClo
                   {isPublic ? "Chế độ Công khai" : "Chế độ Riêng tư"}
                 </span>
                 <span className="text-xs text-zinc-400">
-                  {isPublic ? "Mọi người đều có thể nghe thấy" : "Chỉ một mình bạn có thể xem"}
+                  {isPublic
+                    ? "Mọi người đều có thể nghe thấy"
+                    : "Chỉ một mình bạn có thể xem"}
                 </span>
               </div>
             </div>
 
             {/* Custom Toggle Switch */}
             <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={isPublic}
                 onChange={(e) => setIsPublic(e.target.checked)}
                 className="sr-only peer"
@@ -177,7 +198,6 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({ isOpen, onClo
             </button>
           </div>
         </form>
-
       </div>
     </div>
   );

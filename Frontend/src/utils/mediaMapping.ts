@@ -1,7 +1,7 @@
 import { mediaService } from "../api/mediaService";
 import type { MediaItemDto } from "../types/api";
+import { API_BASE_URL } from "../config/apiConfig";
 
-const API_ORIGIN = "http://localhost:5269";
 
 export interface SongType {
   id: string;
@@ -29,7 +29,7 @@ const resolveAssetUrl = (url?: string) => {
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
     return url;
   }
-  return `${API_ORIGIN}${url}`;
+  return `${API_BASE_URL}${url}`;
 };
 
 export const resolveArtistName = (artistName?: string, ownerName?: string, title?: string) => {

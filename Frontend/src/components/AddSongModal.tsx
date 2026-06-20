@@ -100,8 +100,7 @@ const AddSongModal: React.FC<AddSongModalProps> = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         onAddSongSuccess(song);
-                        alert(`Đã thêm bài "${song.title}" vào playlist thành công!`);
-                        // Mốt kết nối DB: Gọi API add bài hát vào playlist tại đây
+                        // alert(`Đã thêm bài "${song.title}" vào playlist thành công!`);
                       }}
                       className="text-zinc-400 hover:text-white transition-all cursor-pointer p-1"
                       title="Thêm vào playlist"
