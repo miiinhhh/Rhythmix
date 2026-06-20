@@ -25,6 +25,7 @@ interface FormErrors {
 const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps) => {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
+  const [isUnknownArtist, setIsUnknownArtist] = useState(false);
   const [artistSearchTerm, setArtistSearchTerm] = useState("");
   const [albumSearchTerm, setAlbumSearchTerm] = useState("");
   const [genreSearchTerm, setGenreSearchTerm] = useState("");
@@ -122,7 +123,17 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
   const chooseArtist = (item: ArtistDto) => {
     setSelectedArtistId(item.artistId);
     setArtist(item.name);
+    setIsUnknownArtist(false);
     setArtistSearchTerm(item.name);
+    setIsChoosingArtist(false);
+    clearFieldError("artist");
+  };
+
+  const chooseUnknownArtist = () => {
+    setSelectedArtistId("");
+    setArtist("");
+    setIsUnknownArtist(true);
+    setArtistSearchTerm("");
     setIsChoosingArtist(false);
     clearFieldError("artist");
   };
@@ -218,7 +229,6 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
 
     const nextErrors: FormErrors = {};
     if (!title.trim()) nextErrors.title = "Vui lòng nhập tên bài hát.";
-    if (!artist.trim()) nextErrors.artist = "Vui lòng chọn nghệ sĩ.";
     if (!selectedFile && !selectedVideoFile) nextErrors.selectedFile = "Vui lòng chọn file media.";
 
     if (Object.keys(nextErrors).length > 0) {
@@ -244,6 +254,7 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
       await onUploaded?.();
       setTitle("");
       setArtist("");
+      setIsUnknownArtist(false);
       setArtistSearchTerm("");
       setAlbumSearchTerm("");
       setGenreSearchTerm("");
@@ -299,7 +310,7 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Nghệ sĩ *</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Nghệ sĩ</label>
               <button
                 type="button"
                 onClick={() => setIsChoosingArtist(true)}
@@ -307,9 +318,9 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
                   errors.artist ? "border-red-500" : "border-zinc-800"
                 }`}
               >
-                {artist ? (
+                {artist || isUnknownArtist ? (
                   <span className="flex items-center justify-between gap-3 text-white">
-                    <span className="truncate font-semibold">{artist}</span>
+                    <span className="truncate font-semibold">{isUnknownArtist ? "Không rõ nghệ sĩ" : artist}</span>
                     <span className="shrink-0 text-xs font-bold text-green-400">Đổi</span>
                   </span>
                 ) : (
@@ -415,6 +426,7 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
           onClose={() => setIsChoosingArtist(false)}
           onSearchChange={setArtistSearchTerm}
           onChoose={chooseArtist}
+          onChooseUnknown={chooseUnknownArtist}
         />
 
         <ChooseAlbumPopup
@@ -485,6 +497,7 @@ type ChooseArtistPopupProps = {
   onClose: () => void;
   onSearchChange: (value: string) => void;
   onChoose: (artist: ArtistDto) => void;
+  onChooseUnknown: () => void;
 };
 
 const ChooseArtistPopup = ({
@@ -496,6 +509,7 @@ const ChooseArtistPopup = ({
   onClose,
   onSearchChange,
   onChoose,
+  onChooseUnknown,
 }: ChooseArtistPopupProps) => {
   if (!open) return null;
 
@@ -513,6 +527,15 @@ const ChooseArtistPopup = ({
         </div>
 
         <div className="space-y-3">
+          <button
+            type="button"
+            onClick={onChooseUnknown}
+            className="flex w-full items-center justify-between rounded-lg border border-zinc-700 bg-zinc-900 px-3.5 py-2.5 text-left text-sm font-medium text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-800"
+          >
+            <span>Không rõ nghệ sĩ</span>
+            <span className="text-xs text-zinc-400">Không gắn nghệ sĩ</span>
+          </button>
+
           <input
             type="text"
             value={searchTerm}
