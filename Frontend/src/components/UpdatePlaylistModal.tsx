@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Music, X, Globe, Lock } from "lucide-react";
 
-import type { PlaylistDetailDto, CreatePlaylistDto } from "../types/api";
+import type { PlaylistDetailDto, CreatePlaylistDto, PlaylistDto } from "../types/api";
 import { playlistService } from "../api/playlistService";
 
 interface UpdatePlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
   playlistData: PlaylistDetailDto;
-  onUpdateSuccess: (updatedData: Partial<CreatePlaylistDto>) => void;
+  onUpdateSuccess: (updatedData: PlaylistDto) => void;
 }
 
 const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({
@@ -20,6 +20,8 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // 🌟 State quản lý tin nhắn báo lỗi (Bình thường để rỗng)
   const [error, setError] = useState("");
@@ -29,6 +31,8 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({
       setName(playlistData.name);
       setDescription(playlistData.description ?? "");
       setIsPublic(playlistData.isPublic);
+      setCoverImage(null);
+      setPreviewUrl(playlistData.coverImageUrl ?? playlistData.thumbnailUrl ?? null);
       setError(""); // Xóa thông báo lỗi cũ nếu có
     }
   }, [isOpen, playlistData]);
@@ -38,9 +42,19 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({
   // Hàm xử lý khi đóng modal (reset toàn bộ dữ liệu và lỗi cũ)
   const handleCloseModal = () => {
     setError("");
+    setCoverImage(null);
+    setPreviewUrl(playlistData.coverImageUrl ?? playlistData.thumbnailUrl ?? null);
     onClose();
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files && e.target.files[0]) {
+    const file = e.target.files[0];
+    setCoverImage(file);
+    setPreviewUrl(URL.createObjectURL(file)); // Xem trước ảnh mới
+  }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -55,7 +69,8 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({
         {
           name,
           description,
-        },
+          ...(coverImage ? { coverImage } : {}),
+        } as Partial<CreatePlaylistDto>,
       );
 
       await playlistService.updateVisibility(playlistData.playlistId, {
@@ -63,9 +78,9 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({
       });
 
       onUpdateSuccess({
-        name: updatedInfo.name,
-        description: updatedInfo.description ?? "",
+        ...updatedInfo,
         isPublic,
+        thumbnailUrl: updatedInfo.coverImageUrl ?? updatedInfo.thumbnailUrl,
       });
 
       handleCloseModal();
@@ -76,6 +91,11 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({
           "Cập nhật playlist thất bại.",
       );
     }
+  };
+  const resolveAssetUrl = (url?: string | null) => {
+    if (!url) return null;
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) return url;
+    return `http://localhost:5269${url}`;
   };
 
   return (
@@ -98,16 +118,41 @@ const UpdatePlaylistModal: React.FC<UpdatePlaylistModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Cụm Layout chính (Bìa giả lập + Ô nhập liệu) */}
           <div className="flex gap-4">
-            {/* Bên trái: Hộp vuông ảnh bìa mặc định */}
-            <div className="w-40 h-40 bg-zinc-900 border border-zinc-800 rounded flex flex-col items-center justify-center text-zinc-500 shadow-inner shrink-0 group relative">
-              <Music
-                size={44}
-                className="text-zinc-600 group-hover:scale-110 transition-transform"
+            {/* Bên trái: Ảnh bìa (click để upload local) */}
+            <label className="w-40 h-40 bg-zinc-900 border border-zinc-800 rounded flex flex-col items-center justify-center text-zinc-500 shadow-inner shrink-0 group relative cursor-pointer overflow-hidden">
+              {coverImage ? (
+                <img
+                  src={URL.createObjectURL(coverImage)}
+                  alt="Playlist cover preview"
+                  className="size-full object-cover"
+                />
+              ) : (previewUrl || playlistData?.coverImageUrl || playlistData?.thumbnailUrl) ? (
+                <img
+                  src={resolveAssetUrl(previewUrl || playlistData.coverImageUrl || playlistData.thumbnailUrl) || ""}
+                  alt={playlistData.name}
+                  className="size-full object-cover"
+                  // Thêm onError để tránh lỗi khi đường dẫn ảnh bị sai
+                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                />
+              ) : (
+                <>
+                  <Music
+                    size={44}
+                    className="text-zinc-600 group-hover:scale-110 transition-transform"
+                  />
+                  <span className="absolute bottom-2 text-[10px] text-zinc-500 font-medium text-center px-1">
+                    Ảnh bìa tự động
+                  </span>
+                </>
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={handleFileChange}
               />
-              <span className="absolute bottom-2 text-[10px] text-zinc-500 font-medium text-center px-1">
-                Ảnh bìa tự động
-              </span>
-            </div>
+            </label>
 
             {/* Bên phải: 2 ô Input (Name & Description) */}
             <div className="flex-1 flex flex-col justify-between space-y-3">

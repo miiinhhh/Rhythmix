@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Rhythmix.API.DTOs;
 using Rhythmix.Application.DTOs.Playlist;
 using Rhythmix.Application.UseCases.Playlist;
+using Microsoft.AspNetCore.Http;
 using Rhythmix.Domain.Interfaces;
 
 
@@ -235,53 +236,45 @@ public sealed class PlaylistsController : ControllerBase
     }
 
     /// <summary>
-    /// Cập nhật thông tin playlist (tên, mô tả)
+    /// Cập nhật thông tin playlist (tên, mô tả, ảnh bìa)
     /// </summary>
     [HttpPut("{playlistId:guid}")]
-    public async Task<IActionResult> UpdatePlaylistInfoAsync(Guid playlistId, [FromBody] UpdatePlaylistInfoRequest request)
+    public async Task<IActionResult> UpdatePlaylistAsync(Guid playlistId, [FromForm] UpdatePlaylistFormRequest request)
     {
-        var userId = GetCurrentUserId();
-        if (userId == Guid.Empty)
-        {
-            return Unauthorized(new { success = false, message = "Invalid token." });
-        }
-
+        // Kiểm tra log xem request nhận được gì
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { success = false, message = "Playlist name is required." });
+            return BadRequest(new { success = false, message = "Tên playlist không được để trống" });
         }
+
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty) return Unauthorized();
 
         try
         {
+            string? newCoverUrl = null;
+            if (request.CoverImage != null)
+            {
+                newCoverUrl = await SaveCoverImageAsync(request.CoverImage);
+            }
+
             var command = new UpdatePlaylistInfoCommand
             {
-                PlaylistId = playlistId,
+                PlaylistId = playlistId, // Đảm bảo khớp với Guid trên URL
                 UserId = userId,
                 Name = request.Name,
-                Description = request.Description
+                Description = request.Description,
+                CoverImageUrl = newCoverUrl
             };
 
             var result = await _mediator.Send(command);
             return Ok(new { success = true, data = result });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(403, new { success = false, message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(new { success = false, message = ex.Message });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { success = false, message = ex.Message });
         }
         catch (Exception ex)
         {
             return BadRequest(new { success = false, message = ex.Message });
         }
     }
-
     /// <summary>
     /// Xóa một playlist
     /// </summary>

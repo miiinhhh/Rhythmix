@@ -2,13 +2,20 @@ import axios from 'axios';
 
 const apiClient = axios.create({
   baseURL: 'http://localhost:5269/api',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { Accept: 'application/json' },
 });
 
 
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
+  if (config.data instanceof FormData && config.headers) {
+    const headers = config.headers as any;
+    headers.delete?.('Content-Type');
+    headers.delete?.('content-type');
+    delete headers['Content-Type'];
+    delete headers['content-type'];
+  }
   return config;
 });
 

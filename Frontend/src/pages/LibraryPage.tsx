@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Library, Music2, ListMusic, Play, Plus, Heart } from "lucide-react"; // Thêm ListMusic và Plus để làm nút Upload/Create
-import UploadMediaModal from "../components/UploadMediaModal"
+import UploadMediaModal from "../components/UploadMediaModal";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import CreatePlaylistModal from "../components/CreatePlaylistModal";
 import { albumService } from "../api/albumService";
@@ -24,14 +24,16 @@ const libraryTabs = [
 ];
 
 const LibraryPage = () => {
-
   const navigate = useNavigate();
   // Cập nhật lại kiểu dữ liệu của State activeTab cho khớp với id mới
-  const [activeTab, setActiveTab] = useState<"all" | "playlists" | "albums">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "playlists" | "albums">(
+    "all",
+  );
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
   // Logic lọc dữ liệu dựa trên Tab đang chọn
-  const { setCurrentSongId, setIsPlaying, songs, setSongs } = useOutletContext<OutletContextType>();
+  const { setCurrentSongId, setIsPlaying, songs, setSongs } =
+    useOutletContext<OutletContextType>();
   const [myMedia, setMyMedia] = useState<SongType[]>([]);
   const [playlists, setPlaylists] = useState<PlaylistDto[]>([]);
   const [albums, setAlbums] = useState<AlbumDto[]>([]);
@@ -42,7 +44,10 @@ const LibraryPage = () => {
     setMyMedia(mappedSongs);
     setSongs((prev) => {
       const existingIds = new Set(prev.map((song) => song.id));
-      return [...prev, ...mappedSongs.filter((song) => !existingIds.has(song.id))];
+      return [
+        ...prev,
+        ...mappedSongs.filter((song) => !existingIds.has(song.id)),
+      ];
     });
   };
 
@@ -62,25 +67,14 @@ const LibraryPage = () => {
     loadAlbums().catch(() => setAlbums([]));
   }, []);
 
-  const visibleMedia = activeTab === "playlists" || activeTab === "albums" ? [] : myMedia;
+  const visibleMedia =
+    activeTab === "playlists" || activeTab === "albums" ? [] : myMedia;
   const visiblePlaylists = activeTab === "albums" ? [] : playlists;
   const visibleAlbums = activeTab === "playlists" ? [] : albums;
   const likedCount = songs.filter((song) => song.isLiked).length;
 
-  const playAlbum = async (album: AlbumDto) => {
-    const detail = await albumService.getById(album.albumId);
-    const albumSongs = detail.tracks.map((track) => ({
-      ...mapMediaToSong(track),
-      album: detail.title,
-    }));
-
-    if (albumSongs.length === 0) return;
-
-    const albumSongIds = new Set(albumSongs.map((song) => song.id));
-    setSongs((current) => [...albumSongs, ...current.filter((song) => !albumSongIds.has(song.id))]);
-    setCurrentSongId(albumSongs[0].id);
-    setIsPlaying(true);
-  };
+  // Album cards now navigate to AlbumDetailPage.
+  // Chỉ bắt đầu play khi user chọn bài hát trong trang AlbumDetailPage.
 
   return (
     <div className="space-y-6 select-none">
@@ -98,7 +92,6 @@ const LibraryPage = () => {
 
       {/* Thanh bấm chuyển đổi các Tab (All / Playlists / Albums) và cụm nút hành động */}
       <div className="flex items-center justify-between">
-        
         {/* Cụm bên trái: Các Tab bộ lọc (Giữ nguyên của bạn) */}
         <div className="flex gap-2">
           {libraryTabs.map((tab) => {
@@ -124,7 +117,6 @@ const LibraryPage = () => {
 
         {/* 🌟 CỤM BÊN PHẢI: Bọc 2 nút Upload và Create vào đây để tụi nó đứng sát nhau */}
         <div className="flex items-center gap-3">
-          
           {/* Nút Upload Music */}
           <button
             type="button"
@@ -134,7 +126,7 @@ const LibraryPage = () => {
             <Plus className="size-4 stroke-3" />
             Upload Music in Album
           </button>
-          
+
           {/* Nút Create New Playlist */}
           <button
             type="button"
@@ -144,9 +136,7 @@ const LibraryPage = () => {
             <Plus className="size-4 stroke-3" />
             Create New Playlist
           </button>
-
         </div>
-
       </div>
 
       {/* Lưới hiển thị danh sách các mục trong thư viện */}
@@ -169,7 +159,9 @@ const LibraryPage = () => {
                 <Play className="size-5 fill-black text-black" />
               </button>
             </div>
-            <h3 className="truncate text-sm font-semibold text-white">Liked Songs</h3>
+            <h3 className="truncate text-sm font-semibold text-white">
+              Liked Songs
+            </h3>
             <p className="mt-1 line-clamp-2 text-xs text-zinc-400">
               Playlist · {likedCount} songs
             </p>
@@ -178,15 +170,21 @@ const LibraryPage = () => {
         {visiblePlaylists.map((playlist) => (
           <article
             key={playlist.playlistId}
-            onClick={() => navigate(`/playlist/${playlist.playlistId}`, { 
-              state: { thumbnail: playlist.thumbnailUrl } 
-            })}
+            onClick={() =>
+              navigate(`/playlist/${playlist.playlistId}`, {
+                state: { thumbnail: playlist.thumbnailUrl },
+              })
+            }
             className="group cursor-pointer rounded-md bg-zinc-900/40 p-4 transition-colors hover:bg-zinc-800"
           >
             <div className="relative mb-3">
               {playlist.thumbnailUrl ? (
                 <img
-                  src={playlist.thumbnailUrl.startsWith("http") ? playlist.thumbnailUrl : `http://localhost:5269${playlist.thumbnailUrl}`}
+                  src={
+                    playlist.thumbnailUrl.startsWith("http")
+                      ? playlist.thumbnailUrl
+                      : `http://localhost:5269${playlist.thumbnailUrl}`
+                  }
                   alt={playlist.name}
                   className="aspect-square w-full rounded-md object-cover shadow-lg"
                 />
@@ -206,20 +204,25 @@ const LibraryPage = () => {
               {playlist.name}
             </h3>
             <p className="mt-1 line-clamp-2 text-xs text-zinc-400">
-              Playlist · {playlist.trackCount ?? 0} songs · {playlist.isPublic ? "Public" : "Private"}
+              Playlist · {playlist.trackCount ?? 0} songs ·{" "}
+              {playlist.isPublic ? "Public" : "Private"}
             </p>
           </article>
         ))}
         {visibleAlbums.map((album) => (
           <article
             key={album.albumId}
-            onClick={() => playAlbum(album)}
+            onClick={() => navigate(`/album/${album.albumId}`)}
             className="group cursor-pointer rounded-md bg-zinc-900/40 p-4 transition-colors hover:bg-zinc-800"
           >
             <div className="relative mb-3">
               {album.coverImageUrl ? (
                 <img
-                  src={album.coverImageUrl.startsWith("http") ? album.coverImageUrl : `http://localhost:5269${album.coverImageUrl}`}
+                  src={
+                    album.coverImageUrl.startsWith("http")
+                      ? album.coverImageUrl
+                      : `http://localhost:5269${album.coverImageUrl}`
+                  }
                   alt={album.title}
                   className="aspect-square w-full rounded-md object-cover shadow-lg"
                 />
@@ -285,14 +288,16 @@ const LibraryPage = () => {
       </div>
 
       {/* Hiển thị thông báo này nếu mảng sau khi lọc bị trống */}
-      {visibleMedia.length === 0 && visiblePlaylists.length === 0 && visibleAlbums.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 py-20 text-center">
-          <ListMusic className="mb-3 size-8 text-zinc-500" />
-          <p className="text-sm text-zinc-400">Nothing here yet.</p>
-        </div>
-      )}
-      <UploadMediaModal 
-        isOpen={isUploadOpen} 
+      {visibleMedia.length === 0 &&
+        visiblePlaylists.length === 0 &&
+        visibleAlbums.length === 0 && (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 py-20 text-center">
+            <ListMusic className="mb-3 size-8 text-zinc-500" />
+            <p className="text-sm text-zinc-400">Nothing here yet.</p>
+          </div>
+        )}
+      <UploadMediaModal
+        isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onUploaded={async () => {
           await loadMyMedia();

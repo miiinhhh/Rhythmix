@@ -1,4 +1,8 @@
-import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+} from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
 
 import HomePage from "./pages/HomePage";
@@ -8,6 +12,7 @@ import ShareInboxPage from "./pages/ShareInboxPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ProfilePage from "./pages/ProfilePage";
 import PlaylistDetailPage from "./pages/PlaylistDetailPage";
+import AlbumDetailPage from "./pages/AlbumDetailPage";
 import LikedSongsPage from "./pages/LikedSongsPage";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -27,6 +32,7 @@ const router = createBrowserRouter([
       { path: "/notifications", element: <NotificationsPage /> },
       { path: "/profile", element: <ProfilePage /> },
       { path: "/playlist/:id", element: <PlaylistDetailPage /> },
+      { path: "/album/:id", element: <AlbumDetailPage /> },
       { path: "/liked", element: <LikedSongsPage /> },
       { path: "/profile/:userId", element: <ProfilePage /> },
     ],
@@ -46,4 +52,3 @@ const App = () => {
 };
 
 export default App;
-

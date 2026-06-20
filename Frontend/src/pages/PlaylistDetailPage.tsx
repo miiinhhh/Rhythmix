@@ -181,6 +181,8 @@ const PlaylistDetailPage = () => {
     );
   }
   const thumbnailFromState = location.state?.thumbnail;
+  const playlistCoverUrl =
+    playlistInfo.coverImageUrl || playlistInfo.thumbnailUrl || thumbnailFromState;
 
   return (
     <div className="min-h-screen grow bg-zinc-900 p-6 text-white">
@@ -193,12 +195,12 @@ const PlaylistDetailPage = () => {
 
       <div className="mb-8 flex items-end gap-6">
         <div className="flex h-44 w-44 shrink-0 items-center justify-center rounded-lg bg-zinc-800 shadow-2xl overflow-hidden">
-          {playlistInfo?.thumbnailUrl || thumbnailFromState ? (
+          {playlistCoverUrl ? (
           <img
             src={
-              (playlistInfo?.thumbnailUrl || thumbnailFromState).startsWith("http")
-                ? (playlistInfo?.thumbnailUrl || thumbnailFromState)
-                : `http://localhost:5269${playlistInfo?.thumbnailUrl || thumbnailFromState}`
+              playlistCoverUrl.startsWith("http")
+                ? playlistCoverUrl
+                : `http://localhost:5269${playlistCoverUrl}`
             }
             alt={playlistInfo?.name || "Playlist"}
             className="h-full w-full object-cover"
@@ -348,26 +350,18 @@ const PlaylistDetailPage = () => {
         isOpen={isUpdatePlaylistModalOpen}
         onClose={() => setIsUpdatePlaylistModalOpen(false)}
         playlistData={playlistInfo}
-        onUpdateSuccess={(updatedData) => {
-          playlistService
-            .update(playlistInfo.playlistId, updatedData)
-            .then((updatedDto) => {
-              if (!updatedDto) return;
-              // playlistService.update trả về PlaylistDto (không có tracks), nên merge để giữ tracks hiện tại
-              setPlaylistInfo((prev) => {
-                if (!prev) return prev;
-                return {
-                  ...prev,
-                  name: updatedDto.name,
-                  description: updatedDto.description,
-                  isPublic: updatedDto.isPublic,
-                };
-              });
-            })
-
-            .catch(() => {
-              // Có thể add toast thông báo ở đây nếu bạn có UI toast
-            });
+        onUpdateSuccess={(updatedDto) => {
+          setPlaylistInfo((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              name: updatedDto.name,
+              description: updatedDto.description,
+              isPublic: updatedDto.isPublic,
+              coverImageUrl: updatedDto.coverImageUrl,
+              thumbnailUrl: updatedDto.coverImageUrl ?? updatedDto.thumbnailUrl,
+            };
+          });
         }}
       />
 

@@ -161,8 +161,9 @@ public sealed class ArtistsController : ControllerBase
 
     [HttpPost("{artistId:guid}/cover")]
     [Authorize]
-    public async Task<IActionResult> UploadArtistCover(Guid artistId, [FromForm] IFormFile coverImage)
+    public async Task<IActionResult> UploadArtistCover(Guid artistId, [FromForm] UploadArtistCoverRequest request)
     {
+        var coverImage = request.CoverImage;
         if (coverImage == null || coverImage.Length == 0)
         {
             return BadRequest(ApiResponse<object>.ToFailure("No cover image uploaded."));
@@ -212,6 +213,11 @@ public sealed class ArtistsController : ControllerBase
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public IFormFile? AvatarImage { get; set; }
+    }
+
+    public sealed class UploadArtistCoverRequest
+    {
+        public IFormFile? CoverImage { get; set; }
     }
 
     private sealed class ArtistSearchItem

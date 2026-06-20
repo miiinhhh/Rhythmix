@@ -114,6 +114,7 @@ export interface PlaylistDto {
   isPublic: boolean;
   ownerId: string;
   trackCount?: number;
+  coverImageUrl?: string;
   thumbnailUrl?: string;
   createdAt: string;
 }
