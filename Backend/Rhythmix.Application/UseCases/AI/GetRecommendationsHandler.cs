@@ -11,20 +11,20 @@ using System.Threading.Tasks;
 
 namespace Rhythmix.Application.UseCases.AI;
 
-public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery, List<MediaItem>>
+public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery, RecommendationResult>
 {
     private readonly IDbConnectionFactory _connectionFactory;
-    private readonly IAnthropicService _anthropicService;
+    private readonly IOpenRouterRecommendationService _openRouterRecommendationService;
 
     public GetRecommendationsHandler(
         IDbConnectionFactory connectionFactory,
-        IAnthropicService anthropicService)
+        IOpenRouterRecommendationService openRouterRecommendationService)
     {
         _connectionFactory = connectionFactory;
-        _anthropicService = anthropicService;
+        _openRouterRecommendationService = openRouterRecommendationService;
     }
 
-    public async Task<List<MediaItem>> Handle(GetRecommendationsQuery request, CancellationToken cancellationToken)
+    public async Task<RecommendationResult> Handle(GetRecommendationsQuery request, CancellationToken cancellationToken)
     {
         var limit = Math.Clamp(request.Limit, 1, 20);
 
@@ -33,13 +33,34 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
 
         // 2. Lấy danh sách yêu thích
         var favorites = await GetFavoritesAsync(request.UserId);
+        var catalog = await GetPublicCatalogAsync();
 
-        // 3. Gọi Claude API để gợi ý
-        var recommendedSongs = await _anthropicService.GetRecommendationsAsync(
-            recentHistory, favorites, limit);
+        try
+        {
+        var recommendedSongs = await _openRouterRecommendationService.GetRecommendationsAsync(
+            recentHistory, favorites, catalog, limit);
 
         // 4. Tra cứu trong CSDL
-        return await SearchMediaItemsAsync(recommendedSongs);
+        var matches = await SearchMediaItemsAsync(recommendedSongs);
+        return matches.Count > 0
+            ? new RecommendationResult(matches, "openrouter")
+            : new RecommendationResult(await GetDatabaseRecommendationsAsync(request.UserId, limit), "database", "openrouter_no_library_match");
+        }
+        catch (InvalidOperationException)
+        {
+            return new RecommendationResult(await GetDatabaseRecommendationsAsync(request.UserId, limit), "database", "openrouter_key_missing");
+        }
+        catch (HttpRequestException exception)
+        {
+            var reason = exception.StatusCode == System.Net.HttpStatusCode.TooManyRequests
+                ? "openrouter_rate_limited"
+                : "openrouter_request_failed";
+            return new RecommendationResult(await GetDatabaseRecommendationsAsync(request.UserId, limit), "database", reason);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return new RecommendationResult(await GetDatabaseRecommendationsAsync(request.UserId, limit), "database", "openrouter_invalid_response");
+        }
     }
 
     private async Task<List<(string Title, string Artist)>> GetRecentHistoryAsync(string userId, int limit)
@@ -48,7 +69,7 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
 
         const string sql = @"
             SELECT TOP (@Limit) m.Title, COALESCE(m.Description, 'Unknown Artist') AS Artist
-            FROM PlayHistory ph
+            FROM PlayHistories ph
             INNER JOIN MediaItems m ON ph.MediaId = m.MediaId
             WHERE ph.UserId = @UserId
             ORDER BY ph.PlayedAt DESC";
@@ -69,6 +90,21 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
             ORDER BY f.CreatedAt DESC";
 
         var result = await connection.QueryAsync<(string Title, string Artist)>(sql, new { UserId = userId });
+        return result.ToList();
+    }
+
+    private async Task<List<(string Title, string Artist)>> GetPublicCatalogAsync()
+    {
+        using var connection = _connectionFactory.CreateConnection();
+
+        const string sql = @"
+            SELECT TOP (100) m.Title, COALESCE(a.Name, 'Unknown Artist') AS Artist
+            FROM MediaItems m
+            LEFT JOIN Artists a ON a.ArtistId = m.ArtistId
+            WHERE m.IsPublic = 1
+            ORDER BY m.ViewCount DESC, m.CreatedAt DESC";
+
+        var result = await connection.QueryAsync<(string Title, string Artist)>(sql);
         return result.ToList();
     }
 
@@ -100,6 +136,39 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
         }
 
         var result = await connection.QueryAsync<MediaItem>(sql, parameters);
+        return result.ToList();
+    }
+
+    private async Task<List<MediaItem>> GetDatabaseRecommendationsAsync(string userId, int limit)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+
+        const string sql = @"
+            WITH PreferredGenres AS
+            (
+                SELECT DISTINCT m.GenreId
+                FROM PlayHistories ph
+                INNER JOIN MediaItems m ON m.MediaId = ph.MediaId
+                WHERE ph.UserId = @UserId AND m.GenreId IS NOT NULL
+
+                UNION
+
+                SELECT DISTINCT m.GenreId
+                FROM Favorites f
+                INNER JOIN MediaItems m ON m.MediaId = f.MediaId
+                WHERE f.UserId = @UserId AND m.GenreId IS NOT NULL
+            )
+            SELECT TOP (@Limit) m.MediaId, m.Title, m.Description, m.MediaType, m.Duration,
+                   m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, m.AlbumId, m.GenreId,
+                   m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
+            FROM MediaItems m
+            WHERE m.IsPublic = 1
+            ORDER BY
+                CASE WHEN EXISTS (SELECT 1 FROM PreferredGenres pg WHERE pg.GenreId = m.GenreId) THEN 0 ELSE 1 END,
+                m.ViewCount DESC,
+                m.CreatedAt DESC";
+
+        var result = await connection.QueryAsync<MediaItem>(sql, new { UserId = userId, Limit = limit });
         return result.ToList();
     }
 }

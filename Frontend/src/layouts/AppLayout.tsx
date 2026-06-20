@@ -1,6 +1,6 @@
 import SideBar from "../components/SideBar";
 import PlayerBar from "../components/PlayerBar";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import AuthModal from "../components/AuthModal";
 import VideoPlayerModal from "../components/VideoPlayerModal";
@@ -34,6 +34,9 @@ interface InboxMessageType {
 
 const AppLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isLandingPage = location.pathname === "/";
+
   useContext(NotificationContext);
 
   const { addNotification, addMessage, allMessages } = useNotifications();
@@ -41,6 +44,7 @@ const AppLayout = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     () => !!localStorage.getItem("token"),
   );
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   const [songs, setSongs] = useState<SongType[]>([]);
@@ -54,6 +58,11 @@ const AppLayout = () => {
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [playlistQueue, setPlaylistQueue] = useState<SongType[]>([]);
 
+  const canShowAppShell = isAuthenticated || isLandingPage;
+
+  const shouldShowAuthModal =
+    !isAuthenticated && (!isLandingPage || isAuthModalOpen);
+
   const handleSetPlaylistQueue = (_id: string, tracks: SongType[]) => {
     setPlaylistQueue(tracks);
   };
@@ -66,8 +75,13 @@ const AppLayout = () => {
     null;
 
   const handleAuthSuccess = (_name: string) => {
-      setIsAuthenticated(true);
-    };
+    setIsAuthenticated(true);
+    setIsAuthModalOpen(false);
+
+    if (location.pathname === "/") {
+      navigate("/home");
+    }
+  };
     const handleNext = () => {
     const currentIndex = playlistQueue.findIndex((t) => t.id === currentSongId);
   
@@ -223,17 +237,26 @@ const handlePrevious = () => {
   return (
     <div className="flex h-screen flex-col bg-zinc-950 text-white select-none font-sans">
       <AuthModal
-        open={!isAuthenticated}
-        onClose={() => undefined}
+        open={shouldShowAuthModal}
+        onClose={() => {
+          if (isLandingPage) {
+            setIsAuthModalOpen(false);
+          }
+        }}
         onAuthenticated={handleAuthSuccess}
       />
 
-      {isAuthenticated && (
+      {canShowAppShell && (
         <>
           <div className="flex min-h-0 flex-1">
-            <SideBar onOpenAuth={() => setIsAuthenticated(false)} />
+            <SideBar
+              onOpenAuth={() => {
+                setIsAuthenticated(false);
+                setIsAuthModalOpen(true);
+              }}
+            />
 
-            <main className="m-2 ml-0 flex-1 overflow-y-auto rounded-lg bg-zinc-900 p-6">
+            <main className="ml-0 flex-1 overflow-y-auto rounded-lg bg-zinc-900 p-0">
               <Outlet
                 context={
                   {
@@ -243,6 +266,7 @@ const handlePrevious = () => {
                     setIsPlaying,
                     songs,
                     setSongs,
+                    onOpenAuth: () => setIsAuthModalOpen(true),
                     onOpenVideo: () => setIsVideoOpen(true),
                     onShareSuccess: handleShareSuccess,
                     onNavigateToPlaylist: (playlistId: string) => {

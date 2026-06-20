@@ -41,7 +41,9 @@ public class AIController : ControllerBase
             return Ok(new
             {
                 success = true,
-                data = result
+                data = result.MediaItems,
+                source = result.Source,
+                reason = result.Reason
             });
         }
         catch (Exception ex)
