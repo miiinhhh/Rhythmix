@@ -23,7 +23,8 @@ namespace Rhythmix.API.Controllers
         }
 
         // Helper lấy UserId từ Claims của JWT Token
-        private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        private string CurrentUserId =>
+            User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? string.Empty;
 
         /// <summary>
         /// Lấy danh sách thông báo của người dùng hiện tại

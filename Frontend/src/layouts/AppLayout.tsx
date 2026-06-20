@@ -7,6 +7,7 @@ import VideoPlayerModal from "../components/VideoPlayerModal";
 import { mediaService, signalRService } from "../api";
 import { useNotifications, NotificationContext } from "../context/NotificationContext";
 import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
+import type { ShareItemDto } from "../types/api";
 
 interface InboxMessageType {
   id: string;
@@ -98,23 +99,24 @@ const AppLayout = () => {
   const handleShareSuccess = (
     type: "song" | "video" | "playlist",
     itemInfo: any,
-    receiverName: string
+    receiverName: string,
+    share?: ShareItemDto
   ) => {
     const currentUserId = localStorage.getItem("currentUserId") || "";
     const currentUserName = localStorage.getItem("currentUserName") || "Current user";
 
-    const targetReceiverId = currentUserId;
-    const targetReceiverName = receiverName;
+    const targetReceiverId = share?.receiverId || "";
+    const targetReceiverName = share?.receiverName || receiverName;
 
     const newShareMessage: InboxMessageType = {
-      id: `msg_${Date.now()}`,
-      senderId: currentUserId,
-      senderName: currentUserName,
+      id: share?.id || `msg_${Date.now()}`,
+      senderId: share?.senderId || currentUserId,
+      senderName: share?.senderName || currentUserName,
       receiverId: targetReceiverId,
       receiverName: targetReceiverName,
       avatarColor: currentUserId.includes("ross") ? "bg-purple-500" : "bg-blue-500",
       sharedType: type,
-      time: new Date().toISOString(),
+      time: share?.sharedAt || new Date().toISOString(),
     };
 
     if (type === "playlist") {
@@ -134,7 +136,8 @@ const AppLayout = () => {
       return "share_song";
     };
 
-    addNotification({
+    if (targetReceiverId === currentUserId) {
+      addNotification({
       id: newShareMessage.id,
       receiverId: targetReceiverId,
       type: getNotificationType(type),
@@ -145,7 +148,8 @@ const AppLayout = () => {
       }),
       time: "Vừa xong",
       isRead: false,
-    });
+      });
+    }
 
     addMessage(newShareMessage);
   };

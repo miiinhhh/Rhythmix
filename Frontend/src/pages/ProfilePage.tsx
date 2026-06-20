@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import FollowModal from "../components/FollowModal";
-import { useNotifications } from "../context/NotificationContext";
 import { userService } from "../api/userService";
 import { playlistService } from "../api/playlistService";
 import { followService } from "../api/followService";
@@ -291,15 +290,6 @@ const ProfilePage = () => {
     };
   }, [targetId, isMyProfile]);
 
-  const currentUser = users.find((u) => u.id === currentUserId) || {
-    id: "unknown",
-    userName: "Guest",
-    displayName: "Guest",
-    email: "",
-  };
-
-  const { addNotification } = useNotifications();
-
   const handleToggleFollow = async () => {
     if (isFollowBusy || !targetId || isMyProfile) return;
 
@@ -316,21 +306,6 @@ const ProfilePage = () => {
 
       if (next !== !previous) {
         setFollowersCount((count) => Math.max(0, count + (next ? 1 : -1)));
-      }
-
-      if (next) {
-        addNotification({
-          id: Date.now().toString(),
-          receiverId: targetId,
-          type: "follow",
-          payload: JSON.stringify({
-            senderId: currentUser.id,
-            senderName: currentUser.displayName || currentUser.userName,
-            recipientId: targetId,
-          }),
-          time: "Just now",
-          isRead: false,
-        } as any);
       }
 
       await refreshFollowData();

@@ -397,7 +397,7 @@ const ShareInboxPage = () => {
           <div className="flex flex-col items-center justify-center py-20 text-center bg-zinc-900/10 rounded-xl border border-dashed border-zinc-800">
             {isSentTab ? <Send className="mb-3 size-10 text-zinc-600" /> : <Mail className="mb-3 size-10 text-zinc-600" />}
             <p className="text-sm text-zinc-400">
-              {isSentTab ? "Bạn chưa gửi nội dung nào cho bạn bè." : "Không có nội dung nào được chia sẻ với bạn."}
+              {isSentTab ? "You haven't sent any content to your friends." : "No content has been shared with you."}
             </p>
           </div>
         )}

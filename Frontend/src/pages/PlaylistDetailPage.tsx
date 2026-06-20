@@ -16,7 +16,7 @@ import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import ShareModal from "../components/ShareModal";
 import { playlistService } from "../api/playlistService";
 import { mediaService } from "../api/mediaService";
-import type { PlaylistDetailDto, PlaylistTrackDto } from "../types/api";
+import type { PlaylistDetailDto, PlaylistTrackDto, ShareItemDto } from "../types/api";
 import { resolveArtistName, type SongType } from "../utils/mediaMapping";
 
 interface OutletContextType {
@@ -26,7 +26,7 @@ interface OutletContextType {
   setIsPlaying: (v: boolean) => void;
   songs: SongType[];
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
-  onShareSuccess: (type: "song" | "video" | "playlist", itemInfo: any, receiverName: string) => void;
+  onShareSuccess: (type: "song" | "video" | "playlist", itemInfo: any, receiverName: string, share?: ShareItemDto) => void;
 }
 
 const formatDuration = (seconds?: number) => {
@@ -260,8 +260,8 @@ const PlaylistDetailPage = () => {
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         itemToShare={{ type: "playlist", id: playlistInfo.playlistId, title: playlistInfo.name, subtitle: `Playlist - ${playlistSongs.length} bai hat` }}
-        onShareSuccess={(receiverName: string) => {
-          onShareSuccess("playlist", { id: playlistInfo.playlistId, title: playlistInfo.name, coverUrl: "", description: playlistInfo.description }, receiverName);
+        onShareSuccess={(receiverName: string, share: ShareItemDto) => {
+          onShareSuccess("playlist", { id: playlistInfo.playlistId, title: playlistInfo.name, coverUrl: "", description: playlistInfo.description }, receiverName, share);
         }}
       />
     </div>

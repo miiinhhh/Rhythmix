@@ -4,6 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Rhythmix.Application.Common.Interfaces;
+using Rhythmix.Application.Notifications.Commands;
 
 namespace Rhythmix.Application.Follows.Commands
 {
@@ -12,9 +13,13 @@ namespace Rhythmix.Application.Follows.Commands
     public class ToggleFollowCommandHandler : IRequestHandler<ToggleFollowCommand, string>
     {
         private readonly IDbConnectionFactory _connectionFactory;
+        private readonly IMediator _mediator;
 
-        public ToggleFollowCommandHandler(IDbConnectionFactory connectionFactory)
-            => _connectionFactory = connectionFactory;
+        public ToggleFollowCommandHandler(IDbConnectionFactory connectionFactory, IMediator mediator)
+        {
+            _connectionFactory = connectionFactory;
+            _mediator = mediator;
+        }
 
         public async Task<string> Handle(ToggleFollowCommand request, CancellationToken cancellationToken)
         {
@@ -52,6 +57,23 @@ namespace Rhythmix.Application.Follows.Commands
                     FollowingId = request.FollowingId,
                     FollowedAt  = DateTime.UtcNow
                 });
+
+                const string followerNameSql = @"
+                    SELECT COALESCE(profile.FullName, users.UserName, users.Email)
+                    FROM AspNetUsers users
+                    LEFT JOIN UserProfiles profile ON profile.UserId = users.Id
+                    WHERE users.Id = @FollowerId";
+
+                var followerName = await connection.ExecuteScalarAsync<string?>(
+                    followerNameSql,
+                    new { request.FollowerId });
+
+                await _mediator.Send(new SendFollowNotificationCommand(
+                    request.FollowingId.ToString(),
+                    request.FollowerId,
+                    followerName ?? "Someone"
+                ), cancellationToken);
+
                 return "Followed";
             }
         }

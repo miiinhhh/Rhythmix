@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Search, Send, X } from "lucide-react";
 import { shareService } from "../api/shareService";
 import { userService } from "../api/userService";
-import type { UserProfileDto } from "../types/api";
+import type { ShareItemDto, UserProfileDto } from "../types/api";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -13,7 +13,7 @@ interface ShareModalProps {
     title: string;
     subtitle: string;
   };
-  onShareSuccess?: (receiverName: string) => void;
+  onShareSuccess?: (receiverName: string, share: ShareItemDto) => void;
 }
 
 const isGuid = (value: string | number) =>
@@ -62,7 +62,7 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
         return;
       }
 
-      await shareService.create({
+      const createdShare = await shareService.create({
         receiverId,
         mediaId:
           itemToShare.type === "song" || itemToShare.type === "video"
@@ -74,7 +74,7 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
 
       const recordKey = `${receiverId}-${itemToShare.type}`;
       setSentRecords((prev) => [...prev, recordKey]);
-      onShareSuccess?.(receiverName);
+      onShareSuccess?.(receiverName, createdShare);
     } catch (error: any) {
       setShareError(error?.response?.data?.message || error?.message || "Khong gui duoc chia se.");
     }
