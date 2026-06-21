@@ -29,20 +29,33 @@ public sealed class UpdatePlaylistInfoCommandHandler : IRequestHandler<UpdatePla
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new ArgumentException("Playlist name cannot be empty");
 
-        // 4. Cập nhật thông tin
+        // 4. Cập nhật thông tin (tên, mô tả)
         var updated = await _playlistRepository.UpdateInfoAsync(
-            request.PlaylistId, 
-            request.Name.Trim(), 
+            request.PlaylistId,
+            request.Name.Trim(),
             request.Description?.Trim());
 
         if (!updated)
             throw new InvalidOperationException("Failed to update playlist info");
 
-        // 5. Cập nhật entity trong memory (không cần query lại DB)
+        // 5. Nếu có ảnh bìa mới thì cập nhật
+        if (request.CoverImageUrl is not null)
+        {
+            var coverUpdated = await _playlistRepository.UpdateCoverImageAsync(
+                request.PlaylistId,
+                request.CoverImageUrl);
+
+            if (!coverUpdated)
+                throw new InvalidOperationException("Failed to update playlist cover image");
+
+            playlist.CoverImageUrl = request.CoverImageUrl;
+        }
+
+        // 6. Cập nhật entity trong memory (không cần query lại DB)
         playlist.Name = request.Name.Trim();
         playlist.Description = request.Description?.Trim() ?? string.Empty;
 
-        // 6. Trả về DTO từ entity đã cập nhật
+        // 7. Trả về DTO từ entity đã cập nhật
         return new PlaylistDto
         {
             PlaylistId = playlist.Id,

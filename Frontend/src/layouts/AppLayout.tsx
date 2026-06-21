@@ -285,7 +285,7 @@ const AppLayout = () => {
               }}
             />
 
-            <main className="ml-0 flex-1 overflow-y-auto rounded-lg bg-zinc-900 p-0">
+            <main className="ml-0 flex-1 overflow-y-auto rounded-lg bg-zinc-900 p-6">
               <Outlet
                 context={
                   {
