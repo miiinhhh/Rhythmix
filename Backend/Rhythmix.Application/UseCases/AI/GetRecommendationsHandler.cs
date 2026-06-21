@@ -68,9 +68,10 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
         using var connection = _connectionFactory.CreateConnection();
 
         const string sql = @"
-            SELECT TOP (@Limit) m.Title, COALESCE(m.Description, 'Unknown Artist') AS Artist
+            SELECT TOP (@Limit) m.Title, COALESCE(a.Name, 'Unknown Artist') AS Artist
             FROM PlayHistories ph
             INNER JOIN MediaItems m ON ph.MediaId = m.MediaId
+            LEFT JOIN Artists a ON a.ArtistId = m.ArtistId
             WHERE ph.UserId = @UserId
             ORDER BY ph.PlayedAt DESC";
 
@@ -83,9 +84,10 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
         using var connection = _connectionFactory.CreateConnection();
 
         const string sql = @"
-            SELECT m.Title, COALESCE(m.Description, 'Unknown Artist') AS Artist
+            SELECT m.Title, COALESCE(a.Name, 'Unknown Artist') AS Artist
             FROM Favorites f
             INNER JOIN MediaItems m ON f.MediaId = m.MediaId
+            LEFT JOIN Artists a ON a.ArtistId = m.ArtistId
             WHERE f.UserId = @UserId
             ORDER BY f.CreatedAt DESC";
 
@@ -117,17 +119,19 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
 
         // Build OR query for multiple songs
         var conditions = string.Join(" OR ",
-            songs.Select((s, i) => $"(Title LIKE @Title{i} OR Description LIKE @Title{i})"));
+            songs.Select((s, i) => $"(m.Title LIKE @Title{i} OR m.Description LIKE @Title{i})"));
 
         if (string.IsNullOrEmpty(conditions))
             return new List<MediaItem>();
 
         var sql = $@"
-            SELECT TOP 10 MediaId, Title, Description, MediaType, Duration,
-                   FilePath, ThumbnailUrl, MimeType, FileSize, AlbumId, GenreId,
-                   OwnerId, IsPublic, ViewCount, CreatedAt
-            FROM MediaItems
-            WHERE {conditions}";
+            SELECT TOP 10 m.MediaId, m.Title, m.Description, m.MediaType, m.Duration,
+                   m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, m.ArtistId,
+                   a.Name AS ArtistName, m.AlbumId, m.GenreId, m.OwnerId, m.IsPublic,
+                   m.ViewCount, m.CreatedAt
+            FROM MediaItems m
+            LEFT JOIN Artists a ON a.ArtistId = m.ArtistId
+            WHERE m.IsPublic = 1 AND ({conditions})";
 
         var parameters = new DynamicParameters();
         for (int i = 0; i < songs.Count; i++)
@@ -159,9 +163,11 @@ public class GetRecommendationsHandler : IRequestHandler<GetRecommendationsQuery
                 WHERE f.UserId = @UserId AND m.GenreId IS NOT NULL
             )
             SELECT TOP (@Limit) m.MediaId, m.Title, m.Description, m.MediaType, m.Duration,
-                   m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, m.AlbumId, m.GenreId,
-                   m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
+                   m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, m.ArtistId,
+                   a.Name AS ArtistName, m.AlbumId, m.GenreId, m.OwnerId, m.IsPublic,
+                   m.ViewCount, m.CreatedAt
             FROM MediaItems m
+            LEFT JOIN Artists a ON a.ArtistId = m.ArtistId
             WHERE m.IsPublic = 1
             ORDER BY
                 CASE WHEN EXISTS (SELECT 1 FROM PreferredGenres pg WHERE pg.GenreId = m.GenreId) THEN 0 ELSE 1 END,
