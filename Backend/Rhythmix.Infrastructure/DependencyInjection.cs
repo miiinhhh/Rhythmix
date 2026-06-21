@@ -36,11 +36,14 @@ public static class DependencyInjection
         // Đăng ký NotificationService để inject INotificationHub qua SignalR
         services.AddScoped<INotificationHub, NotificationService>();
 
-        // Đăng ký Anthropic AI service
-        var anthropicOptions = new AnthropicOptions();
-        configuration.GetSection("Anthropic").Bind(anthropicOptions);
-        services.AddSingleton(anthropicOptions);
-        services.AddScoped<IAnthropicService, AnthropicService>();
+        // Register OpenRouter recommendation service.
+        var openRouterOptions = new OpenRouterOptions();
+        configuration.GetSection("OpenRouter").Bind(openRouterOptions);
+        services.AddSingleton(openRouterOptions);
+        services.AddHttpClient<IOpenRouterRecommendationService, OpenRouterRecommendationService>(client =>
+        {
+            client.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
+        });
 
         return services;
     }

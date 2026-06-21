@@ -13,6 +13,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import ShareModal from "./ShareModal";
 import type { SongType } from "../utils/mediaMapping";
+import { userService } from "../api/userService";
 
 interface PlayerBarProps {
   currentTrack: SongType | null;
@@ -169,17 +170,22 @@ const PlayerBar = ({
         </div>
         <button
           type="button"
-          onClick={() => {
-            if (!currentTrack) return; // Nếu chưa phát bài nào thì không cho bấm
+          onClick={async () => {
+            if (!currentTrack) return;
 
-            // 🌟 Bắn lệnh thay đổi dữ liệu lên file cha AppLayout
-            setSongs((prev) =>
-              prev.map((song) =>
-                song.id === currentTrack.id
-                  ? { ...song, isLiked: !song.isLiked }
-                  : song,
-              ),
-            );
+            try {
+              await userService.toggleFavorite(currentTrack.id);
+
+              setSongs((prev) =>
+                prev.map((song) =>
+                  song.id === currentTrack.id
+                    ? { ...song, isLiked: !song.isLiked }
+                    : song,
+                ),
+              );
+            } catch (err) {
+              console.error("Toggle favorite failed:", err);
+            }
           }}
           className="ml-2 hidden text-zinc-400 transition-colors hover:text-white sm:block cursor-pointer"
           aria-label={currentTrack?.isLiked ? "Unlike" : "Like"}

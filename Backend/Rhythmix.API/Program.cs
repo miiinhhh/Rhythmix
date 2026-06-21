@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -15,6 +16,7 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
         builder.Services.AddControllers();
         builder.Services.Configure<ApiBehaviorOptions>(options =>
         {

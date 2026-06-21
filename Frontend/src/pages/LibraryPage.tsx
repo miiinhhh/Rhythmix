@@ -7,6 +7,7 @@ import { albumService } from "../api/albumService";
 import { mediaService } from "../api/mediaService";
 import { playlistService } from "../api/playlistService";
 import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
+import { userService } from "../api/userService";
 import type { AlbumDto, PlaylistDto } from "../types/api";
 
 interface OutletContextType {
@@ -37,6 +38,7 @@ const LibraryPage = () => {
   const [myMedia, setMyMedia] = useState<SongType[]>([]);
   const [playlists, setPlaylists] = useState<PlaylistDto[]>([]);
   const [albums, setAlbums] = useState<AlbumDto[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   const loadMyMedia = async () => {
     const mediaItems = await mediaService.getMyMedia();
@@ -61,10 +63,30 @@ const LibraryPage = () => {
     setAlbums(items);
   };
 
+  const loadFavoriteIds = async () => {
+    const favorites = await userService.getFavorites();
+
+    console.log("LIBRARY FAVORITES:", favorites);
+
+    const ids = favorites
+      .map((item: any) => String(item))
+      .filter((id: string) => id !== "");
+
+    setFavoriteIds(ids);
+
+    setSongs((prev) =>
+      prev.map((song) => ({
+        ...song,
+        isLiked: ids.includes(String(song.id)),
+      }))
+    );
+  };
+
   useEffect(() => {
     loadMyMedia().catch(() => setMyMedia([]));
     loadPlaylists().catch(() => setPlaylists([]));
     loadAlbums().catch(() => setAlbums([]));
+    loadFavoriteIds().catch(() => setFavoriteIds([]));
   }, []);
 
   const visibleMedia =
@@ -73,8 +95,20 @@ const LibraryPage = () => {
   const visibleAlbums = activeTab === "playlists" ? [] : albums;
   const likedCount = songs.filter((song) => song.isLiked).length;
 
-  // Album cards now navigate to AlbumDetailPage.
-  // Chỉ bắt đầu play khi user chọn bài hát trong trang AlbumDetailPage.
+  const playAlbum = async (album: AlbumDto) => {
+    const detail = await albumService.getById(album.albumId);
+    const albumSongs = detail.tracks.map((track) => ({
+      ...mapMediaToSong(track),
+      album: detail.title,
+    }));
+
+    if (albumSongs.length === 0) return;
+
+    const albumSongIds = new Set(albumSongs.map((song) => song.id));
+    setSongs((current) => [...albumSongs, ...current.filter((song) => !albumSongIds.has(song.id))]);
+    setCurrentSongId(albumSongs[0].id);
+    setIsPlaying(true);
+  };
 
   return (
     <div className="space-y-6 select-none">
@@ -204,7 +238,7 @@ const LibraryPage = () => {
               {playlist.name}
             </h3>
             <p className="mt-1 line-clamp-2 text-xs text-zinc-400">
-              Playlist · {playlist.trackCount ?? 0} songs ·{" "}
+              Playlist · {playlist.trackCount ?? 0} songs · {" "}
               {playlist.isPublic ? "Public" : "Private"}
             </p>
           </article>

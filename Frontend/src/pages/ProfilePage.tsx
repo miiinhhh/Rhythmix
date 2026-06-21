@@ -29,6 +29,7 @@ interface OutletContextType {
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
   songs: SongType[];
+  setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
 }
 
 const API_ORIGIN = "http://localhost:5269";
@@ -49,7 +50,7 @@ const ProfilePage = () => {
   const targetId = userId || currentUserId;
   const isMyProfile = !userId || userId === currentUserId;
 
-  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, songs } =
+  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, songs, setSongs } =
     useOutletContext<OutletContextType>();
 
   const [userProfile, setUserProfile] = useState<{
@@ -123,9 +124,45 @@ const ProfilePage = () => {
     };
   }, [targetId, isMyProfile, users]);
 
+  useEffect(() => {
+    if (!isMyProfile) return;
+
+    let cancelled = false;
+
+    const loadLikedTracks = async () => {
+      try {
+        const likedIds = await userService.getFavorites();
+
+        if (cancelled) return;
+
+        setLikedTrackIds(likedIds);
+
+        setSongs((prev) =>
+          prev.map((song) => ({
+            ...song,
+            isLiked: likedIds.includes(song.id),
+          }))
+        );
+      } catch (error) {
+        console.error("Load liked tracks failed:", error);
+
+        if (!cancelled) {
+          setLikedTrackIds([]);
+        }
+      }
+    };
+
+    void loadLikedTracks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isMyProfile, setSongs]);
+
 
   const [publicPlaylists, setPublicPlaylists] = useState<PlaylistDto[]>([]);
-  const likedTracks = songs.filter((song) => song.isLiked);
+  const [likedTrackIds, setLikedTrackIds] = useState<string[]>([]);
+  const likedTracks = songs.filter((song) => likedTrackIds.includes(song.id));
   const maxHistoryCount = 10;
   const [recentlyPlayed, setRecentlyPlayed] = useState<
     { song: SongType; playedAt: Date }[]
@@ -219,6 +256,40 @@ const ProfilePage = () => {
     } else {
       setCurrentSongId(songId);
       setIsPlaying(true);
+    }
+  };
+  const handleToggleLikeRecentSong = async (
+    e: React.MouseEvent<HTMLButtonElement>,
+    songId: string
+  ) => {
+    e.stopPropagation();
+
+    try {
+      await userService.toggleFavorite(songId);
+
+      setSongs((prev) =>
+        prev.map((song) =>
+          song.id === songId
+            ? { ...song, isLiked: !song.isLiked }
+            : song
+        )
+      );
+
+      setRecentlyPlayed((prev) =>
+        prev.map((item) =>
+          item.song.id === songId
+            ? {
+                ...item,
+                song: {
+                  ...item.song,
+                  isLiked: !item.song.isLiked,
+                },
+              }
+            : item
+        )
+      );
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -683,7 +754,24 @@ const ProfilePage = () => {
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs text-zinc-500 tabular-nums">{item.song.duration}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleLikeRecentSong(e, item.song.id)}
+                        className="ml-2 text-zinc-400 transition-colors hover:text-white cursor-pointer"
+                        aria-label={item.song.isLiked ? "Unlike" : "Like"}
+                      >
+                        <Heart
+                          className={`size-4 transition-all duration-200 ${
+                            item.song.isLiked
+                              ? "text-green-500 fill-green-500 scale-110"
+                              : ""
+                          }`}
+                        />
+                      </button>
+
+                      <span className="text-xs text-zinc-500 tabular-nums">
+                        {item.song.duration}
+                      </span>
                     </div>
                   </div>
                 );

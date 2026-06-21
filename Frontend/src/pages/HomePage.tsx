@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Disc3, ListMusic, Music2, Play } from "lucide-react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { albumService } from "../api/albumService";
+import { aiService } from "../api/aiService";
 import { playlistService } from "../api/playlistService";
 import type { AlbumDto, PlaylistDto } from "../types/api";
-import { type SongType } from "../utils/mediaMapping";
+import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
 
 interface OutletContextType {
   currentSongId: string | null;
@@ -30,26 +31,29 @@ const resolveAssetUrl = (url?: string) => {
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, songs } =
+  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, songs, setSongs } =
     useOutletContext<OutletContextType>();
 
   const [myPlaylists, setMyPlaylists] = useState<PlaylistDto[]>([]);
   const [publicPlaylists, setPublicPlaylists] = useState<PlaylistDto[]>([]);
   const [albums, setAlbums] = useState<AlbumDto[]>([]);
+  const [recommendations, setRecommendations] = useState<SongType[]>([]);
+  const [recommendationSource, setRecommendationSource] = useState<"openrouter" | "database" | "">("");
 
   useEffect(() => {
-    playlistService
-      .getAll()
-      .then(setMyPlaylists)
-      .catch(() => setMyPlaylists([]));
-    playlistService
-      .getPublic()
-      .then(setPublicPlaylists)
-      .catch(() => setPublicPlaylists([]));
-    albumService
-      .getMyAlbums()
-      .then(setAlbums)
-      .catch(() => setAlbums([]));
+    playlistService.getAll().then(setMyPlaylists).catch(() => setMyPlaylists([]));
+    playlistService.getPublic().then(setPublicPlaylists).catch(() => setPublicPlaylists([]));
+    albumService.getMyAlbums().then(setAlbums).catch(() => setAlbums([]));
+    aiService
+      .getRecommendations(8)
+      .then(({ items, source }) => {
+        setRecommendations(items.map((item) => mapMediaToSong(item)));
+        setRecommendationSource(source);
+      })
+      .catch(() => {
+        setRecommendations([]);
+        setRecommendationSource("");
+      });
   }, []);
 
   const handlePlay = (song: SongType) => {
@@ -62,6 +66,21 @@ const HomePage = () => {
     setIsPlaying(true);
   };
 
+  const handlePlayAlbum = async (album: AlbumDto) => {
+    const detail = await albumService.getById(album.albumId);
+    const albumSongs = detail.tracks.map((track) => ({
+      ...mapMediaToSong(track),
+      album: detail.title,
+    }));
+
+    if (albumSongs.length === 0) return;
+
+    const albumSongIds = new Set(albumSongs.map((song) => song.id));
+    setSongs((current) => [...albumSongs, ...current.filter((song) => !albumSongIds.has(song.id))]);
+    setCurrentSongId(albumSongs[0].id);
+    setIsPlaying(true);
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -70,6 +89,45 @@ const HomePage = () => {
           Songs, playlists, and albums loaded from your Rhythmix database.
         </p>
       </div>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-white">Dành cho bạn</h2>
+          {recommendationSource && (
+            <span className="text-xs font-medium text-zinc-400">
+              {recommendationSource === "openrouter" ? "Gợi ý bởi OpenRouter" : "Gợi ý từ thư viện"}
+            </span>
+          )}
+        </div>
+        {recommendations.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-zinc-800 py-10 text-center text-sm text-zinc-400">
+            Chưa có bài hát để đề xuất.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {recommendations.map((song) => (
+              <article
+                key={song.id}
+                onClick={() => handlePlay(song)}
+                className="group flex cursor-pointer items-center gap-3 rounded-md bg-zinc-900 p-3 transition-colors hover:bg-zinc-800"
+              >
+                <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-800">
+                  {song.posterUrl ? (
+                    <img src={song.posterUrl} alt={song.title} className="size-full object-cover" />
+                  ) : (
+                    <Music2 className="size-5 text-zinc-400" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-sm font-semibold text-white">{song.title}</h3>
+                  <p className="truncate text-xs text-zinc-400">{song.artist}</p>
+                </div>
+                <Play className="size-4 shrink-0 text-green-400 opacity-0 transition-opacity group-hover:opacity-100" />
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section>
         <h2 className="mb-4 text-xl font-semibold text-white">
@@ -116,7 +174,7 @@ const HomePage = () => {
                     {playlist.name}
                   </h3>
                   <p className="mt-1 truncate text-xs text-zinc-400">
-                    Playlist - {playlist.trackCount ?? 0} songs -{" "}
+                    Playlist - {playlist.trackCount ?? 0} songs - {" "}
                     {playlist.isPublic ? "Public" : "Private"}
                   </p>
                 </article>
