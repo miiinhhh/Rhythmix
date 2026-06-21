@@ -29,22 +29,30 @@ public sealed class StreamMediaQueryHandler : IRequestHandler<StreamMediaQuery, 
         // 2. Increment view count
         await _mediaRepository.IncrementViewCountAsync(request.MediaId);
 
-        // 3. Get file stream
-        var fileStream = await _fileStorageService.GetFileStreamAsync(media.FilePath);
+        // 3. Chọn file audio hoặc video tuỳ tham số 'type'
+        var wantsVideo = string.Equals(request.Type, "video", StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrEmpty(media.VideoFilePath);
+
+        var targetPath = wantsVideo ? media.VideoFilePath! : media.FilePath;
+        var targetMimeType = wantsVideo
+            ? (media.VideoMimeType ?? _fileStorageService.GetContentType(targetPath))
+            : _fileStorageService.GetContentType(media.FilePath);
+        var targetSize = wantsVideo ? (media.VideoFileSize ?? 0) : media.FileSize;
+
+        var fileStream = await _fileStorageService.GetFileStreamAsync(targetPath);
         if (fileStream == null)
         {
             return null;
         }
 
-        // 4. Prepare response
         var response = new StreamMediaResponse
         {
             FileStream = fileStream,
-            ContentType = _fileStorageService.GetContentType(media.FilePath),
-            FileSize = media.FileSize,
+            ContentType = targetMimeType,
+            FileSize = targetSize,
             IsPartialContent = false,
             StartPosition = 0,
-            EndPosition = media.FileSize - 1
+            EndPosition = targetSize - 1
         };
 
         // 5. Handle Range header for video streaming

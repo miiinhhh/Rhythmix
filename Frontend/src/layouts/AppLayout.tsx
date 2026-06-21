@@ -430,7 +430,7 @@ const AppLayout = () => {
         </>
       )}
 
-      {isVideoOpen && (
+{isVideoOpen && (
         <VideoPlayerModal
           isOpen={isVideoOpen}
           onClose={() => setIsVideoOpen(false)}

@@ -1,4 +1,4 @@
-import { X, Play, Pause, Volume2, SkipBack, SkipForward, Heart, Share2, ListPlus } from "lucide-react";
+import { X, Play, Pause, Volume2, SkipBack, SkipForward, Heart, Share2, ListPlus, Maximize, Download } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import ShareModal from "./ShareModal";
 import type { ShareItemDto } from "../types/api";
@@ -6,7 +6,7 @@ import type { ShareItemDto } from "../types/api";
 interface VideoPlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  videoUrl: string;
+  videoUrl?: string;
   posterUrl: string;
   title: string;
   artist?: string;
@@ -123,6 +123,37 @@ useEffect(() => {
     });
   };
 
+  const handleFullscreen = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.requestFullscreen) {
+      video.requestFullscreen().catch((error) => {
+        console.log("Không thể bật toàn màn hình:", error);
+      });
+    }
+  };
+
+  const handleDownloadVideo = async () => {
+    if (!safeVideoUrl) return;
+
+    try {
+      const response = await fetch(safeVideoUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${(title || "video").replace(/[\\/:*?"<>|]/g, "")}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.log("Không thể tải video:", error);
+    }
+  };
+
   const formatTime = (time: number) => {
     if (isNaN(time)) return "0:00";
     const mins = Math.floor(time / 60);
@@ -186,36 +217,66 @@ useEffect(() => {
       {/* 2. KHU VỰC HIỂN THỊ NỘI DUNG */}
       <div className="flex-1 flex items-center justify-center relative my-4 overflow-hidden rounded-xl bg-zinc-950/40 border border-zinc-900">
         {safeVideoUrl ? (
-          <video
-            key={safeVideoUrl}
-            ref={videoRef}
-            controls
-            muted
-            loop
-            playsInline
-            poster={safePosterUrl}
-            onCanPlay={handleCanPlay}
-            onLoadedMetadata={handleLoadedMetadata}
-            onError={(e) => {
-              const video = e.currentTarget;
+          <>
+            <video
+              key={safeVideoUrl}
+              ref={videoRef}
+              muted
+              loop
+              playsInline
+              poster={safePosterUrl}
+              onCanPlay={handleCanPlay}
+              onLoadedMetadata={handleLoadedMetadata}
+              onError={(e) => {
+                const video = e.currentTarget;
 
-              console.log("VIDEO ERROR CODE:", video.error?.code);
-              console.log("VIDEO ERROR MESSAGE:", video.error?.message);
-              console.log("VIDEO URL:", safeVideoUrl);
-            }}
-            className={`max-h-[75vh] max-w-full object-contain rounded-lg transition-opacity duration-300 ${
-              activeMode === "video"
-                ? "opacity-100"
-                : "opacity-0 absolute pointer-events-none"
-            }`}
-            onClick={togglePlay}
-          >
-            <source src={safeVideoUrl} />
-          </video>
+                console.log("VIDEO ERROR CODE:", video.error?.code);
+                console.log("VIDEO ERROR MESSAGE:", video.error?.message);
+                console.log("VIDEO URL:", safeVideoUrl);
+              }}
+              className={`w-full h-full max-h-[75vh] object-contain rounded-lg transition-opacity duration-300 ${
+                activeMode === "video"
+                  ? "opacity-100"
+                  : "opacity-0 absolute pointer-events-none"
+              }`}
+              onClick={togglePlay}
+            >
+              <source src={safeVideoUrl} />
+            </video>
+
+            {activeMode === "video" && (
+              <div className="absolute bottom-3 right-3 flex items-center gap-2 z-10">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadVideo();
+                  }}
+                  className="p-2 text-zinc-300 hover:text-white transition-colors cursor-pointer bg-zinc-900/60 rounded-full backdrop-blur-sm"
+                  aria-label="Tải video"
+                  title="Tải video"
+                >
+                  <Download className="size-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFullscreen();
+                  }}
+                  className="p-2 text-zinc-300 hover:text-white transition-colors cursor-pointer bg-zinc-900/60 rounded-full backdrop-blur-sm"
+                  aria-label="Toàn màn hình"
+                  title="Toàn màn hình"
+                >
+                  <Maximize className="size-5" />
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           activeMode === "video" && (
-            <div className="text-zinc-400 text-sm">
-              Không có video để phát
+            <div className="absolute inset-0 flex items-center justify-center text-zinc-500 text-sm">
+              Bài hát này chưa có video đi kèm.
             </div>
           )
         )}
@@ -368,61 +429,6 @@ useEffect(() => {
           Đã thêm vào Current Queue
         </div>
       )}
-
-      {/* Queue selection is intentionally replaced by direct add-to-queue behavior.
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-white">Thêm vào hàng chờ</h3>
-                <p className="mt-1 text-xs text-zinc-400">Hiện có {queue.length} bài trong Current Queue</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsQueuePickerOpen(false)}
-                className="rounded-full p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
-                aria-label="Đóng"
-                title="Đóng"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="custom-scrollbar mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
-              {songs.length > 0 ? (
-                songs.map((song) => {
-                  const isQueued = queue.some((item) => item.id === song.id);
-
-                  return (
-                    <button
-                      key={song.id}
-                      type="button"
-                      disabled={isQueued}
-                      onClick={() => addToQueue(song)}
-                      className="flex w-full items-center justify-between rounded-md p-3 text-left transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <span className="flex min-w-0 items-center gap-3">
-                        {song.posterUrl ? (
-                          <img src={song.posterUrl} alt="" className="size-10 rounded object-cover" />
-                        ) : (
-                          <span className="flex size-10 items-center justify-center rounded bg-zinc-800 text-xs text-zinc-400">Nhạc</span>
-                        )}
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-white">{song.title}</span>
-                          <span className="block truncate text-xs text-zinc-400">{song.artist}</span>
-                        </span>
-                      </span>
-                      {isQueued ? <Check className="size-4 text-green-500" /> : <ListPlus className="size-4 text-zinc-400" />}
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="py-5 text-center text-sm text-zinc-500">Chưa có bài hát để thêm vào hàng chờ.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      */}
     </div>
   );
 };

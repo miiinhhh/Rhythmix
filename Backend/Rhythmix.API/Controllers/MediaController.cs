@@ -56,11 +56,25 @@ public sealed class MediaController : ControllerBase
             }
         }
 
+        if (request.VideoFile is { Length: > 0 })
+        {
+            var videoExtension = Path.GetExtension(request.VideoFile.FileName).ToLowerInvariant();
+            var allowedVideoExtensions = new[] { ".mp4", ".webm", ".mkv", ".avi", ".mov" };
+            if (!allowedVideoExtensions.Contains(videoExtension))
+            {
+                return BadRequest(new { success = false, message = "Invalid video format. Only mp4, webm, mkv, avi, mov files are allowed." });
+            }
+        }
+
         try
         {
             using var stream = request.File.OpenReadStream();
             using var coverStream = request.CoverImage is { Length: > 0 }
                 ? request.CoverImage.OpenReadStream()
+                : null;
+                //video stream
+            using var videoStream = request.VideoFile is { Length: > 0 }
+                ? request.VideoFile.OpenReadStream()
                 : null;
 
             var command = new UploadMediaCommand
@@ -80,7 +94,11 @@ public sealed class MediaController : ControllerBase
                 ContentType = request.File.ContentType,
                 FileLength = request.File.Length,
                 CoverImageStream = coverStream,
-                CoverImageFileName = request.CoverImage?.FileName
+                CoverImageFileName = request.CoverImage?.FileName,
+                VideoFileStream = videoStream,
+                VideoFileName = request.VideoFile?.FileName,
+                VideoContentType = request.VideoFile?.ContentType,
+                VideoFileLength = request.VideoFile?.Length,
             };
 
             var result = await _mediator.Send(command);
@@ -135,11 +153,15 @@ public sealed class MediaController : ControllerBase
     /// </summary>
     [HttpGet("{mediaId}/stream")]
     [AllowAnonymous]
-    public async Task<IActionResult> StreamMedia(Guid mediaId)
+    public async Task<IActionResult> StreamMedia(Guid mediaId, [FromQuery] string? type = null)
     {
+        var rangeHeader = Request.Headers.Range.ToString();
+
         var query = new StreamMediaQuery
         {
-            MediaId = mediaId
+            MediaId = mediaId,
+            Range = string.IsNullOrEmpty(rangeHeader) ? null : rangeHeader,
+            Type = type
         };
 
         var result = await _mediator.Send(query);

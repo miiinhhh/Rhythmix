@@ -1,4 +1,3 @@
-
 using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -18,18 +17,23 @@ public sealed class DapperMediaRepository : IMediaRepository
 
     public async Task<MediaItem?> GetByIdAsync(Guid mediaId, IDbTransaction? transaction = null)
     {
-        const string sql = @"
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var videoColumns = await HasVideoColumnsAsync(connection, transaction)
+            ? "m.VideoFilePath, m.VideoMimeType, m.VideoFileSize,"
+            : "CAST(NULL AS nvarchar(500)) AS VideoFilePath, CAST(NULL AS nvarchar(100)) AS VideoMimeType, CAST(NULL AS bigint) AS VideoFileSize,";
+
+        var sql = $@"
             SELECT 
                 m.MediaId, m.Title, m.Description, m.MediaType, m.Duration, 
-                m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, 
+                m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, {videoColumns}
                 m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
                 m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
             FROM [MediaItems] m
             LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
             WHERE m.MediaId = @MediaId";
 
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync();
         return await connection.QueryFirstOrDefaultAsync<MediaItem>(sql, new { MediaId = mediaId }, transaction);
     }
 
@@ -42,6 +46,7 @@ public sealed class DapperMediaRepository : IMediaRepository
             SELECT 
                 m.MediaId, m.Title, m.Description, m.MediaType, m.Duration, 
                 m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, 
+                m.VideoFilePath, m.VideoMimeType, m.VideoFileSize,
                 m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
                 m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
             FROM [MediaItems] m
@@ -55,7 +60,24 @@ public sealed class DapperMediaRepository : IMediaRepository
 
     public async Task<Guid> AddAsync(MediaItem media, IDbTransaction? transaction = null)
     {
-        const string sql = @"
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var hasVideoColumns = await HasVideoColumnsAsync(connection, transaction);
+        var sql = hasVideoColumns
+            ? @"
+            INSERT INTO [MediaItems] (
+                MediaId, Title, Description, MediaType, Duration, 
+                FilePath, ThumbnailUrl, MimeType, FileSize, 
+                VideoFilePath, VideoMimeType, VideoFileSize,
+                ArtistId, AlbumId, GenreId, OwnerId, IsPublic, ViewCount, CreatedAt
+            ) VALUES (
+                @MediaId, @Title, @Description, @MediaType, @Duration, 
+                @FilePath, @ThumbnailUrl, @MimeType, @FileSize, 
+                @VideoFilePath, @VideoMimeType, @VideoFileSize,
+                @ArtistId, @AlbumId, @GenreId, @OwnerId, @IsPublic, @ViewCount, @CreatedAt
+            )"
+            : @"
             INSERT INTO [MediaItems] (
                 MediaId, Title, Description, MediaType, Duration, 
                 FilePath, ThumbnailUrl, MimeType, FileSize, 
@@ -66,8 +88,6 @@ public sealed class DapperMediaRepository : IMediaRepository
                 @ArtistId, @AlbumId, @GenreId, @OwnerId, @IsPublic, @ViewCount, @CreatedAt
             )";
 
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync();
         await connection.ExecuteAsync(sql, media, transaction);
 
         return media.MediaId;
@@ -145,6 +165,7 @@ public sealed class DapperMediaRepository : IMediaRepository
             SELECT 
                 m.MediaId, m.Title, m.Description, m.MediaType, m.Duration, 
                 m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, 
+                m.VideoFilePath, m.VideoMimeType, m.VideoFileSize,
                 m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
                 m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
             FROM [MediaItems] m
@@ -170,6 +191,7 @@ public sealed class DapperMediaRepository : IMediaRepository
             SELECT
                 m.MediaId, m.Title, m.Description, m.MediaType, m.Duration,
                 m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize,
+                m.VideoFilePath, m.VideoMimeType, m.VideoFileSize,
                 m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
                 m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
             FROM [MediaItems] m
@@ -196,6 +218,7 @@ public sealed class DapperMediaRepository : IMediaRepository
                 SELECT 
                     m.MediaId, m.Title, m.Description, m.MediaType, m.Duration, 
                     m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, 
+                    m.VideoFilePath, m.VideoMimeType, m.VideoFileSize,
                     m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
                     m.OwnerId, m.IsPublic, m.ViewCount, m.CreatedAt
                 FROM [MediaItems] m
@@ -208,6 +231,7 @@ public sealed class DapperMediaRepository : IMediaRepository
                 SELECT 
                     m.MediaId, m.Title, m.Description, m.MediaType, m.Duration, 
                     m.FilePath, m.ThumbnailUrl, m.MimeType, m.FileSize, 
+                    m.VideoFilePath, m.VideoMimeType, m.VideoFileSize,
                     m.ArtistId, a.Name AS ArtistName, m.AlbumId, m.GenreId,
                     m.OwnerId, CAST(1 AS bit) AS IsPublic, m.ViewCount, m.CreatedAt
                 FROM [MediaItems] m
@@ -229,5 +253,17 @@ public sealed class DapperMediaRepository : IMediaRepository
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         await connection.ExecuteAsync(sql, new { MediaId = mediaId }, transaction);
+    }
+
+    private static async Task<bool> HasVideoColumnsAsync(SqlConnection connection, IDbTransaction? transaction = null)
+    {
+        const string sql = @"
+            SELECT CASE WHEN
+                COL_LENGTH('MediaItems', 'VideoFilePath') IS NOT NULL AND
+                COL_LENGTH('MediaItems', 'VideoMimeType') IS NOT NULL AND
+                COL_LENGTH('MediaItems', 'VideoFileSize') IS NOT NULL
+            THEN 1 ELSE 0 END";
+
+        return await connection.ExecuteScalarAsync<int>(sql, transaction: transaction) == 1;
     }
 }

@@ -20,4 +20,7 @@ public class MediaDto
     public bool IsPublic { get; set; }
     public int ViewCount { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? VideoFilePath { get; set; }
+    public string? VideoMimeType { get; set; }
+    public long? VideoFileSize { get; set; }
 }

@@ -19,4 +19,7 @@ public class MediaItem
     public bool IsPublic { get; set; } = true; 
     public int ViewCount { get; set; } = 0; 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string? VideoFilePath { get; set; }
+    public string? VideoMimeType { get; set; }
+    public long? VideoFileSize { get; set; }
 }

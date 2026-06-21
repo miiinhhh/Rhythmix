@@ -15,6 +15,7 @@ export const mediaService = {
     if (data.albumId) formData.append('albumId', data.albumId);
     if (data.genreId) formData.append('genreId', data.genreId);
     data.genreIds?.forEach((genreId) => formData.append('genreIds', genreId));
+    if (data.videoFile) formData.append('videoFile', data.videoFile);
 
     const res = await apiClient.post<ApiResponse<MediaItemDto>>('/media/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -31,6 +32,11 @@ export const mediaService = {
   // Stream a media file
   getMediaStream: (mediaId: string) => {
     return `${API_BASE_URL}/api/media/${mediaId}/stream`;
+  },
+
+  // Stream phần video đi kèm (nếu có)
+  getMediaVideoStream: (mediaId: string) => {
+    return `http://localhost:5269/api/media/${mediaId}/stream?type=video`;
   },
 
   // Get discovery/recommended media

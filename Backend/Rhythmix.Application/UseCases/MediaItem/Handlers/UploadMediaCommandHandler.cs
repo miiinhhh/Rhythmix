@@ -31,6 +31,7 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
 
         var filePath = await _fileStorageService.SaveFileAsync(request.FileStream, request.FileName, mediaType);
         var thumbnailUrl = await SaveCoverImageAsync(request);
+        var (videoFilePath, videoMimeType, videoFileSize) = await SaveVideoFileAsync(request);
         var duration = await GetDurationAsync(filePath);
         var artist = await GetOrCreateArtistAsync(request.ArtistName);
 
@@ -52,7 +53,10 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             OwnerId = request.OwnerId,
             IsPublic = request.IsPublic,
             ViewCount = 0,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            VideoFilePath = videoFilePath,
+            VideoMimeType = videoMimeType,
+            VideoFileSize = videoFileSize,
         };
 
         await _mediaRepository.AddAsync(media);
@@ -76,7 +80,10 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             OwnerId = media.OwnerId,
             IsPublic = media.IsPublic,
             ViewCount = media.ViewCount,
-            CreatedAt = media.CreatedAt
+            CreatedAt = media.CreatedAt,
+            VideoFilePath = videoFilePath,
+            VideoMimeType = videoMimeType,
+            VideoFileSize = videoFileSize,
         };
     }
 
@@ -116,6 +123,18 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             request.CoverImageStream,
             request.CoverImageFileName,
             "images");
+    }
+    
+    private async Task<(string? path, string? mimeType, long? size)> SaveVideoFileAsync(UploadMediaCommand request)
+    {
+        if (request.VideoFileStream == null || string.IsNullOrWhiteSpace(request.VideoFileName))
+        {
+            return (null, null, null);
+        }
+
+        var path = await _fileStorageService.SaveFileAsync(request.VideoFileStream, request.VideoFileName, "video");
+        var mimeType = request.VideoContentType ?? _fileStorageService.GetContentType(request.VideoFileName);
+        return (path, mimeType, request.VideoFileLength);
     }
 
     private static async Task<int> GetDurationAsync(string filePath)

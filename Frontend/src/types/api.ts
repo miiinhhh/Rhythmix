@@ -52,6 +52,9 @@ export interface MediaItemDto {
   createdAt: string;
   updatedAt?: string;
   contentType?: string;
+  videoFilePath?: string;
+  videoMimeType?: string;
+  videoFileSize?: number;
 }
 
 export interface UploadMediaDto {
@@ -64,6 +67,7 @@ export interface UploadMediaDto {
   albumId?: string;
   genreId?: string;
   genreIds?: string[];
+  videoFile?: File;
 }
 
 // ============ Genre DTOs ============
