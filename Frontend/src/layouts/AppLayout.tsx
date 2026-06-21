@@ -1,5 +1,6 @@
 import SideBar from "../components/SideBar";
 import PlayerBar from "../components/PlayerBar";
+import RightSideBar from "../components/RightSideBar";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useContext, useEffect, useRef, useState } from "react";
 import AuthModal from "../components/AuthModal";
@@ -77,7 +78,7 @@ const AppLayout = () => {
     null;
 
 
- const getVideoCandidateUrl = (track: any) => {
+  const getVideoCandidateUrl = (track: any) => {
     if (!track) return "";
 
     const mediaKind = (
@@ -259,16 +260,16 @@ const AppLayout = () => {
 
     if (targetReceiverId === currentUserId) {
       addNotification({
-      id: newShareMessage.id,
-      receiverId: targetReceiverId,
-      type: getNotificationType(type),
-      payload: JSON.stringify({
-        senderName: currentUserName,
-        itemName: itemInfo.title,
-        itemId: newShareMessage.id,
-      }),
-      time: "Vừa xong",
-      isRead: false,
+        id: newShareMessage.id,
+        receiverId: targetReceiverId,
+        type: getNotificationType(type),
+        payload: JSON.stringify({
+          senderName: currentUserName,
+          itemName: itemInfo.title,
+          itemId: newShareMessage.id,
+        }),
+        time: "Vừa xong",
+        isRead: false,
       });
     }
 
@@ -292,7 +293,7 @@ const AppLayout = () => {
 
       {canShowAppShell && (
         <>
-          <div className="flex min-h-0 flex-1">
+          <div className="flex min-h-0 flex-1 gap-2 overflow-hidden p-2 pb-0">
             <SideBar
               onOpenAuth={() => {
                 setIsAuthenticated(false);
@@ -300,7 +301,7 @@ const AppLayout = () => {
               }}
             />
 
-            <main className="ml-0 flex-1 overflow-y-auto rounded-lg bg-zinc-900 p-6">
+            <main className="min-w-0 flex-1 overflow-y-auto rounded-lg bg-zinc-900 p-6">
               <Outlet
                 context={
                   {
@@ -331,6 +332,11 @@ const AppLayout = () => {
                 }
               />
             </main>
+
+            <RightSideBar
+              currentTrack={currentTrack}
+              onOpenVideo={handleOpenVideo}
+            />
           </div>
 
           <PlayerBar
