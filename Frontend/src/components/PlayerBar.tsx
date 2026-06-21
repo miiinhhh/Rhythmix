@@ -218,6 +218,11 @@ useEffect(() => {
 
   // 🟢 State quản lý ẩn/hiển thị ShareModal
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isPosterUnavailable, setIsPosterUnavailable] = useState(false);
+
+  useEffect(() => {
+    setIsPosterUnavailable(false);
+  }, [currentTrack?.posterUrl]);
 
   // 🟢 Hàm click nút Share ở PlayerBar: Luôn luôn ép type là "song"
   const handleShareClick = () => {
@@ -226,7 +231,7 @@ useEffect(() => {
   };
 
   return (
-    <footer className="flex h-20 shrink-0 items-center justify-between gap-4 border-t border-zinc-800 bg-zinc-900 px-4 text-white">
+    <footer className="flex h-20 shrink-0 items-center justify-between gap-4 border-t border-zinc-200 bg-white px-4 text-zinc-950 transition-colors duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white">
       {/* THẺ AUDIO NGẦM (Không hiển thị ra màn hình nhưng làm nhiệm vụ phát nhạc) */}
       {isVideoTrack ? (
         <video
@@ -270,8 +275,17 @@ useEffect(() => {
 
       {/* Now playing */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex size-14 shrink-0 items-center justify-center rounded-md bg-zinc-800">
-          <Music2 className="size-6 text-zinc-400" />
+        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-800">
+          {currentTrack?.posterUrl && !isPosterUnavailable ? (
+            <img
+              src={currentTrack.posterUrl}
+              alt={currentTrack.title}
+              className="size-full object-cover"
+              onError={() => setIsPosterUnavailable(true)}
+            />
+          ) : (
+            <Music2 className="size-6 text-zinc-400" />
+          )}
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-white">
