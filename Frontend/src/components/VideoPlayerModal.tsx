@@ -32,6 +32,9 @@ const VideoPlayerModal = ({
   onSeekAudio,
   onShareSuccess
 }: VideoPlayerModalProps) => {
+  console.log("videoUrl:", videoUrl);
+  console.log("posterUrl:", posterUrl);
+  console.log("isOpen:", isOpen);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0); 
@@ -40,63 +43,35 @@ const VideoPlayerModal = ({
   const [activeMode, setActiveMode] = useState<"audio" | "video">("video");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  // 🟢 EFFECT 1: Khi vừa mở modal lên, đồng bộ hình ảnh giật về đúng vị trí giây của nhạc nền
-  useEffect(() => {
-    if (isOpen) {
-      setActiveMode("video");
-      if (videoRef.current && videoDuration > 0) {
-        videoRef.current.currentTime = audioCurrentTime % videoDuration; 
-        if (isPlaying) {
-          const playPromise = videoRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(() => { /* Tránh quăng lỗi đỏ console khi luồng chưa nạp xong */ });
-          }
-        }
-      }
-    }
-  }, [isOpen, videoDuration]);
+  const safeVideoUrl = videoUrl?.trim() ? videoUrl.trim() : null;
+  const safePosterUrl = posterUrl?.trim() ? posterUrl.trim() : "/default-poster.png";
   
-  // 🟢 EFFECT 2: Sửa dứt điểm lỗi lệch pha Play/Pause, bọc Promise chống freeze video
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !isOpen) return;
+  if (!isOpen) return;
 
-    if (isPlaying) {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          console.log("Video chưa sẵn sàng phát hoặc bị gián đoạn nhẹ:", error.message);
-        });
-      }
-    } else {
-      // 💡 Đợi luồng play() chạy xong hoàn toàn bằng một khoảng hoãn siêu nhỏ (50ms) trước khi ra lệnh dừng
-      const timer = setTimeout(() => {
-        if (!video.paused && !isPlaying) {
-          video.pause();
-        }
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [isPlaying, isOpen]);
-  
-  // 🟢 EFFECT 3: Đồng bộ mượt mà khi đổi Link bài hát/video (Khắc phục lỗi đứng hình khi audio đang chạy sẵn)
+  setActiveMode("video");
+}, [isOpen]);
+
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !videoUrl || !isOpen) return;
+  const video = videoRef.current;
+  if (!video || !safeVideoUrl) return;
 
-    video.load(); // Khởi động lại luồng load video sạch từ đầu
-    
-    if (videoDuration > 0) {
-      video.currentTime = audioCurrentTime % videoDuration;
-    }
+  setVideoDuration(0);
+  video.load();
+}, [safeVideoUrl]);
 
-    if (isPlaying) {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {});
-      }
-    }
-  }, [videoUrl, isOpen, videoDuration]);
+useEffect(() => {
+  const video = videoRef.current;
+  if (!video || !isOpen || !safeVideoUrl) return;
+
+  if (isPlaying) {
+    video.play().catch((error) => {
+      console.log("Video chưa phát được:", error.message);
+    });
+  } else {
+    video.pause();
+  }
+}, [isPlaying, isOpen, safeVideoUrl]);
 
   if (!isOpen) return null;
 
@@ -110,11 +85,26 @@ const VideoPlayerModal = ({
   };
 
   const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setVideoDuration(videoRef.current.duration); 
-      // Đồng bộ ngay lập tức khi metadata video load xong
-      videoRef.current.currentTime = audioCurrentTime % videoRef.current.duration;
+    const video = videoRef.current;
+    if (!video) return;
+
+    const duration = video.duration;
+
+    if (!Number.isFinite(duration) || duration <= 0) {
+      console.log("Video duration lỗi:", duration);
+      return;
     }
+
+    setVideoDuration(duration);
+    video.currentTime = audioCurrentTime % duration;
+  };
+  const handleCanPlay = () => {
+    const video = videoRef.current;
+    if (!video || !isOpen || !safeVideoUrl || !isPlaying) return;
+
+    video.play().catch((error) => {
+      console.log("Video chưa phát được:", error.message);
+    });
   };
 
   const formatTime = (time: number) => {
@@ -167,24 +157,55 @@ const VideoPlayerModal = ({
 
       {/* 2. KHU VỰC HIỂN THỊ NỘI DUNG */}
       <div className="flex-1 flex items-center justify-center relative my-4 overflow-hidden rounded-xl bg-zinc-950/40 border border-zinc-900">
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          muted={true} 
-          loop={true}  
-          playsInline={true}
-          onLoadedMetadata={handleLoadedMetadata}
-          className={`max-h-[75vh] max-w-full object-contain rounded-lg transition-opacity duration-300 ${
-            activeMode === "video" ? "opacity-100" : "opacity-0 absolute pointer-events-none"
-          }`}
-          onClick={togglePlay}
-        />
+        {safeVideoUrl ? (
+          <video
+            key={safeVideoUrl}
+            ref={videoRef}
+            controls
+            muted
+            loop
+            playsInline
+            poster={safePosterUrl}
+            onCanPlay={handleCanPlay}
+            onLoadedMetadata={handleLoadedMetadata}
+            onError={(e) => {
+              const video = e.currentTarget;
+
+              console.log("VIDEO ERROR CODE:", video.error?.code);
+              console.log("VIDEO ERROR MESSAGE:", video.error?.message);
+              console.log("VIDEO URL:", safeVideoUrl);
+            }}
+            className={`max-h-[75vh] max-w-full object-contain rounded-lg transition-opacity duration-300 ${
+              activeMode === "video"
+                ? "opacity-100"
+                : "opacity-0 absolute pointer-events-none"
+            }`}
+            onClick={togglePlay}
+          >
+            <source src={safeVideoUrl} />
+          </video>
+        ) : (
+          activeMode === "video" && (
+            <div className="text-zinc-400 text-sm">
+              Không có video để phát
+            </div>
+          )
+        )}
 
         {activeMode === "audio" && (
           <div className="absolute inset-0 flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <img src={posterUrl} alt="Blur BG" className="absolute inset-0 size-full object-cover opacity-15 blur-3xl scale-125" />
+            <img
+              src={safePosterUrl}
+              alt="Blur BG"
+              className="absolute inset-0 size-full object-cover opacity-15 blur-3xl scale-125"
+            />
+
             <div className="relative aspect-square w-full max-w-[360px] md:max-w-[400px] rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-zinc-800">
-              <img src={posterUrl} alt={title} className="size-full object-cover" />
+              <img
+                src={safePosterUrl}
+                alt={title || "Poster"}
+                className="size-full object-cover"
+              />
             </div>
           </div>
         )}

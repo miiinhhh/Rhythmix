@@ -35,6 +35,23 @@ interface PlayerBarProps {
   onNext: () => void;
   onPrevious: () => void;
 }
+const API_ORIGIN = "http://localhost:5269";
+
+const resolveAudioUrl = (url?: string | null) => {
+  if (!url) return "";
+
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("blob:")
+  ) {
+    return url;
+  }
+
+  const normalizedUrl = url.startsWith("/") ? url : `/${url}`;
+
+  return `${API_ORIGIN}${encodeURI(normalizedUrl)}`;
+};
 
 const PlayerBar = ({
   currentTrack,
@@ -51,7 +68,30 @@ const PlayerBar = ({
   onPrevious,
 }: PlayerBarProps) => {
   // 3. Tạo "điều khiển từ xa" để điều khiển thẻ audio ngầm của trình duyệt
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLMediaElement | null>(null);
+
+  const audioSrc = resolveAudioUrl(
+    currentTrack
+      ? currentTrack.url ||
+          (currentTrack as any).audioUrl ||
+          (currentTrack as any).fileUrl
+      : "",
+  );
+
+  const mediaKind = (
+    currentTrack?.mediaType ||
+    (currentTrack as any)?.mimeType ||
+    (currentTrack as any)?.contentType ||
+    ""
+  )
+    .toString()
+    .toLowerCase()
+    .trim();
+
+  const isVideoTrack =
+    mediaKind === "video" ||
+    mediaKind.startsWith("video/") ||
+    Boolean(currentTrack?.videoUrl?.trim());
 
   // 🔽 THÊM 2 DÒNG NÀY ĐỂ QUẢN LÝ THỜI GIAN 🔽
   const [currentTime, setCurrentTime] = useState(0); // Số giây hiện tại (Ví dụ: 10s)
@@ -123,13 +163,46 @@ const PlayerBar = ({
   };
 
   useEffect(() => {
-    if (!audioRef.current) return;
-    if (isPlaying && currentTrack) {
-      audioRef.current.play().catch(() => {});
-    } else {
-      audioRef.current.pause();
-    }
-  }, [isPlaying, currentTrack]);
+  const audio = audioRef.current;
+  if (!audio) return;
+
+  audio.volume = volume;
+}, [volume, audioSrc, isVideoTrack]);
+
+useEffect(() => {
+  const audio = audioRef.current;
+  if (!audio) return;
+
+  audio.pause();
+  audio.currentTime = 0;
+
+  setCurrentTime(0);
+  setDuration(0);
+  onTimeUpdate(0, 0);
+
+  if (!audioSrc) {
+    audio.removeAttribute("src");
+    audio.load();
+    setIsPlaying(false);
+    return;
+  }
+
+  audio.load();
+}, [audioSrc, isVideoTrack]);
+
+useEffect(() => {
+  const audio = audioRef.current;
+  if (!audio || !audioSrc) return;
+
+  if (isPlaying) {
+    audio.play().catch((error) => {
+      console.error("Không phát được bài này:", audioSrc, error);
+      setIsPlaying(false);
+    });
+  } else {
+    audio.pause();
+  }
+}, [isPlaying, audioSrc, isVideoTrack]);
 
   // When track ends, update parent state
   const handleEnded = () => {
@@ -149,13 +222,45 @@ const PlayerBar = ({
   return (
     <footer className="flex h-20 shrink-0 items-center justify-between gap-4 border-t border-zinc-800 bg-zinc-900 px-4 text-white">
       {/* THẺ AUDIO NGẦM (Không hiển thị ra màn hình nhưng làm nhiệm vụ phát nhạc) */}
-      <audio
-        ref={audioRef}
-        src={currentTrack?.url || ""}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={handleEnded}
-      />
+      {isVideoTrack ? (
+        <video
+          ref={(el) => {
+            audioRef.current = el;
+          }}
+          src={audioSrc}
+          preload="metadata"
+          playsInline
+          style={{
+            position: "absolute",
+            width: 0,
+            height: 0,
+            opacity: 0,
+            pointerEvents: "none",
+          }}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+          onError={() => {
+            console.error("Video lỗi:", audioSrc, audioRef.current?.error);
+            setIsPlaying(false);
+          }}
+        />
+      ) : (
+        <audio
+          ref={(el) => {
+            audioRef.current = el;
+          }}
+          src={audioSrc}
+          preload="metadata"
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+          onError={() => {
+            console.error("Audio lỗi:", audioSrc, audioRef.current?.error);
+            setIsPlaying(false);
+          }}
+        />
+      )}
 
       {/* Now playing */}
       <div className="flex min-w-0 flex-1 items-center gap-3">

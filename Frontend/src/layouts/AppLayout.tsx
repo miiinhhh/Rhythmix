@@ -74,6 +74,37 @@ const AppLayout = () => {
     allMessages.find((msg) => msg.trackData?.id === currentSongId)?.trackData ||
     null;
 
+
+ const getVideoCandidateUrl = (track: any) => {
+    if (!track) return "";
+
+    const mediaKind = (
+      track.mediaType ||
+      track.mimeType ||
+      track.contentType ||
+      ""
+    )
+      .toString()
+      .toLowerCase()
+      .trim();
+
+    const isVideo =
+      mediaKind === "video" || mediaKind.startsWith("video/");
+
+    if (!isVideo && !track.videoUrl) return "";
+
+    const rawVideoUrl = track.videoUrl || track.url || "";
+    return typeof rawVideoUrl === "string" ? rawVideoUrl.trim() : "";
+  };
+
+  const modalVideoUrl = getVideoCandidateUrl(currentTrack);
+
+
+  const handleOpenVideo = () => {
+    setIsVideoOpen(true);
+  };
+
+
   const handleAuthSuccess = (_name: string) => {
     setIsAuthenticated(true);
     setIsAuthModalOpen(false);
@@ -82,9 +113,9 @@ const AppLayout = () => {
       navigate("/home");
     }
   };
-    const handleNext = () => {
+  const handleNext = () => {
     const currentIndex = playlistQueue.findIndex((t) => t.id === currentSongId);
-  
+
     // Nếu bài hiện tại không tìm thấy hoặc là bài cuối rồi thì dừng
     if (currentIndex === -1 || currentIndex >= playlistQueue.length - 1) {
       setIsPlaying(false);
@@ -98,12 +129,12 @@ const AppLayout = () => {
     setIsPlaying(true);
   };
 
-const handlePrevious = () => {
-  const currentIndex = playlistQueue.findIndex((t) => t.id === currentSongId);
-  if (currentIndex > 0) {
-    setCurrentSongId(playlistQueue[currentIndex - 1].id);
-  }
-};
+  const handlePrevious = () => {
+    const currentIndex = playlistQueue.findIndex((t) => t.id === currentSongId);
+    if (currentIndex > 0) {
+      setCurrentSongId(playlistQueue[currentIndex - 1].id);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -229,8 +260,6 @@ const handlePrevious = () => {
     addMessage(newShareMessage);
   };
 
-  const defaultVideo =
-    "https://media.istockphoto.com/id/1400382484/vi/video/t%C3%A1c-%C4%91%E1%BB%99ng-c%E1%BB%A7a-ti%E1%BB%83u-h%C3%A0nh-tinh-tr%C3%A1i-%C4%91%E1%BA%A5t-ti%E1%BB%83u-h%C3%A0nh-tinh-sao-ch%E1%BB%95i-thi%E1%BB%87t-ph%C3%A1t-s%C3%A1ng-%C4%91i.mp4?p=1&s=mp4-640x640-is&k=20&c=s7GG-mPFa0btByLlpoqGhDLm7FQO2z0cZJuxLBFhRpc=";
   const defaultPoster =
     "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1000";
 
@@ -256,7 +285,7 @@ const handlePrevious = () => {
               }}
             />
 
-            <main className="ml-0 flex-1 overflow-y-auto rounded-lg bg-zinc-900 p-0">
+            <main className="ml-0 flex-1 overflow-y-auto rounded-lg bg-zinc-900 p-6">
               <Outlet
                 context={
                   {
@@ -267,7 +296,7 @@ const handlePrevious = () => {
                     songs,
                     setSongs,
                     onOpenAuth: () => setIsAuthModalOpen(true),
-                    onOpenVideo: () => setIsVideoOpen(true),
+                    onOpenVideo: handleOpenVideo,
                     onShareSuccess: handleShareSuccess,
                     onNavigateToPlaylist: (playlistId: string) => {
                       navigate(`/playlist/${playlistId}`);
@@ -294,7 +323,7 @@ const handlePrevious = () => {
             isPlaying={isPlaying}
             setIsPlaying={setIsPlaying}
             setSongs={setSongs as any}
-            onOpenVideo={() => setIsVideoOpen(true)}
+            onOpenVideo={handleOpenVideo}
             onTimeUpdate={(currentTime, duration) => {
               setAudioCurrentTime(currentTime);
               setAudioDuration(duration);
@@ -316,20 +345,22 @@ const handlePrevious = () => {
         </>
       )}
 
-      <VideoPlayerModal
-        isOpen={isVideoOpen}
-        onClose={() => setIsVideoOpen(false)}
-        videoUrl={currentTrack?.videoUrl || defaultVideo}
-        posterUrl={currentTrack?.posterUrl || defaultPoster}
-        title={currentTrack?.title || "Live Concert"}
-        artist={currentTrack?.artist || "Luna Nova"}
-        isPlaying={isPlaying}
-        setIsPlaying={setIsPlaying}
-        audioCurrentTime={audioCurrentTime}
-        audioDuration={audioDuration}
-        onShareSuccess={handleShareSuccess}
-        onSeekAudio={(time) => setSeekTrigger({ time })}
-      />
+      {isVideoOpen && (
+        <VideoPlayerModal
+          isOpen={isVideoOpen}
+          onClose={() => setIsVideoOpen(false)}
+          videoUrl={modalVideoUrl}
+          posterUrl={currentTrack?.posterUrl || defaultPoster}
+          title={currentTrack?.title || "Live Concert"}
+          artist={currentTrack?.artist || "Luna Nova"}
+          isPlaying={isPlaying}
+          setIsPlaying={setIsPlaying}
+          audioCurrentTime={audioCurrentTime}
+          audioDuration={audioDuration}
+          onShareSuccess={handleShareSuccess}
+          onSeekAudio={(time) => setSeekTrigger({ time })}
+        />
+      )}
     </div>
   );
 };

@@ -1,7 +1,6 @@
 import { mediaService } from "../api/mediaService";
-import type { MediaItemDto } from "../types/api";
 import { API_BASE_URL } from "../config/apiConfig";
-
+import type { MediaItemDto } from "../types/api";
 
 export interface SongType {
   id: string;
@@ -24,13 +23,17 @@ const formatDuration = (seconds?: number) => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
-const resolveAssetUrl = (url?: string) => {
+const resolveUrl = (url?: string | null) => {
   if (!url) return undefined;
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
     return url;
   }
-  return `${API_BASE_URL}${url}`;
+
+  const normalizedUrl = url.startsWith("/") ? url : `/${url}`;
+  return `${API_BASE_URL}${encodeURI(normalizedUrl)}`;
 };
+
+export const resolveAssetUrl = resolveUrl;
 
 export const resolveArtistName = (artistName?: string, ownerName?: string, title?: string) => {
   if (artistName?.trim()) return artistName.trim();
@@ -43,19 +46,31 @@ export const resolveArtistName = (artistName?: string, ownerName?: string, title
 };
 
 export const mapMediaToSong = (media: MediaItemDto): SongType => {
-  const mediaType = media.mediaType?.toLowerCase() || "audio";
+  const mediaKind = (media.contentType || media.mimeType || media.mediaType || "")
+    .toString()
+    .toLowerCase()
+    .trim();
+
+  const isVideoMedia =
+    mediaKind === "video" || mediaKind.startsWith("video/") || mediaKind.includes("mp4");
+  const isAudioMedia =
+    mediaKind === "audio" ||
+    mediaKind.startsWith("audio/") ||
+    mediaKind.includes("mpeg") ||
+    mediaKind.includes("mp3") ||
+    mediaKind.includes("wav");
   const streamUrl = mediaService.getMediaStream(media.mediaId);
 
   return {
     id: media.mediaId,
-    title: media.title,
+    title: media.title || "Unknown title",
     artist: resolveArtistName(media.artistName, media.ownerName, media.title),
     album: "Single",
     duration: formatDuration(media.duration),
     isLiked: false,
     url: streamUrl,
-    videoUrl: mediaType === "video" ? streamUrl : undefined,
-    posterUrl: resolveAssetUrl(media.thumbnailUrl),
-    mediaType,
+    videoUrl: isVideoMedia ? streamUrl : undefined,
+    posterUrl: resolveUrl(media.thumbnailUrl),
+    mediaType: isVideoMedia ? "video" : isAudioMedia ? "audio" : "audio",
   };
 };

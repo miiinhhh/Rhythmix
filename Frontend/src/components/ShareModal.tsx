@@ -58,7 +58,7 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
       setShareError("");
 
       if (!isGuid(receiverId) || !isGuid(itemToShare.id)) {
-        setShareError("Khong the chia se vi ID khong phai uniqueidentifier hop le.");
+        setShareError("Không thể chia sẻ vì ID không phải uniqueidentifier hợp lệ.");
         return;
       }
 
@@ -76,7 +76,7 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
       setSentRecords((prev) => [...prev, recordKey]);
       onShareSuccess?.(receiverName, createdShare);
     } catch (error: any) {
-      setShareError(error?.response?.data?.message || error?.message || "Khong gui duoc chia se.");
+      setShareError(error?.response?.data?.message || error?.message || "Không gửi được chia sẻ.");
     }
   };
 
@@ -86,12 +86,12 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
         <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
           <div>
             <h3 className="text-sm font-bold text-white">
-              {itemToShare.type === "song" && "Share a song"}
-              {itemToShare.type === "video" && "Share a video"}
-              {itemToShare.type === "playlist" && "Share a playlist"}
+              {itemToShare.type === "song" && "Chia sẻ bài hát"}
+              {itemToShare.type === "video" && "Chia sẻ video"}
+              {itemToShare.type === "playlist" && "Chia sẻ playlist"}
             </h3>
             <p className="mt-0.5 max-w-[250px] truncate text-xs text-zinc-400">
-              Sharing: {itemToShare.title}
+              Đang chia sẻ: {itemToShare.title}
             </p>
           </div>
           <button onClick={onClose} className="cursor-pointer text-zinc-400 hover:text-white">
@@ -109,7 +109,7 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
           <Search className="absolute left-3 top-2.5 size-4 text-zinc-500" />
           <input
             type="text"
-            placeholder="Tim ten ban be muon gui..."
+            placeholder="Tìm tên bạn bè muốn gửi..."
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             className="w-full rounded-md bg-zinc-800 py-2 pl-9 pr-4 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-green-500"
@@ -150,11 +150,11 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
                 >
                   {hasSent ? (
                     <>
-                      <Check className="size-3" /> Da gui
+                      <Check className="size-3" /> Đã gửi
                     </>
                   ) : (
                     <>
-                      <Send className="size-3" /> Gui
+                      <Send className="size-3" /> Gửi
                     </>
                   )}
                 </button>
@@ -163,7 +163,7 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
           })}
 
           {filteredUsers.length === 0 && (
-            <p className="py-4 text-center text-xs text-zinc-500">Khong tim thay nguoi dung nay.</p>
+            <p className="py-4 text-center text-xs text-zinc-500">Không tìm thấy người dùng phù hợp.</p>
           )}
         </div>
       </div>

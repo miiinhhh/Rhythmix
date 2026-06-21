@@ -137,11 +137,9 @@ public sealed class MediaController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> StreamMedia(Guid mediaId)
     {
-        var rangeHeader = Request.Headers.Range.ToString();
         var query = new StreamMediaQuery
         {
-            MediaId = mediaId,
-            Range = string.IsNullOrEmpty(rangeHeader) ? null : rangeHeader
+            MediaId = mediaId
         };
 
         var result = await _mediator.Send(query);
@@ -151,15 +149,13 @@ public sealed class MediaController : ControllerBase
             return NotFound(new { success = false, message = "Media not found." });
         }
 
-        if (result.IsPartialContent)
-        {
-            Response.Headers.Append("Content-Range", $"bytes {result.StartPosition}-{result.EndPosition}/{result.FileSize}");
-            Response.Headers.Append("Accept-Ranges", "bytes");
-            return File(result.FileStream, result.ContentType, enableRangeProcessing: true);
-        }
-
         Response.Headers.Append("Accept-Ranges", "bytes");
-        return File(result.FileStream, result.ContentType);
+
+        return File(
+            result.FileStream,
+            result.ContentType,
+            enableRangeProcessing: true
+        );
     }
 
     /// <summary>

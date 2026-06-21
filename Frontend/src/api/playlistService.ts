@@ -79,11 +79,19 @@ export const playlistService = {
    * Requires: Ownership or admin
    */
   update: async (playlistId: string, data: Partial<CreatePlaylistDto>) => {
-    const res = await apiClient.put<ApiResponse<PlaylistDto>>(
-      `/playlists/${playlistId}`,
-      data,
-    );
-    return res.data.data;
+      const formData = new FormData();
+      formData.append("name", data.name?.trim() ?? "");
+      formData.append("description", data.description?.trim() ?? "");
+      if (data.coverImage instanceof File) {
+        formData.append("coverImage", data.coverImage);
+      }
+
+      // BỎ header đi, axios sẽ tự xử lý boundary
+      const res = await apiClient.put<ApiResponse<PlaylistDto>>(
+        `/playlists/${playlistId}`,
+        formData 
+      );
+      return res.data.data;
   },
 
   

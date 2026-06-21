@@ -39,16 +39,33 @@ public class FileStorageService : IFileStorageService
         return $"/uploads/{subDirectory}/{safeFileName}";
     }
 
-    public async Task<Stream?> GetFileStreamAsync(string filePath)
-    {
-        var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", filePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-        
-        if (!File.Exists(fullPath))
-        {
-            return null;
-        }
+    public Task<Stream?> GetFileStreamAsync(string filePath)
+{
+        if (string.IsNullOrWhiteSpace(filePath))
+            return Task.FromResult<Stream?>(null);
 
-        return new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var relativePath = filePath
+            .TrimStart('/', '\\')
+            .Replace("/", Path.DirectorySeparatorChar.ToString())
+            .Replace("\\", Path.DirectorySeparatorChar.ToString());
+
+        var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath);
+
+        Console.WriteLine($"DB FilePath: {filePath}");
+        Console.WriteLine($"Full file path: {fullPath}");
+        Console.WriteLine($"File exists: {File.Exists(fullPath)}");
+
+        if (!File.Exists(fullPath))
+            return Task.FromResult<Stream?>(null);
+
+        Stream stream = new FileStream(
+            fullPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read
+        );
+
+        return Task.FromResult<Stream?>(stream);
     }
 
     public async Task<bool> DeleteFileAsync(string filePath)

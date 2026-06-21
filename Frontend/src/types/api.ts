@@ -51,6 +51,7 @@ export interface MediaItemDto {
   viewCount?: number;
   createdAt: string;
   updatedAt?: string;
+  contentType?: string;
 }
 
 export interface UploadMediaDto {
@@ -114,6 +115,7 @@ export interface PlaylistDto {
   isPublic: boolean;
   ownerId: string;
   trackCount?: number;
+  coverImageUrl?: string;
   thumbnailUrl?: string;
   createdAt: string;
 }

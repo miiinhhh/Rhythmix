@@ -25,8 +25,9 @@ const resolveAssetUrl = (url?: string) => {
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, songs, setSongs } =
+  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying, songs } =
     useOutletContext<OutletContextType>();
+
   const [myPlaylists, setMyPlaylists] = useState<PlaylistDto[]>([]);
   const [publicPlaylists, setPublicPlaylists] = useState<PlaylistDto[]>([]);
   const [albums, setAlbums] = useState<AlbumDto[]>([]);
@@ -56,21 +57,6 @@ const HomePage = () => {
     }
 
     setCurrentSongId(song.id);
-    setIsPlaying(true);
-  };
-
-  const handlePlayAlbum = async (album: AlbumDto) => {
-    const detail = await albumService.getById(album.albumId);
-    const albumSongs = detail.tracks.map((track) => ({
-      ...mapMediaToSong(track),
-      album: detail.title,
-    }));
-
-    if (albumSongs.length === 0) return;
-
-    const albumSongIds = new Set(albumSongs.map((song) => song.id));
-    setSongs((current) => [...albumSongs, ...current.filter((song) => !albumSongIds.has(song.id))]);
-    setCurrentSongId(albumSongs[0].id);
     setIsPlaying(true);
   };
 
@@ -123,7 +109,9 @@ const HomePage = () => {
       </section>
 
       <section>
-        <h2 className="mb-4 text-xl font-semibold text-white">Your Playlists</h2>
+        <h2 className="mb-4 text-xl font-semibold text-white">
+          Your Playlists
+        </h2>
         {myPlaylists.length === 0 ? (
           <div className="rounded-lg border border-dashed border-zinc-800 py-10 text-center text-sm text-zinc-400">
             No playlists yet.
@@ -135,7 +123,11 @@ const HomePage = () => {
               return (
                 <article
                   key={playlist.playlistId}
-                  onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
+                  onClick={() =>
+                    navigate(`/playlist/${playlist.playlistId}`, {
+                      state: { thumbnail: playlist.thumbnailUrl },
+                    })
+                  }
                   className="group cursor-pointer rounded-md bg-zinc-900/70 p-4 transition-colors hover:bg-zinc-800"
                 >
                   <div className="relative mb-3">
@@ -157,9 +149,12 @@ const HomePage = () => {
                       <Play className="size-5 fill-black text-black" />
                     </button>
                   </div>
-                  <h3 className="truncate text-sm font-semibold text-white">{playlist.name}</h3>
+                  <h3 className="truncate text-sm font-semibold text-white">
+                    {playlist.name}
+                  </h3>
                   <p className="mt-1 truncate text-xs text-zinc-400">
-                    Playlist - {playlist.trackCount ?? 0} songs - {playlist.isPublic ? "Public" : "Private"}
+                    Playlist - {playlist.trackCount ?? 0} songs - {" "}
+                    {playlist.isPublic ? "Public" : "Private"}
                   </p>
                 </article>
               );
@@ -169,7 +164,9 @@ const HomePage = () => {
       </section>
 
       <section>
-        <h2 className="mb-4 text-xl font-semibold text-white">Public Playlists</h2>
+        <h2 className="mb-4 text-xl font-semibold text-white">
+          Public Playlists
+        </h2>
         {publicPlaylists.length === 0 ? (
           <div className="rounded-lg border border-dashed border-zinc-800 py-10 text-center text-sm text-zinc-400">
             No public playlists yet.
@@ -181,7 +178,11 @@ const HomePage = () => {
               return (
                 <article
                   key={playlist.playlistId}
-                  onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
+                  onClick={() =>
+                    navigate(`/playlist/${playlist.playlistId}`, {
+                      state: { thumbnail: playlist.thumbnailUrl },
+                    })
+                  }
                   className="group cursor-pointer rounded-md bg-zinc-900/70 p-4 transition-colors hover:bg-zinc-800"
                 >
                   <div className="relative mb-3">
@@ -203,7 +204,9 @@ const HomePage = () => {
                       <Play className="size-5 fill-black text-black" />
                     </button>
                   </div>
-                  <h3 className="truncate text-sm font-semibold text-white">{playlist.name}</h3>
+                  <h3 className="truncate text-sm font-semibold text-white">
+                    {playlist.name}
+                  </h3>
                   <p className="mt-1 truncate text-xs text-zinc-400">
                     Playlist - {playlist.trackCount ?? 0} songs
                   </p>
@@ -227,12 +230,16 @@ const HomePage = () => {
               return (
                 <article
                   key={album.albumId}
-                  onClick={() => handlePlayAlbum(album)}
+                  onClick={() => navigate(`/album/${album.albumId}`)}
                   className="group cursor-pointer rounded-md bg-zinc-900/70 p-4 transition-colors hover:bg-zinc-800"
                 >
                   <div className="relative mb-3">
                     {coverUrl ? (
-                      <img src={coverUrl} alt={album.title} className="aspect-square w-full rounded-md object-cover shadow-lg" />
+                      <img
+                        src={coverUrl}
+                        alt={album.title}
+                        className="aspect-square w-full rounded-md object-cover shadow-lg"
+                      />
                     ) : (
                       <div className="flex aspect-square w-full items-center justify-center rounded-md bg-zinc-800 shadow-lg">
                         <Disc3 className="size-10 text-zinc-400" />
@@ -245,8 +252,12 @@ const HomePage = () => {
                       <Play className="size-5 fill-black text-black" />
                     </button>
                   </div>
-                  <h3 className="truncate text-sm font-semibold text-white">{album.title}</h3>
-                  <p className="mt-1 truncate text-xs text-zinc-400">Album - {album.trackCount} songs</p>
+                  <h3 className="truncate text-sm font-semibold text-white">
+                    {album.title}
+                  </h3>
+                  <p className="mt-1 truncate text-xs text-zinc-400">
+                    Album - {album.trackCount} songs
+                  </p>
                 </article>
               );
             })}
@@ -274,13 +285,19 @@ const HomePage = () => {
                 >
                   <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden bg-zinc-800 text-zinc-500">
                     {song.posterUrl ? (
-                      <img src={song.posterUrl} alt={song.title} className="size-full object-cover" />
+                      <img
+                        src={song.posterUrl}
+                        alt={song.title}
+                        className="size-full object-cover"
+                      />
                     ) : (
                       <Music2 className="size-8" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1 py-2">
-                    <h3 className={`truncate text-sm font-semibold ${isCurrent ? "text-green-500" : "text-white"}`}>
+                    <h3
+                      className={`truncate text-sm font-semibold ${isCurrent ? "text-green-500" : "text-white"}`}
+                    >
                       {song.title}
                     </h3>
                     <p className="truncate text-xs text-zinc-400">
