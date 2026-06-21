@@ -1,6 +1,7 @@
 using Dapper;
 using MediatR;
 using Rhythmix.Application.Common.Interfaces;
+using System.Text.Json;
 
 namespace Rhythmix.Application.Notifications.Commands
 {
@@ -28,7 +29,12 @@ namespace Rhythmix.Application.Notifications.Commands
             SendMediaShareNotificationCommand request,
             CancellationToken cancellationToken)
         {
-            var payload = $"{{\"SenderName\":\"{request.SenderName}\",\"MediaTitle\":\"{request.MediaTitle}\"}}";
+            // ✅ CHỈ GIỮ 1 TÊN THỐNG NHẤT
+            var payload = JsonSerializer.Serialize(new
+            {
+                SenderName = request.SenderName,   // ← Chỉ dùng SenderName
+                MediaTitle = request.MediaTitle    // ← Chỉ dùng MediaTitle
+            });
 
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
@@ -36,18 +42,24 @@ namespace Rhythmix.Application.Notifications.Commands
                 VALUES (@NotificationId, @UserId, @Type, @Payload, 0, @CreatedAt)";
 
             var createdAt = DateTime.UtcNow;
+            var notificationId = Guid.NewGuid();
+
             await connection.ExecuteAsync(sql, new
             {
-                NotificationId = Guid.NewGuid(),
+                NotificationId = notificationId,
                 UserId = request.ReceiverUserId,
                 Type = "MediaShare",
                 Payload = payload,
                 CreatedAt = createdAt
             });
 
+            // ✅ Gửi SignalR cũng dùng cùng format
             await _notificationHub.SendNotification(request.ReceiverUserId, new
             {
+                Id = notificationId,
+                UserId = request.ReceiverUserId,
                 Type = "MediaShare",
+                Payload = payload,
                 Message = $"{request.SenderName} shared \"{request.MediaTitle}\" with you",
                 CreatedAt = createdAt
             });

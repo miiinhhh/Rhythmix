@@ -1,11 +1,13 @@
 using Dapper;
 using MediatR;
 using Rhythmix.Application.Common.Interfaces;
+using System.Text.Json;
 
 namespace Rhythmix.Application.Notifications.Commands
 {
     public record SendFollowNotificationCommand(
         string ReceiverUserId,
+        string FollowerId,
         string FollowerName
     ) : IRequest<Unit>;
 
@@ -27,7 +29,13 @@ namespace Rhythmix.Application.Notifications.Commands
             SendFollowNotificationCommand request,
             CancellationToken cancellationToken)
         {
-            var payload = $"{{\"FollowerName\":\"{request.FollowerName}\"}}";
+            var payload = JsonSerializer.Serialize(new
+            {
+                SenderId = request.FollowerId,
+                SenderName = request.FollowerName,
+                FollowerId = request.FollowerId,
+                FollowerName = request.FollowerName
+            });
 
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
@@ -35,9 +43,11 @@ namespace Rhythmix.Application.Notifications.Commands
                 VALUES (@NotificationId, @UserId, @Type, @Payload, 0, @CreatedAt)";
 
             var createdAt = DateTime.UtcNow;
+            var notificationId = Guid.NewGuid();
+
             await connection.ExecuteAsync(sql, new
             {
-                NotificationId = Guid.NewGuid(),
+                NotificationId = notificationId,
                 UserId = request.ReceiverUserId,
                 Type = "Follow",
                 Payload = payload,
@@ -46,7 +56,10 @@ namespace Rhythmix.Application.Notifications.Commands
 
             await _notificationHub.SendNotification(request.ReceiverUserId, new
             {
+                Id = notificationId,
+                UserId = request.ReceiverUserId,
                 Type = "Follow",
+                Payload = payload,
                 Message = $"{request.FollowerName} started following you",
                 CreatedAt = createdAt
             });

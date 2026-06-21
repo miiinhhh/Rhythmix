@@ -9,6 +9,7 @@ import { playlistService } from "../api/playlistService";
 import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
 import { userService } from "../api/userService";
 import type { AlbumDto, PlaylistDto } from "../types/api";
+import { API_BASE_URL } from "../config/apiConfig";
 
 interface OutletContextType {
   setCurrentSongId: (id: string | null) => void;
@@ -206,7 +207,7 @@ const LibraryPage = () => {
             <div className="relative mb-3">
               {playlist.thumbnailUrl ? (
                 <img
-                  src={playlist.thumbnailUrl.startsWith("http") ? playlist.thumbnailUrl : `http://localhost:5269${playlist.thumbnailUrl}`}
+                  src={playlist.thumbnailUrl.startsWith("http") ? playlist.thumbnailUrl : `${API_BASE_URL}${playlist.thumbnailUrl}`}
                   alt={playlist.name}
                   className="aspect-square w-full rounded-md object-cover shadow-lg"
                 />
@@ -239,7 +240,7 @@ const LibraryPage = () => {
             <div className="relative mb-3">
               {album.coverImageUrl ? (
                 <img
-                  src={album.coverImageUrl.startsWith("http") ? album.coverImageUrl : `http://localhost:5269${album.coverImageUrl}`}
+                  src={album.coverImageUrl.startsWith("http") ? album.coverImageUrl : `${API_BASE_URL}${album.coverImageUrl}`}
                   alt={album.title}
                   className="aspect-square w-full rounded-md object-cover shadow-lg"
                 />

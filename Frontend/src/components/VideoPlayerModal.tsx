@@ -1,6 +1,7 @@
 import { X, Play, Pause, Volume2, SkipBack, Shuffle, Heart, Share2, ListMusic } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import ShareModal from "./ShareModal";
+import type { ShareItemDto } from "../types/api";
 
 interface VideoPlayerModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface VideoPlayerModalProps {
   posterUrl: string;
   title: string;
   artist?: string;
-  onShareSuccess?: (type: "song" | "video", trackInfo: any, receiverName: string) => void;
+  onShareSuccess?: (type: "song" | "video", trackInfo: any, receiverName: string, share?: ShareItemDto) => void;
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
   audioCurrentTime: number; 
@@ -263,10 +264,10 @@ const VideoPlayerModal = ({
           title: title,
           subtitle: artist,
         }}
-        onShareSuccess={(name: string) => {
+        onShareSuccess={(name: string, share: ShareItemDto) => {
           if (onShareSuccess) {
             const trackInfo = { title, artist, url: videoUrl, posterUrl };
-            onShareSuccess(activeMode === "audio" ? "song" : "video", trackInfo, name);
+            onShareSuccess(activeMode === "audio" ? "song" : "video", trackInfo, name, share);
           }
         }}
       />

@@ -5,7 +5,7 @@ public class Notification
     public Guid Id { get; set; } = Guid.NewGuid();
     
     // ID của người nhận thông báo
-    public string UserId { get; set; } = string.Empty; 
+    public Guid UserId { get; set; } 
     
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;

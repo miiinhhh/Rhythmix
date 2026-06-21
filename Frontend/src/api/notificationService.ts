@@ -36,30 +36,35 @@ export const notificationService = {
     return res.data.data;
   },
 
-  /**
-   * Mark all notifications as read
+    /**
    * Requires: Authorization
+
    */
-  markAllAsRead: async () => {
-    const res = await apiClient.put<ApiResponse<void>>('/notifications/read/all', {});
-    return res.data.success;
+  markAllAsRead: async (): Promise<boolean> => {
+    try {
+      const res = await apiClient.put<ApiResponse<void>>('/notifications/read/all', {});
+      return res.data.success;
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+      return false;
+    }
   },
 
-  /**
-   * Delete a notification
-   * Requires: Authorization
-   */
-  delete: async (notificationId: string) => {
-    const res = await apiClient.delete<ApiResponse<void>>(`/notifications/${notificationId}`);
-    return res.data.success;
-  },
+  // /**
+  //  * Delete a notification
+  //  * Requires: Authorization
+  //  */
+  // delete: async (notificationId: string) => {
+  //   const res = await apiClient.delete<ApiResponse<void>>(`/api/notifications/${notificationId}`);
+  //   return res.data.success;
+  // },
 
-  /**
-   * Delete all notifications
-   * Requires: Authorization
-   */
-  deleteAll: async () => {
-    const res = await apiClient.delete<ApiResponse<void>>('/notifications');
-    return res.data.success;
-  },
+  // /**
+  //  * Delete all notifications
+  //  * Requires: Authorization
+  //  */
+  // deleteAll: async () => {
+  //   const res = await apiClient.delete<ApiResponse<void>>('/api/notifications');
+  //   return res.data.success;
+  // },
 };

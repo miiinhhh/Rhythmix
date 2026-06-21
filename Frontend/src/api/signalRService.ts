@@ -1,3 +1,5 @@
+
+import { API_BASE_URL } from '../config/apiConfig';
 import { HubConnection, HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
 
 class SignalRService {
@@ -15,7 +17,7 @@ class SignalRService {
     }
 
     this.connection = new HubConnectionBuilder()
-      .withUrl('http://localhost:5269/hub/notifications', {
+      .withUrl(`${API_BASE_URL}/hub/notifications`, {
         accessTokenFactory: () => token,
         transport: HttpTransportType.WebSockets,
         skipNegotiation: true,

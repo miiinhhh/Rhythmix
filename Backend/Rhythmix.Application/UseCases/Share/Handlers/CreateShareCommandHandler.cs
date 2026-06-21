@@ -1,5 +1,6 @@
 using MediatR;
 using Rhythmix.Application.DTOs.Share;
+using Rhythmix.Application.Notifications.Commands;
 using Rhythmix.Domain.Entities;
 using Rhythmix.Domain.Interfaces;
 
@@ -8,10 +9,12 @@ namespace Rhythmix.Application.UseCases.Share.Handlers;
 public sealed class CreateShareCommandHandler : IRequestHandler<CreateShareCommand, ShareItemDto>
 {
     private readonly IShareRepository _shareRepository;
+    private readonly IMediator _mediator;
 
-    public CreateShareCommandHandler(IShareRepository shareRepository)
+    public CreateShareCommandHandler(IShareRepository shareRepository, IMediator mediator)
     {
         _shareRepository = shareRepository;
+        _mediator = mediator;
     }
 
     public async Task<ShareItemDto> Handle(CreateShareCommand request, CancellationToken cancellationToken)
@@ -48,6 +51,26 @@ public sealed class CreateShareCommandHandler : IRequestHandler<CreateShareComma
         await _shareRepository.CreateShareAsync(share);
 
         var createdShare = await _shareRepository.GetByIdAsync(share.Id) ?? share;
+
+        if (createdShare.SenderId != createdShare.ReceiverId)
+        {
+            if (createdShare.PlaylistId.HasValue)
+            {
+                await _mediator.Send(new SendPlaylistShareNotificationCommand(
+                    createdShare.ReceiverId.ToString(),
+                    createdShare.SenderName,
+                    createdShare.PlaylistName ?? "a playlist"
+                ), cancellationToken);
+            }
+            else
+            {
+                await _mediator.Send(new SendMediaShareNotificationCommand(
+                    createdShare.ReceiverId.ToString(),
+                    createdShare.SenderName,
+                    createdShare.MediaTitle ?? "a media item"
+                ), cancellationToken);
+            }
+        }
 
         return new ShareItemDto
         {

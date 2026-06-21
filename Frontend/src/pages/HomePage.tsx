@@ -6,6 +6,7 @@ import { aiService } from "../api/aiService";
 import { playlistService } from "../api/playlistService";
 import type { AlbumDto, PlaylistDto } from "../types/api";
 import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
+import { API_BASE_URL } from "../config/apiConfig";
 
 interface OutletContextType {
   currentSongId: string | null;
@@ -16,12 +17,10 @@ interface OutletContextType {
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
 }
 
-const API_ORIGIN = "http://localhost:5269";
-
 const resolveAssetUrl = (url?: string) => {
   if (!url) return undefined;
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) return url;
-  return `${API_ORIGIN}${url}`;
+  return `${API_BASE_URL}${url}`;
 };
 
 const HomePage = () => {

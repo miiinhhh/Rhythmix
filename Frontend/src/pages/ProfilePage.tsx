@@ -14,14 +14,13 @@ import {
 } from "lucide-react";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import FollowModal from "../components/FollowModal";
-import { useNotifications } from "../context/NotificationContext";
 import { userService } from "../api/userService";
 import { playlistService } from "../api/playlistService";
 import { followService } from "../api/followService";
 import type { ArtistDto, PlaylistDto, UserProfileDto } from "../types/api";
 import type { SongType } from "../utils/mediaMapping";
 import { playHistoryService } from "../services/playHistoryService";
-
+import {API_BASE_URL} from "../config/apiConfig";
 // Định nghĩa interface cho Context nhận từ AppLayout (giống bên LikedSongsPage)
 interface OutletContextType {
   currentSongId: string | null;
@@ -32,14 +31,13 @@ interface OutletContextType {
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
 }
 
-const API_ORIGIN = "http://localhost:5269";
 
 const resolveAssetUrl = (url?: string) => {
   if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
     return url;
   }
-  return `${API_ORIGIN}${url}`;
+  return `${API_BASE_URL}${url}`;
 };
 
 const ProfilePage = () => {
@@ -424,15 +422,6 @@ const ProfilePage = () => {
     };
   }, [targetId, isMyProfile]);
 
-  const currentUser = users.find((u) => u.id === currentUserId) || {
-    id: "unknown",
-    userName: "Guest",
-    displayName: "Guest",
-    email: "",
-  };
-
-  const { addNotification } = useNotifications();
-
   const handleToggleFollow = async () => {
     if (isFollowBusy || !targetId || isMyProfile) return;
 
@@ -449,21 +438,6 @@ const ProfilePage = () => {
 
       if (next !== !previous) {
         setFollowersCount((count) => Math.max(0, count + (next ? 1 : -1)));
-      }
-
-      if (next) {
-        addNotification({
-          id: Date.now().toString(),
-          receiverId: targetId,
-          type: "follow",
-          payload: JSON.stringify({
-            senderId: currentUser.id,
-            senderName: currentUser.displayName || currentUser.userName,
-            recipientId: targetId,
-          }),
-          time: "Just now",
-          isRead: false,
-        } as any);
       }
 
       await refreshFollowData();

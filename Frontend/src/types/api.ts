@@ -187,8 +187,9 @@ export interface NotificationDto {
   id: string;
   userId: string;
   type: string; // "share_song", "share_playlist", "follow", etc.
-  message: string;
+  message?: string;
   payload?: string;
+  content?: string;
   isRead: boolean;
   createdAt: string;
   relatedUserId?: string;

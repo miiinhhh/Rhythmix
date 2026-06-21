@@ -17,7 +17,7 @@ import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import ShareModal from "../components/ShareModal";
 import { playlistService } from "../api/playlistService";
 import { mediaService } from "../api/mediaService";
-import type { PlaylistDetailDto, PlaylistTrackDto } from "../types/api";
+import type { PlaylistDetailDto, PlaylistTrackDto, ShareItemDto } from "../types/api";
 import UpdatePlaylistModal from "../components/UpdatePlaylistModal";
 import { resolveArtistName, type SongType } from "../utils/mediaMapping";
 
@@ -32,6 +32,7 @@ interface OutletContextType {
     type: "song" | "video" | "playlist",
     itemInfo: any,
     receiverName: string,
+    share?: ShareItemDto,
   ) => void;
   onSetPlaylistQueue?: (playlistId: string, tracks: SongType[]) => void;
 }
@@ -339,7 +340,6 @@ const PlaylistDetailPage = () => {
             .update(playlistInfo.playlistId, updatedData)
             .then((updatedDto) => {
               if (!updatedDto) return;
-              // playlistService.update trả về PlaylistDto (không có tracks), nên merge để giữ tracks hiện tại
               setPlaylistInfo((prev) => {
                 if (!prev) return prev;
                 return {
@@ -352,7 +352,6 @@ const PlaylistDetailPage = () => {
             })
 
             .catch(() => {
-              // Có thể add toast thông báo ở đây nếu bạn có UI toast
             });
         }}
       />
@@ -360,23 +359,9 @@ const PlaylistDetailPage = () => {
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
-        itemToShare={{
-          type: "playlist",
-          id: playlistInfo.playlistId,
-          title: playlistInfo.name,
-          subtitle: `Playlist - ${playlistSongs.length} bai hat`,
-        }}
-        onShareSuccess={(receiverName: string) => {
-          onShareSuccess(
-            "playlist",
-            {
-              id: playlistInfo.playlistId,
-              title: playlistInfo.name,
-              coverUrl: "",
-              description: playlistInfo.description,
-            },
-            receiverName,
-          );
+        itemToShare={{ type: "playlist", id: playlistInfo.playlistId, title: playlistInfo.name, subtitle: `Playlist - ${playlistSongs.length} bai hat` }}
+        onShareSuccess={(receiverName: string, share: ShareItemDto) => {
+          onShareSuccess("playlist", { id: playlistInfo.playlistId, title: playlistInfo.name, coverUrl: "", description: playlistInfo.description }, receiverName, share);
         }}
       />
     </div>

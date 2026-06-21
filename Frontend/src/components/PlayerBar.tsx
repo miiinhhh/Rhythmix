@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ShareModal from "./ShareModal";
+import type { ShareItemDto } from "../types/api";
 import type { SongType } from "../utils/mediaMapping";
 import { userService } from "../api/userService";
 
@@ -27,6 +28,7 @@ interface PlayerBarProps {
     type: "song" | "video",
     trackInfo: any,
     receiverName: string,
+    share?: ShareItemDto,
   ) => void;
   onToggleQueueSidebar?: () => void;
   onTrackEnded?: () => void;
@@ -309,9 +311,9 @@ const PlayerBar = ({
             title: currentTrack.title,
             subtitle: currentTrack.artist, // Truyền ca sĩ vào subtitle
           }}
-          onShareSuccess={(name: string) => {
+          onShareSuccess={(name: string, share: ShareItemDto) => {
             if (onShareSuccess) {
-              onShareSuccess("song", currentTrack, name);
+              onShareSuccess("song", currentTrack, name, share);
             }
           }}
         />

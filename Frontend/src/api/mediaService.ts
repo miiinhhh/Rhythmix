@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import { API_BASE_URL } from '../config/apiConfig';
 import type { ApiResponse, MediaItemDto, UploadMediaDto } from '../types/api';
 
 export const mediaService = {
@@ -29,7 +30,7 @@ export const mediaService = {
 
   // Stream a media file
   getMediaStream: (mediaId: string) => {
-    return `http://localhost:5269/api/media/${mediaId}/stream`;
+    return `${API_BASE_URL}/api/media/${mediaId}/stream`;
   },
 
   // Get discovery/recommended media

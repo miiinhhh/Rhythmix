@@ -11,6 +11,7 @@ import {
   NotificationContext,
 } from "../context/NotificationContext";
 import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
+import type { ShareItemDto } from "../types/api";
 import { userService } from "../api/userService";
 
 interface InboxMessageType {
@@ -171,25 +172,26 @@ const handlePrevious = () => {
     type: "song" | "video" | "playlist",
     itemInfo: any,
     receiverName: string,
+    share?: ShareItemDto
   ) => {
     const currentUserId = localStorage.getItem("currentUserId") || "";
     const currentUserName =
       localStorage.getItem("currentUserName") || "Current user";
 
-    const targetReceiverId = currentUserId;
-    const targetReceiverName = receiverName;
+    const targetReceiverId = share?.receiverId || "";
+    const targetReceiverName = share?.receiverName || receiverName;
 
     const newShareMessage: InboxMessageType = {
-      id: `msg_${Date.now()}`,
-      senderId: currentUserId,
-      senderName: currentUserName,
+      id: share?.id || `msg_${Date.now()}`,
+      senderId: share?.senderId || currentUserId,
+      senderName: share?.senderName || currentUserName,
       receiverId: targetReceiverId,
       receiverName: targetReceiverName,
       avatarColor: currentUserId.includes("ross")
         ? "bg-purple-500"
         : "bg-blue-500",
       sharedType: type,
-      time: new Date().toISOString(),
+      time: share?.sharedAt || new Date().toISOString(),
     };
 
     if (type === "playlist") {
@@ -209,7 +211,8 @@ const handlePrevious = () => {
       return "share_song";
     };
 
-    addNotification({
+    if (targetReceiverId === currentUserId) {
+      addNotification({
       id: newShareMessage.id,
       receiverId: targetReceiverId,
       type: getNotificationType(type),
@@ -220,7 +223,8 @@ const handlePrevious = () => {
       }),
       time: "Vừa xong",
       isRead: false,
-    });
+      });
+    }
 
     addMessage(newShareMessage);
   };

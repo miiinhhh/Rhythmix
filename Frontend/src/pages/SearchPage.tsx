@@ -7,6 +7,7 @@ import { searchService } from "../api/searchService";
 import { userService } from "../api/userService";
 import type { ArtistDto, MediaItemDto, SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
 import { mapMediaToSong, resolveArtistName, type SongType } from "../utils/mediaMapping";
+import { API_BASE_URL } from "../config/apiConfig";
 
 interface OutletContextType {
   setCurrentSongId: (id: string | null) => void;
@@ -23,7 +24,6 @@ const browseCategories = [
   { label: "Electronic", color: "oklch(0.58 0.18 60)" },
 ];
 
-const API_ORIGIN = "http://localhost:5269";
 
 const formatDuration = (seconds?: number) => {
   if (!seconds || seconds < 0) return "0:00";
@@ -35,12 +35,12 @@ const formatDuration = (seconds?: number) => {
 const resolveAssetUrl = (url?: string) => {
   if (!url) return undefined;
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) return url;
-  return `${API_ORIGIN}${url}`;
+  return `${API_BASE_URL}${url}`;
 };
 
 const mapSearchMediaToSong = (media: SearchMediaDto): SongType => {
   const mediaType = media.mediaType?.toLowerCase() || "audio";
-  const streamUrl = `${API_ORIGIN}/api/media/${media.mediaId}/stream`;
+  const streamUrl = `${API_BASE_URL}/api/media/${media.mediaId}/stream`;
 
   return {
     id: media.mediaId,

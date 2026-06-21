@@ -1,25 +1,44 @@
+// src/pages/NotificationPage.tsx
+import { useEffect } from "react";
 import { useNotifications } from "../context/NotificationContext";
-import { BellOff, Disc, Music, Radio, UserPlus } from "lucide-react";
+import { BellOff, Disc, Music, Radio, UserPlus, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { formatTime} from "../utils/formatTime";
 
 const NotificationPage = () => {
-  const { notifications, setNotifications } = useNotifications();
+  const { notifications, markAsRead, markAllAsRead, loadNotifications, isLoading } = useNotifications();
 
   const currentUserId = localStorage.getItem("currentUserId") || "";
   const myNotifications = notifications.filter((n) => n.receiverId === currentUserId);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
   const parseNotificationContent = (type: string, payloadStr: string) => {
     try {
       const data = JSON.parse(payloadStr);
       switch (type) {
         case "follow":
-          return { title: "New follower", description: `${data.senderName} started following you.` };
+          return { 
+            title: "New follower", 
+            description: `${data.SenderName || data.FollowerName} started following you.` 
+          };
         case "share_song":
-          return { title: "Someone shared a song", description: `${data.senderName} sent you '${data.itemName}'.` };
+          return { 
+            title: "Someone shared a song", 
+            description: `${data.SenderName} sent you '${data.MediaTitle}'.` 
+          };
         case "share_playlist":
-          return { title: "Someone shared a playlist", description: `${data.senderName} shared '${data.itemName}'.` };
+          return { 
+            title: "Someone shared a playlist", 
+            description: `${data.SenderName} shared '${data.PlaylistName}'.` 
+          };
         case "share_video":
-          return { title: "New video shared", description: `${data.senderName} shared the video '${data.itemName}'.` };
+          return { 
+            title: "New video shared", 
+            description: `${data.SenderName} shared the video '${data.MediaTitle}'.` 
+          };
         default:
           return { title: "Update", description: "You have a new update." };
       }
@@ -28,10 +47,12 @@ const NotificationPage = () => {
     }
   };
 
-  const markAllAsRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
+  };
 
-  const toggleReadStatus = (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+  const handleMarkAsRead = async (id: string) => {
+    await markAsRead(id);
   };
 
   const getIconDetails = (type: string) => {
@@ -47,18 +68,29 @@ const NotificationPage = () => {
   const navigate = useNavigate();
 
   const handleNotificationClick = (item: any) => {
-    toggleReadStatus(item.id);
+    handleMarkAsRead(item.id);
     try {
       const data = JSON.parse(item.payload);
       if (item.type === "follow") {
-        navigate(`/profile/${data.senderId}`);
+        navigate(`/profile/${data.senderId || data.FollowerId}`);
       } else {
-        navigate(`/inbox?highlight=${data.itemId}`);
+        navigate(`/inbox?highlight=${data.itemId || data.shareId}`);
       }
     } catch (e) {
       console.error("Lỗi khi chuyển hướng:", e);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <div className="flex items-center gap-3 text-zinc-400">
+          <Loader2 className="size-6 animate-spin" />
+          <span>Loading notifications...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 select-none">
@@ -67,13 +99,15 @@ const NotificationPage = () => {
           <h1 className="text-3xl font-extrabold tracking-tight text-white">Notifications</h1>
           <p className="mt-2 text-sm text-zinc-400 font-medium">Stay up to date with new releases and activity.</p>
         </div>
-        <button
-          onClick={markAllAsRead}
-          className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:scale-105 transition-transform cursor-pointer"
-          type="button"
-        >
-          Mark all as read
-        </button>
+        {myNotifications.some(n => !n.isRead) && (
+          <button
+            onClick={handleMarkAllAsRead}
+            className="rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:scale-105 transition-transform cursor-pointer"
+            type="button"
+          >
+            Mark all as read
+          </button>
+        )}
       </div>
 
       {myNotifications.length === 0 ? (
@@ -93,20 +127,26 @@ const NotificationPage = () => {
               <div
                 key={item.id}
                 onClick={() => handleNotificationClick(item)}
-                className="flex items-center justify-between p-4 rounded-lg bg-[#121212] hover:bg-[#1a1a1a] transition-all cursor-pointer"
+                className={`flex items-center justify-between p-4 rounded-lg transition-all cursor-pointer ${
+                  !item.isRead ? 'bg-[#1a1a1a] border border-zinc-700' : 'bg-[#121212] hover:bg-[#1a1a1a]'
+                }`}
               >
                 <div className="flex gap-4 items-center flex-1 min-w-0">
-                  <div className={`size-12 rounded-full flex items-center justify-center shrink-0 ${bgColor}`}>{icon}</div>
+                  <div className={`size-12 rounded-full flex items-center justify-center shrink-0 ${bgColor}`}>
+                    {icon}
+                  </div>
 
                   <div className="space-y-1 min-w-0 flex-1">
-                    <h3 className={`text-sm font-bold truncate ${!item.isRead ? "text-white" : "text-zinc-500"}`}>{title}</h3>
+                    <h3 className={`text-sm font-bold truncate ${!item.isRead ? "text-white" : "text-zinc-500"}`}>
+                      {title}
+                    </h3>
                     <p className="text-xs text-zinc-400 truncate font-medium">{description}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0 ml-4">
-                  {!item.isRead && <span className="size-2 bg-green-500 rounded-full" />}
-                  <span className="text-xs text-zinc-400 font-medium">{item.time}</span>
+                  {!item.isRead && <span className="size-2 bg-green-500 rounded-full animate-pulse" />}
+                  <span className="text-xs text-zinc-400 font-medium">{formatTime(item.time)}</span>
                 </div>
               </div>
             );
@@ -118,4 +158,3 @@ const NotificationPage = () => {
 };
 
 export default NotificationPage;
-
