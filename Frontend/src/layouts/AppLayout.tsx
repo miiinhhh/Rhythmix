@@ -57,6 +57,7 @@ const AppLayout = () => {
 
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [volume, setVolume] = useState(0.5);
   const [seekTrigger, setSeekTrigger] = useState<{ time: number } | null>(null);
 
   const [isQueueOpen, setIsQueueOpen] = useState(false);
@@ -71,6 +72,7 @@ const AppLayout = () => {
   const handleSetPlaylistQueue = (_id: string, tracks: SongType[]) => {
     setPlaylistQueue(tracks);
   };
+
   const currentIndex = playlistQueue.findIndex((t) => t.id === currentSongId);
   const nextSongs = currentIndex !== -1 ? playlistQueue.slice(currentIndex + 1) : [];
 
@@ -78,6 +80,21 @@ const AppLayout = () => {
     songs.find((song) => song.id === currentSongId) ||
     allMessages.find((msg) => msg.trackData?.id === currentSongId)?.trackData ||
     null;
+
+  const handleAddCurrentToQueue = () => {
+    if (!currentTrack) return;
+
+    const track = currentTrack as SongType;
+    setPlaylistQueue((previous) => {
+      if (previous.length === 0) return [track];
+
+      const queue = previous.some((item) => item.id === track.id)
+        ? previous
+        : [track, ...previous];
+
+      return [...queue, track];
+    });
+  };
 
 
   const getVideoCandidateUrl = (track: any) => {
@@ -109,6 +126,23 @@ const AppLayout = () => {
     setIsVideoOpen(true);
   };
 
+  const handleToggleCurrentFavorite = async () => {
+    if (!currentTrack) return;
+
+    try {
+      await userService.toggleFavorite(currentTrack.id);
+      setSongs((previous) =>
+        previous.map((song) =>
+          song.id === currentTrack.id
+            ? { ...song, isLiked: !song.isLiked }
+            : song,
+        ),
+      );
+    } catch {
+      // The existing state remains unchanged when the request fails.
+    }
+  };
+
 
   const handleAuthSuccess = (_name: string) => {
     setIsAuthenticated(true);
@@ -138,6 +172,7 @@ const AppLayout = () => {
     const currentIndex = playlistQueue.findIndex((t) => t.id === currentSongId);
     if (currentIndex > 0) {
       setCurrentSongId(playlistQueue[currentIndex - 1].id);
+      setIsPlaying(true);
     }
   };
 
@@ -369,6 +404,8 @@ const AppLayout = () => {
             isPlaying={isPlaying}
             setIsPlaying={setIsPlaying}
             setSongs={setSongs as any}
+            volume={volume}
+            setVolume={setVolume}
             onOpenVideo={handleOpenVideo}
             onTimeUpdate={(currentTime, duration) => {
               setAudioCurrentTime(currentTime);
@@ -401,11 +438,19 @@ const AppLayout = () => {
           posterUrl={currentTrack?.posterUrl || defaultPoster}
           title={currentTrack?.title || "Live Concert"}
           artist={currentTrack?.artist || "Luna Nova"}
+          mediaId={currentTrack?.id}
+          isLiked={currentTrack?.isLiked ?? false}
           isPlaying={isPlaying}
           setIsPlaying={setIsPlaying}
+          volume={volume}
+          setVolume={setVolume}
           audioCurrentTime={audioCurrentTime}
           audioDuration={audioDuration}
           onShareSuccess={handleShareSuccess}
+          onToggleFavorite={handleToggleCurrentFavorite}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
+          onAddCurrentToQueue={handleAddCurrentToQueue}
           onSeekAudio={(time) => setSeekTrigger({ time })}
         />
       )}

@@ -23,6 +23,8 @@ interface PlayerBarProps {
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
+  volume: number;
+  setVolume: (volume: number) => void;
   onOpenVideo: () => void;
   onTimeUpdate: (currentTime: number, duration: number) => void;
   seekTrigger: { time: number } | null;
@@ -62,6 +64,8 @@ const PlayerBar = ({
   isPlaying,
   setIsPlaying,
   setSongs,
+  volume,
+  setVolume,
   onOpenVideo,
   onTimeUpdate,
   seekTrigger,
@@ -152,8 +156,6 @@ const PlayerBar = ({
     setIsPlaying(!isPlaying);
   };
   // Tạo state lưu âm lượng, mặc định ban đầu là 0.5 (50% âm lượng)
-  const [volume, setVolume] = useState(0.5);
-
   // Hàm xử lý khi kéo thanh âm lượng
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = Number(e.target.value);
