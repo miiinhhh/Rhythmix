@@ -10,6 +10,7 @@ namespace Rhythmix.API.Controllers;
   "email": "Minh@gmail.com",
   "password": "12345678"
 }*/
+//dotnet run --project Backend/Rhythmix.API --urls "http://0.0.0.0:5269"
 [ApiController]
 [Route("api/[controller]")]
 public sealed class AuthController : ControllerBase

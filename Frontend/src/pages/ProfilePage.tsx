@@ -18,9 +18,10 @@ import { userService } from "../api/userService";
 import { playlistService } from "../api/playlistService";
 import { followService } from "../api/followService";
 import type { ArtistDto, PlaylistDto, UserProfileDto } from "../types/api";
-import type { SongType } from "../utils/mediaMapping";
+import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
 import { playHistoryService } from "../services/playHistoryService";
 import {API_BASE_URL} from "../config/apiConfig";
+import { mediaService } from "../api/mediaService";
 // Định nghĩa interface cho Context nhận từ AppLayout (giống bên LikedSongsPage)
 interface OutletContextType {
   currentSongId: string | null;
@@ -167,15 +168,48 @@ const ProfilePage = () => {
   >([]);
   useEffect(() => {
     if (!isMyProfile) return;
-    if (songs.length === 0) return;
 
     const loadPlayHistories = async () => {
       try {
         const histories = await playHistoryService.getMyHistories(maxHistoryCount);
+        const songById = new Map(songs.map((song) => [song.id, song]));
+        const missingMediaIds = [
+          ...new Set(
+            histories
+              .map((item) => item.mediaId)
+              .filter((mediaId) => !songById.has(mediaId)),
+          ),
+        ];
+
+        if (missingMediaIds.length > 0) {
+          const fetchedSongs = (
+            await Promise.all(
+              missingMediaIds.map(async (mediaId) => {
+                try {
+                  const media = await mediaService.getMedia(mediaId);
+                  return media ? mapMediaToSong(media) : null;
+                } catch {
+                  return null;
+                }
+              }),
+            )
+          ).filter(Boolean) as SongType[];
+
+          fetchedSongs.forEach((song) => songById.set(song.id, song));
+
+          if (fetchedSongs.length > 0) {
+            setSongs((prev) => {
+              const existingIds = new Set(prev.map((song) => song.id));
+              const newSongs = fetchedSongs.filter((song) => !existingIds.has(song.id));
+
+              return newSongs.length > 0 ? [...prev, ...newSongs] : prev;
+            });
+          }
+        }
 
         const mapped = histories
           .map((item) => {
-            const song = songs.find((s) => s.id === item.mediaId);
+            const song = songById.get(item.mediaId);
 
             if (!song) return null;
 
@@ -201,27 +235,17 @@ const ProfilePage = () => {
     const song = songs.find((item) => item.id === currentSongId);
     if (!song) return;
 
-    const savePlayHistory = async () => {
-      try {
-        await playHistoryService.add(currentSongId);
+    setRecentlyPlayed((prev) => {
+      const next = [
+        {
+          song,
+          playedAt: new Date(),
+        },
+        ...prev.filter((item) => item.song.id !== song.id),
+      ].slice(0, maxHistoryCount);
 
-        setRecentlyPlayed((prev) => {
-          const next = [
-            {
-              song,
-              playedAt: new Date(),
-            },
-            ...prev.filter((item) => item.song.id !== song.id),
-          ].slice(0, maxHistoryCount);
-
-          return next;
-        });
-      } catch {
-        // Không chặn nghe nhạc nếu lưu lịch sử bị lỗi
-      }
-    };
-
-    void savePlayHistory();
+      return next;
+    });
   }, [currentSongId, isPlaying, songs, isMyProfile]);
 
   useEffect(() => {

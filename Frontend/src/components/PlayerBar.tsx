@@ -9,6 +9,8 @@ import {
   Maximize2,
   Share2,
   ListMusic,
+  PanelRightOpen,
+  PanelRightClose,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import ShareModal from "./ShareModal";
@@ -21,6 +23,8 @@ interface PlayerBarProps {
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
+  volume: number;
+  setVolume: (volume: number) => void;
   onOpenVideo: () => void;
   onTimeUpdate: (currentTime: number, duration: number) => void;
   seekTrigger: { time: number } | null;
@@ -31,6 +35,8 @@ interface PlayerBarProps {
     share?: ShareItemDto,
   ) => void;
   onToggleQueueSidebar?: () => void;
+  onToggleNowPlayingSidebar?: () => void;
+  isNowPlayingSidebarOpen?: boolean;
   onTrackEnded?: () => void;
   onNext: () => void;
   onPrevious: () => void;
@@ -58,11 +64,15 @@ const PlayerBar = ({
   isPlaying,
   setIsPlaying,
   setSongs,
+  volume,
+  setVolume,
   onOpenVideo,
   onTimeUpdate,
   seekTrigger,
   onShareSuccess,
   onToggleQueueSidebar,
+  onToggleNowPlayingSidebar,
+  isNowPlayingSidebarOpen,
   onTrackEnded,
   onNext,
   onPrevious,
@@ -146,8 +156,6 @@ const PlayerBar = ({
     setIsPlaying(!isPlaying);
   };
   // Tạo state lưu âm lượng, mặc định ban đầu là 0.5 (50% âm lượng)
-  const [volume, setVolume] = useState(0.5);
-
   // Hàm xử lý khi kéo thanh âm lượng
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = Number(e.target.value);
@@ -212,6 +220,11 @@ useEffect(() => {
 
   // 🟢 State quản lý ẩn/hiển thị ShareModal
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isPosterUnavailable, setIsPosterUnavailable] = useState(false);
+
+  useEffect(() => {
+    setIsPosterUnavailable(false);
+  }, [currentTrack?.posterUrl]);
 
   // 🟢 Hàm click nút Share ở PlayerBar: Luôn luôn ép type là "song"
   const handleShareClick = () => {
@@ -220,7 +233,7 @@ useEffect(() => {
   };
 
   return (
-    <footer className="flex h-20 shrink-0 items-center justify-between gap-4 border-t border-zinc-800 bg-zinc-900 px-4 text-white">
+    <footer className="flex h-20 shrink-0 items-center justify-between gap-4 border-t border-zinc-200 bg-white px-4 text-zinc-950 transition-colors duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white">
       {/* THẺ AUDIO NGẦM (Không hiển thị ra màn hình nhưng làm nhiệm vụ phát nhạc) */}
       {isVideoTrack ? (
         <video
@@ -264,8 +277,17 @@ useEffect(() => {
 
       {/* Now playing */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex size-14 shrink-0 items-center justify-center rounded-md bg-zinc-800">
-          <Music2 className="size-6 text-zinc-400" />
+        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-800">
+          {currentTrack?.posterUrl && !isPosterUnavailable ? (
+            <img
+              src={currentTrack.posterUrl}
+              alt={currentTrack.title}
+              className="size-full object-cover"
+              onError={() => setIsPosterUnavailable(true)}
+            />
+          ) : (
+            <Music2 className="size-6 text-zinc-400" />
+          )}
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-white">
@@ -381,6 +403,22 @@ useEffect(() => {
           aria-label="Open queue"
         >
           <ListMusic className="size-4" />
+        </button>
+        <button
+          type="button"
+          disabled={!currentTrack}
+          onClick={() => onToggleNowPlayingSidebar?.()}
+          className={`hidden text-zinc-400 transition-colors hover:text-white cursor-pointer xl:block ${
+            !currentTrack ? "cursor-not-allowed opacity-30 hover:text-zinc-400" : ""
+          }`}
+          aria-label={isNowPlayingSidebarOpen ? "Đóng thông tin bài hát" : "Mở thông tin bài hát"}
+          title={isNowPlayingSidebarOpen ? "Đóng thông tin bài hát" : "Mở thông tin bài hát"}
+        >
+          {isNowPlayingSidebarOpen ? (
+            <PanelRightClose className="size-4" />
+          ) : (
+            <PanelRightOpen className="size-4" />
+          )}
         </button>
         {/* Volume UI */}
         <Volume2 className="size-4 text-zinc-400" />

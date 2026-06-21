@@ -12,6 +12,7 @@ export interface SongType {
   url: string;
   videoUrl?: string;
   posterUrl?: string;
+  artistId?: string;
   mediaType: string;
 }
 
@@ -71,6 +72,7 @@ export const mapMediaToSong = (media: MediaItemDto): SongType => {
     url: streamUrl,
     videoUrl: isVideoMedia ? streamUrl : undefined,
     posterUrl: resolveUrl(media.thumbnailUrl),
+    artistId: media.artistId,
     mediaType: isVideoMedia ? "video" : isAudioMedia ? "audio" : "audio",
   };
 };
