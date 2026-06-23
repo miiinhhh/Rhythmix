@@ -12,6 +12,7 @@ export interface SongType {
   url: string;
   videoUrl?: string;
   posterUrl?: string;
+  artistId?: string;
   mediaType: string;
 }
 
@@ -45,7 +46,7 @@ export const resolveArtistName = (artistName?: string, ownerName?: string, title
   return "Unknown artist";
 };
 
-export const mapMediaToSong = (media: MediaItemDto): SongType => {
+export const mapMediaToSong = (media: MediaItemDto, albumTitle?: string): SongType => {
   const mediaKind = (media.contentType || media.mimeType || media.mediaType || "")
     .toString()
     .toLowerCase()
@@ -59,18 +60,42 @@ export const mapMediaToSong = (media: MediaItemDto): SongType => {
     mediaKind.includes("mpeg") ||
     mediaKind.includes("mp3") ||
     mediaKind.includes("wav");
+
+  const mediaType = isVideoMedia ? "video" : isAudioMedia ? "audio" : "audio";
   const streamUrl = mediaService.getMediaStream(media.mediaId);
+  const hasSeparateVideo = Boolean(media.videoFilePath);
+
+  let albumName: string;
+  if (!media.albumId) {
+    // Definitely a single
+    albumName = "Single";
+  } else {
+    // Has albumId, check for albumTitle
+    const potentialAlbumTitle = albumTitle || media.albumTitle;
+    if (potentialAlbumTitle && potentialAlbumTitle.trim() !== "") {
+      // Only use "Album [title]" if title is valid
+      albumName = `Album ${potentialAlbumTitle}`;
+    } else {
+      // Fallback if no valid album title
+      albumName = "Album Track";
+    }
+  }
 
   return {
     id: media.mediaId,
     title: media.title || "Unknown title",
     artist: resolveArtistName(media.artistName, media.ownerName, media.title),
-    album: "Single",
+    album: albumName,
     duration: formatDuration(media.duration),
     isLiked: false,
     url: streamUrl,
-    videoUrl: isVideoMedia ? streamUrl : undefined,
-    posterUrl: resolveUrl(media.thumbnailUrl),
-    mediaType: isVideoMedia ? "video" : isAudioMedia ? "audio" : "audio",
+    videoUrl: hasSeparateVideo
+      ? mediaService.getMediaVideoStream(media.mediaId)
+      : isVideoMedia
+        ? streamUrl
+        : undefined,
+    posterUrl: resolveAssetUrl(media.thumbnailUrl),
+    artistId: media.artistId,
+    mediaType,
   };
 };

@@ -43,7 +43,9 @@ const LibraryPage = () => {
 
   const loadMyMedia = async () => {
     const mediaItems = await mediaService.getMyMedia();
-    const mappedSongs = mediaItems.map(mapMediaToSong);
+    // Filter out media that's already in an album
+    const singleMediaItems = mediaItems.filter(item => !item.albumId);
+    const mappedSongs = singleMediaItems.map(mapMediaToSong);
     setMyMedia(mappedSongs);
     setSongs((prev) => {
       const existingIds = new Set(prev.map((song) => song.id));

@@ -6,6 +6,7 @@ public sealed class StreamMediaQuery : IRequest<StreamMediaResponse?>
 {
     public Guid MediaId { get; init; }
     public string? Range { get; init; } 
+    public string? Type { get; init; }
 }
 
 public sealed class StreamMediaResponse

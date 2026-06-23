@@ -12,4 +12,5 @@ public class UploadMediaRequestDto
     public bool IsPublic { get; set; } = true;
     public IFormFile File { get; set; } = null!;
     public IFormFile? CoverImage { get; set; }
+    public IFormFile? VideoFile { get; set; }
 }

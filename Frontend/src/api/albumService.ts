@@ -1,9 +1,30 @@
-import apiClient from './apiClient';
-import type { AlbumDetailDto, AlbumDto, ApiResponse, CreateAlbumDto } from '../types/api';
+import apiClient from "./apiClient";
+import type {
+  AlbumDetailDto,
+  AlbumDto,
+  ApiResponse,
+  CreateAlbumDto,
+} from "../types/api";
+
+const buildAlbumFormData = (data: CreateAlbumDto) => {
+  const formData = new FormData();
+
+  formData.append("title", data.title);
+
+  if (data.description) {
+    formData.append("description", data.description);
+  }
+
+  if (data.coverImage) {
+    formData.append("coverImage", data.coverImage);
+  }
+
+  return formData;
+};
 
 export const albumService = {
   getMyAlbums: async () => {
-    const res = await apiClient.get<ApiResponse<AlbumDto[]>>('/albums/my-albums');
+    const res = await apiClient.get<ApiResponse<AlbumDto[]>>("/albums/my-albums");
     return res.data.data;
   },
 
@@ -13,12 +34,21 @@ export const albumService = {
   },
 
   create: async (data: CreateAlbumDto) => {
-    const res = await apiClient.post<ApiResponse<AlbumDto>>('/albums', data);
+    const formData = buildAlbumFormData(data);
+
+    const res = await apiClient.post<ApiResponse<AlbumDto>>("/albums", formData);
+
     return res.data.data;
   },
 
   update: async (albumId: string, data: CreateAlbumDto) => {
-    const res = await apiClient.put<ApiResponse<AlbumDto>>(`/albums/${albumId}`, data);
+    const formData = buildAlbumFormData(data);
+
+    const res = await apiClient.put<ApiResponse<AlbumDto>>(
+      `/albums/${albumId}`,
+      formData
+    );
+
     return res.data.data;
   },
 

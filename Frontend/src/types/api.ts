@@ -44,6 +44,7 @@ export interface MediaItemDto {
   artistId?: string;
   artistName?: string;
   albumId?: string;
+  albumTitle?: string;
   genreId?: string;
   ownerId: string;
   ownerName?: string;
@@ -52,6 +53,9 @@ export interface MediaItemDto {
   createdAt: string;
   updatedAt?: string;
   contentType?: string;
+  videoFilePath?: string;
+  videoMimeType?: string;
+  videoFileSize?: number;
 }
 
 export interface UploadMediaDto {
@@ -64,6 +68,7 @@ export interface UploadMediaDto {
   albumId?: string;
   genreId?: string;
   genreIds?: string[];
+  videoFile?: File;
 }
 
 // ============ Genre DTOs ============
@@ -105,6 +110,7 @@ export interface CreateAlbumDto {
   description?: string;
   coverImageUrl?: string;
   releaseDate?: string;
+  coverImage?: File;
 }
 
 // ============ Playlist DTOs ============
@@ -238,6 +244,8 @@ export interface SearchMediaDto {
   thumbnailUrl?: string;
   artistId?: string;
   artistName?: string;
+  albumId?: string;
+  albumTitle?: string;
   genreId?: string;
   viewCount: number;
   createdAt: string;
@@ -254,6 +262,17 @@ export interface SearchPlaylistDto {
   createdAt: string;
 }
 
+export interface SearchAlbumDto {
+  albumId: string;
+  title: string;
+  description?: string;
+  coverImageUrl?: string;
+  ownerId: string;
+  artistName?: string;
+  trackCount: number;
+  createdAt: string;
+}
+
 export interface SearchGenrePlaylistDto {
   genreId: string;
   name: string;
@@ -266,6 +285,7 @@ export interface SearchResultDto {
   media: SearchMediaDto[];
   playlists: SearchPlaylistDto[];
   genrePlaylists: SearchGenrePlaylistDto[];
+  albums: SearchAlbumDto[];
   pagination?: {
     page: number;
     pageSize: number;

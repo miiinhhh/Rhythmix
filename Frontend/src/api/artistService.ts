@@ -9,6 +9,11 @@ export const artistService = {
     return res.data.data;
   },
 
+  getById: async (artistId: string) => {
+    const res = await apiClient.get<ApiResponse<ArtistDto>>(`/artists/${artistId}`);
+    return res.data.data;
+  },
+
   create: async (data: { name: string; description?: string; avatarImage?: File }) => {
     const formData = new FormData();
     formData.append('name', data.name);

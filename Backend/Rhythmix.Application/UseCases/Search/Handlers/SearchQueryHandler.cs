@@ -40,6 +40,8 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
                 ThumbnailUrl = m.ThumbnailUrl ?? string.Empty,
                 ArtistId = m.ArtistId,
                 ArtistName = m.ArtistName,
+                AlbumId = m.AlbumId,
+                AlbumTitle = m.AlbumTitle,
                 GenreId = m.GenreId,
                 ViewCount = m.ViewCount,
                 CreatedAt = m.CreatedAt,
@@ -50,7 +52,7 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
             response.Pagination.TotalItems = totalMedia;
         }
 
-        // Tìm kiếm playlists (theo tên hoặc tên owner)
+        // Tìm kiếm playlist theo tên hoặc tên chủ sở hữu
         if (request.SearchType == SearchType.All || request.SearchType == SearchType.Playlist)
         {
             var (playlists, totalPlaylists) = await _searchRepository.SearchPlaylistAsync(
@@ -67,8 +69,6 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
                 TrackCount = p.TrackCount
             }).ToList();
 
-            // Console.WriteLine($"Handler Playlist Count: {response.Playlists.Count}");
-
             if (request.SearchType == SearchType.All)
             {
                 response.Pagination.TotalItems += totalPlaylists;
@@ -76,6 +76,34 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
             else
             {
                 response.Pagination.TotalItems = totalPlaylists;
+            }
+        }
+
+        // Tìm kiếm album theo tên hoặc tên chủ sở hữu/nghệ sĩ
+        if (request.SearchType == SearchType.All || request.SearchType == SearchType.Album)
+        {
+            var (albums, totalAlbums) = await _searchRepository.SearchAlbumAsync(
+                request.QueryText, request.Page, request.PageSize);
+
+            response.Albums = albums.Select(a => new SearchAlbumDto
+            {
+                AlbumId = a.AlbumId,
+                Title = a.Title,
+                Description = a.Description,
+                CoverImageUrl = a.CoverImageUrl,
+                OwnerId = a.OwnerId,
+                ArtistName = a.ArtistName,
+                TrackCount = a.TrackCount,
+                CreatedAt = a.CreatedAt
+            }).ToList();
+
+            if (request.SearchType == SearchType.All)
+            {
+                response.Pagination.TotalItems += totalAlbums;
+            }
+            else
+            {
+                response.Pagination.TotalItems = totalAlbums;
             }
         }
 
@@ -105,6 +133,8 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
         ThumbnailUrl = m.ThumbnailUrl ?? string.Empty,
         ArtistId = m.ArtistId,
         ArtistName = m.ArtistName,
+        AlbumId = m.AlbumId,
+        AlbumTitle = m.AlbumTitle,
         GenreId = m.GenreId,
         ViewCount = m.ViewCount,
         CreatedAt = m.CreatedAt,
@@ -147,6 +177,8 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
             ThumbnailUrl = m.ThumbnailUrl ?? string.Empty,
             ArtistId = m.ArtistId,
             ArtistName = m.ArtistName,
+            AlbumId = m.AlbumId,
+            AlbumTitle = m.AlbumTitle,
             GenreId = m.GenreId,
             ViewCount = m.ViewCount,
             CreatedAt = m.CreatedAt,
@@ -168,11 +200,27 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
             TrackCount = p.TrackCount
         }).ToList();
 
+        // Lấy albums mới nhất
+        var (albums, totalAlbums) = await _searchRepository.GetPublicAlbumsAsync(
+            request.Page, request.PageSize);
+
+        response.Albums = albums.Select(a => new SearchAlbumDto
+        {
+            AlbumId = a.AlbumId,
+            Title = a.Title,
+            Description = a.Description,
+            CoverImageUrl = a.CoverImageUrl,
+            OwnerId = a.OwnerId,
+            ArtistName = a.ArtistName,
+            TrackCount = a.TrackCount,
+            CreatedAt = a.CreatedAt
+        }).ToList();
+
         response.Pagination = new PaginationInfo
         {
             Page = request.Page,
             PageSize = request.PageSize,
-            TotalItems = totalMedia + totalPlaylists
+            TotalItems = totalMedia + totalPlaylists + totalAlbums
         };
 
         return response;

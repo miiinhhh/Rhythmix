@@ -10,15 +10,18 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
 {
     private readonly IMediaRepository _mediaRepository;
     private readonly IArtistRepository _artistRepository;
+    private readonly IAlbumRepository _albumRepository;
     private readonly IFileStorageService _fileStorageService;
 
     public UploadMediaCommandHandler(
         IMediaRepository mediaRepository,
         IArtistRepository artistRepository,
+        IAlbumRepository albumRepository,
         IFileStorageService fileStorageService)
     {
         _mediaRepository = mediaRepository;
         _artistRepository = artistRepository;
+        _albumRepository = albumRepository;
         _fileStorageService = fileStorageService;
     }
 
@@ -31,6 +34,7 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
 
         var filePath = await _fileStorageService.SaveFileAsync(request.FileStream, request.FileName, mediaType);
         var thumbnailUrl = await SaveCoverImageAsync(request);
+        var (videoFilePath, videoMimeType, videoFileSize) = await SaveVideoFileAsync(request);
         var duration = await GetDurationAsync(filePath);
         var artist = await GetOrCreateArtistAsync(request.ArtistName);
 
@@ -52,11 +56,21 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             OwnerId = request.OwnerId,
             IsPublic = request.IsPublic,
             ViewCount = 0,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            VideoFilePath = videoFilePath,
+            VideoMimeType = videoMimeType,
+            VideoFileSize = videoFileSize,
         };
 
         await _mediaRepository.AddAsync(media);
         await _mediaRepository.SetGenresAsync(media.MediaId, request.GenreIds);
+
+        string? albumTitle = null;
+        if (request.AlbumId.HasValue)
+        {
+            var album = await _albumRepository.GetByIdAsync(request.AlbumId.Value);
+            albumTitle = album?.Title;
+        }
 
         return new MediaDto
         {
@@ -72,11 +86,15 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             ArtistId = media.ArtistId,
             ArtistName = media.ArtistName,
             AlbumId = media.AlbumId,
+            AlbumTitle = albumTitle,
             GenreId = media.GenreId,
             OwnerId = media.OwnerId,
             IsPublic = media.IsPublic,
             ViewCount = media.ViewCount,
-            CreatedAt = media.CreatedAt
+            CreatedAt = media.CreatedAt,
+            VideoFilePath = videoFilePath,
+            VideoMimeType = videoMimeType,
+            VideoFileSize = videoFileSize,
         };
     }
 
@@ -116,6 +134,18 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             request.CoverImageStream,
             request.CoverImageFileName,
             "images");
+    }
+    
+    private async Task<(string? path, string? mimeType, long? size)> SaveVideoFileAsync(UploadMediaCommand request)
+    {
+        if (request.VideoFileStream == null || string.IsNullOrWhiteSpace(request.VideoFileName))
+        {
+            return (null, null, null);
+        }
+
+        var path = await _fileStorageService.SaveFileAsync(request.VideoFileStream, request.VideoFileName, "video");
+        var mimeType = request.VideoContentType ?? _fileStorageService.GetContentType(request.VideoFileName);
+        return (path, mimeType, request.VideoFileLength);
     }
 
     private static async Task<int> GetDurationAsync(string filePath)
@@ -164,29 +194,54 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
     private static async Task<int> GetMp3DurationAsync(string fullPath)
     {
         await using var stream = File.OpenRead(fullPath);
-        var fileSize = stream.Length;
         var startOffset = await SkipId3v2TagAsync(stream);
         stream.Position = startOffset;
 
         var header = new byte[4];
+        long firstFrameStart = -1;
+        Mp3FrameInfo? firstFrame = null;
+        long totalSamples = 0;
+
         while (stream.Position <= stream.Length - header.Length)
         {
+            var frameStart = stream.Position;
             var read = await stream.ReadAsync(header);
             if (read < header.Length)
             {
-                return 0;
+                break;
             }
 
-            if (TryGetMp3BitrateKbps(header, out var bitrateKbps))
+            if (!TryReadMp3Frame(header, out var frame))
             {
-                var audioBytes = Math.Max(0, fileSize - startOffset);
-                return bitrateKbps <= 0 ? 0 : Math.Max(0, (int)Math.Round(audioBytes * 8d / (bitrateKbps * 1000d)));
+                stream.Position = frameStart + 1;
+                continue;
             }
 
-            stream.Position -= 3;
+            firstFrameStart = firstFrameStart < 0 ? frameStart : firstFrameStart;
+            firstFrame ??= frame;
+            totalSamples += frame.SamplesPerFrame;
+
+            var nextFrame = frameStart + frame.FrameLength;
+            if (nextFrame <= frameStart || nextFrame > stream.Length)
+            {
+                break;
+            }
+
+            stream.Position = nextFrame;
         }
 
-        return 0;
+        if (firstFrameStart < 0 || firstFrame is null || totalSamples <= 0)
+        {
+            return 0;
+        }
+
+        var vbrDuration = await TryGetMp3VbrDurationAsync(stream, firstFrameStart, firstFrame.Value);
+        if (vbrDuration > 0)
+        {
+            return vbrDuration;
+        }
+
+        return Math.Max(0, (int)Math.Round(totalSamples / (double)firstFrame.Value.SampleRate));
     }
 
     private static async Task<long> SkipId3v2TagAsync(Stream stream)
@@ -212,9 +267,18 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
         return 10L + tagSize;
     }
 
-    private static bool TryGetMp3BitrateKbps(byte[] header, out int bitrateKbps)
+    private readonly record struct Mp3FrameInfo(
+        int VersionBits,
+        int Layer,
+        int BitrateKbps,
+        int SampleRate,
+        int SamplesPerFrame,
+        int FrameLength,
+        int Channels);
+
+    private static bool TryReadMp3Frame(byte[] header, out Mp3FrameInfo frame)
     {
-        bitrateKbps = 0;
+        frame = default;
         if (header[0] != 0xFF || (header[1] & 0xE0) != 0xE0)
         {
             return false;
@@ -223,8 +287,10 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
         var versionBits = (header[1] >> 3) & 0x03;
         var layerBits = (header[1] >> 1) & 0x03;
         var bitrateIndex = (header[2] >> 4) & 0x0F;
+        var sampleRateIndex = (header[2] >> 2) & 0x03;
+        var padding = (header[2] >> 1) & 0x01;
 
-        if (versionBits == 1 || layerBits == 0 || bitrateIndex is 0 or 15)
+        if (versionBits == 1 || layerBits == 0 || bitrateIndex is 0 or 15 || sampleRateIndex == 3)
         {
             return false;
         }
@@ -232,13 +298,13 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
         var isMpeg1 = versionBits == 3;
         var layer = 4 - layerBits;
 
-        var mpeg1Layer1 = new[] { 0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 0 };
-        var mpeg1Layer2 = new[] { 0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0 };
-        var mpeg1Layer3 = new[] { 0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0 };
-        var mpeg2Layer1 = new[] { 0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256, 0 };
-        var mpeg2Layer23 = new[] { 0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0 };
+        int[] mpeg1Layer1 = [0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 0];
+        int[] mpeg1Layer2 = [0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0];
+        int[] mpeg1Layer3 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0];
+        int[] mpeg2Layer1 = [0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256, 0];
+        int[] mpeg2Layer23 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0];
 
-        bitrateKbps = (isMpeg1, layer) switch
+        var bitrateKbps = (isMpeg1, layer) switch
         {
             (true, 1) => mpeg1Layer1[bitrateIndex],
             (true, 2) => mpeg1Layer2[bitrateIndex],
@@ -247,7 +313,126 @@ public sealed class UploadMediaCommandHandler : IRequestHandler<UploadMediaComma
             _ => mpeg2Layer23[bitrateIndex]
         };
 
-        return bitrateKbps > 0;
+        if (bitrateKbps <= 0)
+        {
+            return false;
+        }
+
+        var sampleRates = versionBits switch
+        {
+            3 => new[] { 44100, 48000, 32000 },
+            2 => new[] { 22050, 24000, 16000 },
+            _ => new[] { 11025, 12000, 8000 }
+        };
+        var sampleRate = sampleRates[sampleRateIndex];
+        var samplesPerFrame = layer switch
+        {
+            1 => 384,
+            2 => 1152,
+            _ => isMpeg1 ? 1152 : 576
+        };
+        var frameLength = layer switch
+        {
+            1 => ((12 * bitrateKbps * 1000 / sampleRate) + padding) * 4,
+            3 when !isMpeg1 => 72 * bitrateKbps * 1000 / sampleRate + padding,
+            _ => 144 * bitrateKbps * 1000 / sampleRate + padding
+        };
+        var channelMode = (header[3] >> 6) & 0x03;
+        var channels = channelMode == 3 ? 1 : 2;
+
+        if (frameLength <= 4)
+        {
+            return false;
+        }
+
+        frame = new Mp3FrameInfo(
+            versionBits,
+            layer,
+            bitrateKbps,
+            sampleRate,
+            samplesPerFrame,
+            frameLength,
+            channels);
+
+        return true;
+    }
+
+    private static async Task<int> TryGetMp3VbrDurationAsync(Stream stream, long frameStart, Mp3FrameInfo frame)
+    {
+        if (frame.Layer != 3)
+        {
+            return 0;
+        }
+
+        var xingOffset = frame.VersionBits == 3
+            ? frame.Channels == 1 ? 21 : 36
+            : frame.Channels == 1 ? 13 : 21;
+
+        var xingDuration = await TryReadXingDurationAsync(stream, frameStart + xingOffset, frame);
+        if (xingDuration > 0)
+        {
+            return xingDuration;
+        }
+
+        return await TryReadVbriDurationAsync(stream, frameStart + 36, frame);
+    }
+
+    private static async Task<int> TryReadXingDurationAsync(Stream stream, long offset, Mp3FrameInfo frame)
+    {
+        if (offset < 0 || offset + 12 > stream.Length)
+        {
+            return 0;
+        }
+
+        stream.Position = offset;
+        var data = new byte[12];
+        if (await stream.ReadAsync(data) < data.Length)
+        {
+            return 0;
+        }
+
+        var marker = System.Text.Encoding.ASCII.GetString(data, 0, 4);
+        if (marker is not ("Xing" or "Info"))
+        {
+            return 0;
+        }
+
+        var flags = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(4, 4));
+        if ((flags & 0x01) == 0)
+        {
+            return 0;
+        }
+
+        var frameCount = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(8, 4));
+        return frameCount == 0
+            ? 0
+            : Math.Max(0, (int)Math.Round(frameCount * frame.SamplesPerFrame / (double)frame.SampleRate));
+    }
+
+    private static async Task<int> TryReadVbriDurationAsync(Stream stream, long offset, Mp3FrameInfo frame)
+    {
+        if (offset < 0 || offset + 18 > stream.Length)
+        {
+            return 0;
+        }
+
+        stream.Position = offset;
+        var data = new byte[18];
+        if (await stream.ReadAsync(data) < data.Length)
+        {
+            return 0;
+        }
+
+        var marker = System.Text.Encoding.ASCII.GetString(data, 0, 4);
+        if (marker != "VBRI")
+        {
+            return 0;
+        }
+
+        var frameCount = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(14, 4));
+        return frameCount == 0
+            ? 0
+            : Math.Max(0, (int)Math.Round(frameCount * frame.SamplesPerFrame / (double)frame.SampleRate));
     }
 
     private static async Task<int> GetMp4DurationAsync(string fullPath)

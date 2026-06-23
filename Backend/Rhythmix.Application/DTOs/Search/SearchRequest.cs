@@ -8,5 +8,6 @@ public sealed class SearchRequest {
         All = 0, 
         Media = 1, 
         Playlist = 2, 
-        User = 3 
-    }
+        User = 3,
+        Album = 4
+     }

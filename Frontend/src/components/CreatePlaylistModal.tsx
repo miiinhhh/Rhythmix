@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Music, X, Globe, Lock } from "lucide-react"; 
 import { playlistService } from "../api/playlistService";
+import type { PlaylistDto } from "../types/api";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onPlaylistCreated?: () => void | Promise<void>; 
+  onPlaylistCreated?: (playlist: PlaylistDto) => void | Promise<void>; 
 }
 
 const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen, onClose, onPlaylistCreated }) => {
@@ -39,7 +40,7 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen, onClo
     }
 
     // Nếu hợp lệ, tiến hành giả lập lưu vào DB
-    await playlistService.create({
+    const playlist = await playlistService.create({
       name: name.trim(),
       description: description.trim() || undefined,
       isPublic,
@@ -49,7 +50,7 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({ isOpen, onClo
     // Gọi hàm đóng modal và reset luôn
     handleCloseModal();
 
-    await onPlaylistCreated?.();
+    await onPlaylistCreated?.(playlist);
   };
 
   return (

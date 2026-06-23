@@ -15,10 +15,12 @@ namespace Rhythmix.API.Controllers;
 public sealed class AlbumsController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IWebHostEnvironment _env;
 
-    public AlbumsController(IMediator mediator)
+    public AlbumsController(IMediator mediator, IWebHostEnvironment env)
     {
         _mediator = mediator;
+        _env = env;
     }
 
     /// <summary>
@@ -61,7 +63,7 @@ public sealed class AlbumsController : ControllerBase
     /// Create a new album
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> CreateAlbum([FromBody] CreateAlbumRequest request)
+    public async Task<IActionResult> CreateAlbum([FromForm] CreateAlbumFormRequest request)
     {
         var userId = GetCurrentUserId();
         if (userId == Guid.Empty)
@@ -74,12 +76,27 @@ public sealed class AlbumsController : ControllerBase
             return BadRequest(new { success = false, message = "Album title is required." });
         }
 
+        string? coverImageUrl = request.CoverImageUrl;
+
+        try
+        {
+            var uploadedCoverUrl = await SaveAlbumCoverImageAsync(request.CoverImage);
+            if (!string.IsNullOrWhiteSpace(uploadedCoverUrl))
+            {
+                coverImageUrl = uploadedCoverUrl;
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+
         var command = new CreateAlbumCommand
         {
             OwnerId = userId,
             Title = request.Title,
             Description = request.Description,
-            CoverImageUrl = request.CoverImageUrl,
+            CoverImageUrl = coverImageUrl,
             ReleaseDate = request.ReleaseDate
         };
 
@@ -91,7 +108,7 @@ public sealed class AlbumsController : ControllerBase
     /// Update album
     /// </summary>
     [HttpPut("{albumId}")]
-    public async Task<IActionResult> UpdateAlbum(Guid albumId, [FromBody] UpdateAlbumRequest request)
+    public async Task<IActionResult> UpdateAlbum(Guid albumId, [FromForm] UpdateAlbumFormRequest request)
     {
         var userId = GetCurrentUserId();
         if (userId == Guid.Empty)
@@ -104,23 +121,32 @@ public sealed class AlbumsController : ControllerBase
             return BadRequest(new { success = false, message = "Album title is required." });
         }
 
-        var command = new UpdateAlbumCommand
-        {
-            AlbumId = albumId,
-            UserId = userId,
-            Title = request.Title,
-            Description = request.Description,
-            CoverImageUrl = request.CoverImageUrl,
-            ReleaseDate = request.ReleaseDate
-        };
+        string? coverImageUrl = request.CoverImageUrl;
 
         try
         {
+            var uploadedCoverUrl = await SaveAlbumCoverImageAsync(request.CoverImage);
+            if (!string.IsNullOrWhiteSpace(uploadedCoverUrl))
+            {
+                coverImageUrl = uploadedCoverUrl;
+            }
+
+            var command = new UpdateAlbumCommand
+            {
+                AlbumId = albumId,
+                UserId = userId,
+                Title = request.Title,
+                Description = request.Description,
+                CoverImageUrl = coverImageUrl,
+                ReleaseDate = request.ReleaseDate
+            };
+
             var result = await _mediator.Send(command);
             if (result == null)
             {
                 return NotFound(new { success = false, message = "Album not found or you don't have permission." });
             }
+
             return Ok(new { success = true, data = result });
         }
         catch (UnauthorizedAccessException ex)
@@ -129,7 +155,7 @@ public sealed class AlbumsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new { success = false, message = ex.Message });
+            return BadRequest(new { success = false, message = ex.Message });
         }
     }
 
@@ -171,4 +197,51 @@ public sealed class AlbumsController : ControllerBase
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         return Guid.TryParse(claim, out var userId) ? userId : Guid.Empty;
     }
+    private async Task<string?> SaveAlbumCoverImageAsync(IFormFile? coverImage)
+    {
+        if (coverImage == null || coverImage.Length == 0)
+        {
+            return null;
+        }
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        var extension = Path.GetExtension(coverImage.FileName).ToLowerInvariant();
+
+        if (!allowedExtensions.Contains(extension))
+        {
+            throw new InvalidOperationException("Only jpg, jpeg, png, webp images are allowed.");
+        }
+
+        var uploadsFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads", "albums");
+
+        if (!Directory.Exists(uploadsFolder))
+        {
+            Directory.CreateDirectory(uploadsFolder);
+        }
+
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(uploadsFolder, fileName);
+
+        await using var stream = new FileStream(filePath, FileMode.Create);
+        await coverImage.CopyToAsync(stream);
+
+        return $"/uploads/albums/{fileName}";
+    }
+}
+public sealed class CreateAlbumFormRequest
+{
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? CoverImageUrl { get; set; }
+    public IFormFile? CoverImage { get; set; }
+    public DateTime? ReleaseDate { get; set; }
+}
+
+public sealed class UpdateAlbumFormRequest
+{
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? CoverImageUrl { get; set; }
+    public IFormFile? CoverImage { get; set; }
+    public DateTime? ReleaseDate { get; set; }
 }

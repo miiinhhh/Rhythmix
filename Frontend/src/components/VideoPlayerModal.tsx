@@ -1,4 +1,4 @@
-import { X, Play, Pause, Volume2, SkipBack, Shuffle, Heart, Share2, ListMusic } from "lucide-react";
+import { X, Play, Pause, Volume2, SkipBack, SkipForward, Heart, Share2, ListPlus, Maximize, Download } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import ShareModal from "./ShareModal";
 import type { ShareItemDto } from "../types/api";
@@ -6,16 +6,24 @@ import type { ShareItemDto } from "../types/api";
 interface VideoPlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  videoUrl: string;
+  videoUrl?: string;
   posterUrl: string;
   title: string;
   artist?: string;
+  mediaId?: string;
+  isLiked: boolean;
   onShareSuccess?: (type: "song" | "video", trackInfo: any, receiverName: string, share?: ShareItemDto) => void;
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
+  volume: number;
+  setVolume: (volume: number) => void;
   audioCurrentTime: number; 
   audioDuration: number;    
   onSeekAudio: (time: number) => void; 
+  onToggleFavorite: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
+  onAddCurrentToQueue: () => void;
 }
 
 const VideoPlayerModal = ({ 
@@ -25,23 +33,31 @@ const VideoPlayerModal = ({
   posterUrl, 
   title, 
   artist = "Luna Nova", 
+  mediaId,
+  isLiked,
   isPlaying, 
   setIsPlaying, 
+  volume,
+  setVolume,
   audioCurrentTime, 
   audioDuration, 
   onSeekAudio,
-  onShareSuccess
+  onShareSuccess,
+  onToggleFavorite,
+  onPrevious,
+  onNext,
+  onAddCurrentToQueue,
 }: VideoPlayerModalProps) => {
   console.log("videoUrl:", videoUrl);
   console.log("posterUrl:", posterUrl);
   console.log("isOpen:", isOpen);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [isLiked, setIsLiked] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0); 
 
   // Mặc định về chế độ Video để khi click vào Video trong Inbox là thấy liền hình
   const [activeMode, setActiveMode] = useState<"audio" | "video">("video");
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [showQueueToast, setShowQueueToast] = useState(false);
 
   const safeVideoUrl = videoUrl?.trim() ? videoUrl.trim() : null;
   const safePosterUrl = posterUrl?.trim() ? posterUrl.trim() : "/default-poster.png";
@@ -107,6 +123,37 @@ useEffect(() => {
     });
   };
 
+  const handleFullscreen = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.requestFullscreen) {
+      video.requestFullscreen().catch((error) => {
+        console.log("Không thể bật toàn màn hình:", error);
+      });
+    }
+  };
+
+  const handleDownloadVideo = async () => {
+    if (!safeVideoUrl) return;
+
+    try {
+      const response = await fetch(safeVideoUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${(title || "video").replace(/[\\/:*?"<>|]/g, "")}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.log("Không thể tải video:", error);
+    }
+  };
+
   const formatTime = (time: number) => {
     if (isNaN(time)) return "0:00";
     const mins = Math.floor(time / 60);
@@ -123,6 +170,18 @@ useEffect(() => {
       videoRef.current.currentTime = newTime % videoDuration;
     }
   };
+
+  const handleAddCurrentToQueue = () => {
+    onAddCurrentToQueue();
+    setShowQueueToast(true);
+  };
+
+  useEffect(() => {
+    if (!showQueueToast) return;
+
+    const timeoutId = window.setTimeout(() => setShowQueueToast(false), 1000);
+    return () => window.clearTimeout(timeoutId);
+  }, [showQueueToast]);
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col justify-between p-6 select-none animate-in fade-in duration-300">
@@ -158,36 +217,66 @@ useEffect(() => {
       {/* 2. KHU VỰC HIỂN THỊ NỘI DUNG */}
       <div className="flex-1 flex items-center justify-center relative my-4 overflow-hidden rounded-xl bg-zinc-950/40 border border-zinc-900">
         {safeVideoUrl ? (
-          <video
-            key={safeVideoUrl}
-            ref={videoRef}
-            controls
-            muted
-            loop
-            playsInline
-            poster={safePosterUrl}
-            onCanPlay={handleCanPlay}
-            onLoadedMetadata={handleLoadedMetadata}
-            onError={(e) => {
-              const video = e.currentTarget;
+          <>
+            <video
+              key={safeVideoUrl}
+              ref={videoRef}
+              muted
+              loop
+              playsInline
+              poster={safePosterUrl}
+              onCanPlay={handleCanPlay}
+              onLoadedMetadata={handleLoadedMetadata}
+              onError={(e) => {
+                const video = e.currentTarget;
 
-              console.log("VIDEO ERROR CODE:", video.error?.code);
-              console.log("VIDEO ERROR MESSAGE:", video.error?.message);
-              console.log("VIDEO URL:", safeVideoUrl);
-            }}
-            className={`max-h-[75vh] max-w-full object-contain rounded-lg transition-opacity duration-300 ${
-              activeMode === "video"
-                ? "opacity-100"
-                : "opacity-0 absolute pointer-events-none"
-            }`}
-            onClick={togglePlay}
-          >
-            <source src={safeVideoUrl} />
-          </video>
+                console.log("VIDEO ERROR CODE:", video.error?.code);
+                console.log("VIDEO ERROR MESSAGE:", video.error?.message);
+                console.log("VIDEO URL:", safeVideoUrl);
+              }}
+              className={`w-full h-full max-h-[75vh] object-contain rounded-lg transition-opacity duration-300 ${
+                activeMode === "video"
+                  ? "opacity-100"
+                  : "opacity-0 absolute pointer-events-none"
+              }`}
+              onClick={togglePlay}
+            >
+              <source src={safeVideoUrl} />
+            </video>
+
+            {activeMode === "video" && (
+              <div className="absolute bottom-3 right-3 flex items-center gap-2 z-10">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadVideo();
+                  }}
+                  className="p-2 text-zinc-300 hover:text-white transition-colors cursor-pointer bg-zinc-900/60 rounded-full backdrop-blur-sm"
+                  aria-label="Tải video"
+                  title="Tải video"
+                >
+                  <Download className="size-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFullscreen();
+                  }}
+                  className="p-2 text-zinc-300 hover:text-white transition-colors cursor-pointer bg-zinc-900/60 rounded-full backdrop-blur-sm"
+                  aria-label="Toàn màn hình"
+                  title="Toàn màn hình"
+                >
+                  <Maximize className="size-5" />
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           activeMode === "video" && (
-            <div className="text-zinc-400 text-sm">
-              Không có video để phát
+            <div className="absolute inset-0 flex items-center justify-center text-zinc-500 text-sm">
+              Bài hát này chưa có video đi kèm.
             </div>
           )
         )}
@@ -219,7 +308,13 @@ useEffect(() => {
             <p className="text-sm text-zinc-400 truncate mt-1">{artist}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setIsLiked(!isLiked)} className={`p-2 rounded-full hover:bg-zinc-800/50 transition-colors cursor-pointer ${isLiked ? "text-green-500" : "text-zinc-400"}`}>
+            <button
+              type="button"
+              onClick={onToggleFavorite}
+              className={`p-2 rounded-full hover:bg-zinc-800/50 transition-colors cursor-pointer ${isLiked ? "text-green-500" : "text-zinc-400"}`}
+              aria-label={isLiked ? "Bỏ yêu thích" : "Yêu thích"}
+              title={isLiked ? "Bỏ yêu thích" : "Yêu thích"}
+            >
               <Heart className={`size-5 ${isLiked ? "fill-current" : ""}`} />
             </button>
             <button type="button" onClick={() => setIsShareModalOpen(true)} className="p-2 text-zinc-400 hover:text-white transition-colors cursor-pointer hover:bg-zinc-800/50 rounded-full">
@@ -252,10 +347,17 @@ useEffect(() => {
         </div>
 
         {/* Thanh Nút bấm Media Control */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-4 min-w-[240px]">
-            <button type="button" className="text-zinc-400 hover:text-white transition-colors cursor-pointer"><Shuffle className="size-5" /></button>
-            <button type="button" className="text-zinc-400 hover:text-white transition-colors cursor-pointer"><SkipBack className="size-6 fill-current" /></button>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center pt-2">
+          <div className="flex justify-end pr-6">
+            <button
+              type="button"
+              onClick={onPrevious}
+              className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              aria-label="Bài trước"
+              title="Bài trước"
+            >
+              <SkipBack className="size-6 fill-current" />
+            </button>
           </div>
 
           <div className="flex items-center justify-center">
@@ -264,13 +366,42 @@ useEffect(() => {
             </button>
           </div>
 
-          <div className="flex items-center gap-4 min-w-[240px] justify-end text-zinc-400">
-            <ListMusic className="size-5 hover:text-white cursor-pointer transition-colors" />
+          <div className="flex min-w-0 items-center gap-4 pl-6 text-zinc-400">
+            <button
+              type="button"
+              onClick={onNext}
+              className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              aria-label="Bài tiếp theo"
+              title="Bài tiếp theo"
+            >
+              <SkipForward className="size-6 fill-current" />
+            </button>
+            <div className="ml-auto flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleAddCurrentToQueue}
+              className="hover:text-white cursor-pointer transition-colors"
+              aria-label="Thêm bài hiện tại vào hàng chờ"
+              title="Thêm bài hiện tại vào hàng chờ"
+            >
+              <ListPlus className="size-5" />
+            </button>
             <div className="flex items-center gap-2 group/vol">
-              <Volume2 className="size-5 hover:text-white cursor-pointer" />
-              <div className="w-20 h-1 bg-zinc-700 rounded-full relative cursor-pointer">
-                <div className="absolute top-0 left-0 h-full w-[70%] bg-white rounded-full group-hover/vol:bg-green-500" />
-              </div>
+              <Volume2 className="size-5" />
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={volume}
+                onChange={(event) => setVolume(Number(event.target.value))}
+                aria-label="Âm lượng"
+                className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-green-500"
+                style={{
+                  background: `linear-gradient(to right, #22c55e ${volume * 100}%, #3f3f46 ${volume * 100}%)`,
+                }}
+              />
+            </div>
             </div>
           </div>
         </div>
@@ -281,7 +412,7 @@ useEffect(() => {
         onClose={() => setIsShareModalOpen(false)}
         itemToShare={{
           type: activeMode === "audio" ? "song" : "video", 
-          id: title, 
+          id: mediaId || "", 
           title: title,
           subtitle: artist,
         }}
@@ -292,6 +423,12 @@ useEffect(() => {
           }
         }}
       />
+
+      {showQueueToast && (
+        <div className="fixed bottom-28 left-1/2 z-[70] -translate-x-1/2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black shadow-lg animate-[fadeIn_0.15s_ease-out]">
+          Đã thêm vào Current Queue
+        </div>
+      )}
     </div>
   );
 };

@@ -25,9 +25,26 @@ public interface ISearchRepository
         IDbTransaction? transaction = null);
 
     /// <summary>
+    /// Tìm kiếm album theo tên hoặc tên chủ sở hữu/nghệ sĩ
+    /// </summary>
+    Task<(IEnumerable<Album> Items, int TotalCount)> SearchAlbumAsync(
+        string query, 
+        int page = 1, 
+        int pageSize = 10, 
+        IDbTransaction? transaction = null);
+
+    /// <summary>
     /// Lấy tất cả các playlist công khai với phân trang
     /// </summary>
     Task<(IEnumerable<Playlist> Items, int TotalCount)> GetPublicPlaylistsAsync(
+        int page = 1, 
+        int pageSize = 10, 
+        IDbTransaction? transaction = null);
+
+    /// <summary>
+    /// Lấy tất cả các album với phân trang
+    /// </summary>
+    Task<(IEnumerable<Album> Items, int TotalCount)> GetPublicAlbumsAsync(
         int page = 1, 
         int pageSize = 10, 
         IDbTransaction? transaction = null);

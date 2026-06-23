@@ -6,7 +6,7 @@ interface ConfirmDeleteModalProps {
   onClose: () => void;
   onConfirm: () => void;
   itemTitle: string; 
-  type: "song" | "playlist"; // Dùng để phân biệt loại đối tượng
+  type: "song" | "playlist" | "album"; // Dùng để phân biệt loại đối tượng
 }
 
 const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ 
@@ -29,6 +29,13 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
         <>Bạn có chắc chắn muốn xóa playlist <span className="text-white font-semibold">"{itemTitle}"</span> khỏi thư viện không? Hành động này không thể hoàn tác.</>
       ),
       buttonText: "Xóa playlist"
+    },
+    album: {
+      title: "Xóa album?",
+      message: (
+        <>Bạn có chắc chắn muốn xóa album <span className="text-white font-semibold">"{itemTitle}"</span> khỏi thư viện không? Hành động này không thể hoàn tác.</>
+      ),
+      buttonText: "Xóa album"
     }
   };
 

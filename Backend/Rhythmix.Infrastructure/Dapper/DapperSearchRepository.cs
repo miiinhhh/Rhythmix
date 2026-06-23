@@ -58,6 +58,7 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.ArtistId,
                 a.Name AS ArtistName,
                 m.AlbumId,
+                al.Title AS AlbumTitle,
                 m.GenreId,
                 m.OwnerId,
                 m.IsPublic,
@@ -67,6 +68,7 @@ public sealed class DapperSearchRepository : ISearchRepository
             LEFT JOIN [MediaItemGenres] mig ON mig.MediaId = m.MediaId
             LEFT JOIN [Genres] g ON g.GenreId = COALESCE(mig.GenreId, m.GenreId)
             LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
+            LEFT JOIN [Albums] al ON al.AlbumId = m.AlbumId
             WHERE m.IsPublic = 1 
                 AND (
                     (@UseExactGenre = 1 AND LOWER(g.Name) = LOWER(@ExactQuery))
@@ -136,6 +138,7 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.ArtistId,
                 a.Name AS ArtistName,
                 m.AlbumId,
+                al.Title AS AlbumTitle,
                 m.GenreId,
                 m.OwnerId,
                 m.IsPublic,
@@ -145,6 +148,7 @@ public sealed class DapperSearchRepository : ISearchRepository
             INNER JOIN [MediaItemGenres] mig ON mig.GenreId = g.GenreId
             INNER JOIN [MediaItems] m ON m.MediaId = mig.MediaId AND m.IsPublic = 1
             LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
+            LEFT JOIN [Albums] al ON al.AlbumId = m.AlbumId
             WHERE LOWER(g.Name) = LOWER(@ExactQuery)
             ORDER BY g.Name, m.ViewCount DESC, m.CreatedAt DESC";
 
@@ -297,6 +301,7 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.ArtistId,
                 a.Name AS ArtistName,
                 m.AlbumId,
+                al.Title AS AlbumTitle,
                 m.GenreId,
                 m.OwnerId,
                 m.IsPublic,
@@ -304,6 +309,7 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.CreatedAt
             FROM [MediaItems] m
             LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
+            LEFT JOIN [Albums] al ON al.AlbumId = m.AlbumId
             WHERE m.IsPublic = 1
             ORDER BY m.ViewCount DESC, m.CreatedAt DESC
             OFFSET @Offset ROWS
@@ -315,6 +321,105 @@ public sealed class DapperSearchRepository : ISearchRepository
         int totalCount = await connection.ExecuteScalarAsync<int>(countSql, transaction: transaction);
 
         var items = await connection.QueryAsync<MediaItem>(dataSql, new
+        {
+            Offset = (page - 1) * pageSize,
+            PageSize = pageSize
+        }, transaction);
+
+        return (items, totalCount);
+    }
+
+    /// <summary>
+    /// Tìm kiếm album theo tên hoặc tên chủ sở hữu/nghệ sĩ
+    /// </summary>
+    public async Task<(IEnumerable<Album> Items, int TotalCount)> SearchAlbumAsync(
+        string query, int page = 1, int pageSize = 10, IDbTransaction? transaction = null)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return (Enumerable.Empty<Album>(), 0);
+        }
+
+        const string countSql = @"
+        SELECT COUNT(1)
+        FROM [Albums] a
+        WHERE (a.Title LIKE @Query 
+             OR a.Description LIKE @Query
+             OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = a.OwnerId AND u.UserName LIKE @Query)
+             OR EXISTS (SELECT 1 FROM [MediaItems] m 
+                         LEFT JOIN [Artists] art ON art.ArtistId = m.ArtistId 
+                         WHERE m.AlbumId = a.AlbumId AND art.Name LIKE @Query))";
+
+        const string dataSql = @"
+        SELECT 
+            a.AlbumId,
+            a.Title,
+            a.Description,
+            a.CoverImageUrl,
+            a.OwnerId,
+            a.CreatedAt,
+            COUNT(m.MediaId) AS TrackCount,
+            (SELECT TOP 1 art.Name FROM [MediaItems] m2 LEFT JOIN [Artists] art ON art.ArtistId = m2.ArtistId WHERE m2.AlbumId = a.AlbumId) AS ArtistName
+        FROM [Albums] a
+        LEFT JOIN [MediaItems] m ON m.AlbumId = a.AlbumId
+        WHERE (a.Title LIKE @Query 
+             OR a.Description LIKE @Query
+             OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = a.OwnerId AND u.UserName LIKE @Query)
+             OR EXISTS (SELECT 1 FROM [MediaItems] m3 
+                         LEFT JOIN [Artists] art ON art.ArtistId = m3.ArtistId 
+                         WHERE m3.AlbumId = a.AlbumId AND art.Name LIKE @Query))
+        GROUP BY a.AlbumId, a.Title, a.Description, a.CoverImageUrl, a.OwnerId, a.CreatedAt
+        ORDER BY a.CreatedAt DESC
+        OFFSET @Offset ROWS
+        FETCH NEXT @PageSize ROWS ONLY";
+
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var queryParam = $"%{query}%";
+        int totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { Query = queryParam }, transaction);
+
+        var items = await connection.QueryAsync<Album>(dataSql, new
+        {
+            Query = queryParam,
+            Offset = (page - 1) * pageSize,
+            PageSize = pageSize
+        }, transaction);
+
+        return (items, totalCount);
+    }
+
+    /// <summary>
+    /// Lấy tất cả các album với phân trang
+    /// </summary>
+    public async Task<(IEnumerable<Album> Items, int TotalCount)> GetPublicAlbumsAsync(
+        int page = 1, int pageSize = 10, IDbTransaction? transaction = null)
+    {
+        const string countSql = @"SELECT COUNT(1) FROM [Albums]";
+
+        const string dataSql = @"
+        SELECT 
+            a.AlbumId,
+            a.Title,
+            a.Description,
+            a.CoverImageUrl,
+            a.OwnerId,
+            a.CreatedAt,
+            COUNT(m.MediaId) AS TrackCount,
+            (SELECT TOP 1 art.Name FROM [MediaItems] m2 LEFT JOIN [Artists] art ON art.ArtistId = m2.ArtistId WHERE m2.AlbumId = a.AlbumId) AS ArtistName
+        FROM [Albums] a
+        LEFT JOIN [MediaItems] m ON m.AlbumId = a.AlbumId
+        GROUP BY a.AlbumId, a.Title, a.Description, a.CoverImageUrl, a.OwnerId, a.CreatedAt
+        ORDER BY a.CreatedAt DESC
+        OFFSET @Offset ROWS
+        FETCH NEXT @PageSize ROWS ONLY";
+
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        int totalCount = await connection.ExecuteScalarAsync<int>(countSql, transaction: transaction);
+
+        var items = await connection.QueryAsync<Album>(dataSql, new
         {
             Offset = (page - 1) * pageSize,
             PageSize = pageSize

@@ -5,7 +5,7 @@ import { artistService } from "../api/artistService";
 import { followService } from "../api/followService";
 import { searchService } from "../api/searchService";
 import { userService } from "../api/userService";
-import type { ArtistDto, MediaItemDto, SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
+import type { ArtistDto, MediaItemDto, SearchAlbumDto, SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
 import { mapMediaToSong, resolveArtistName, type SongType } from "../utils/mediaMapping";
 import { API_BASE_URL } from "../config/apiConfig";
 
@@ -42,11 +42,26 @@ const mapSearchMediaToSong = (media: SearchMediaDto): SongType => {
   const mediaType = media.mediaType?.toLowerCase() || "audio";
   const streamUrl = `${API_BASE_URL}/api/media/${media.mediaId}/stream`;
 
+  let albumName: string;
+  if (!media.albumId) {
+    // Definitely a single
+    albumName = "Single";
+  } else {
+    // Has albumId, check for albumTitle
+    if (media.albumTitle && media.albumTitle.trim() !== "") {
+      // Only use "Album [title]" if title is valid
+      albumName = `Album ${media.albumTitle}`;
+    } else {
+      // Fallback if no valid album title
+      albumName = "Album Track";
+    }
+  }
+
   return {
     id: media.mediaId,
     title: media.title,
     artist: resolveArtistName(media.artistName, undefined, media.title),
-    album: "Search result",
+    album: albumName,
     duration: formatDuration(media.duration),
     isLiked: false,
     url: streamUrl,
@@ -62,6 +77,7 @@ const SearchPage = () => {
   const [users, setUsers] = useState<UserProfileDto[]>([]);
   const [mediaResults, setMediaResults] = useState<SearchMediaDto[]>([]);
   const [playlistResults, setPlaylistResults] = useState<SearchPlaylistDto[]>([]);
+  const [albumResults, setAlbumResults] = useState<SearchAlbumDto[]>([]);
   const [genrePlaylists, setGenrePlaylists] = useState<SearchGenrePlaylistDto[]>([]);
   const [artistResults, setArtistResults] = useState<ArtistDto[]>([]);
   const [selectedArtist, setSelectedArtist] = useState<ArtistDto | null>(null);
@@ -84,6 +100,7 @@ const SearchPage = () => {
     if (!hasQuery) {
       setMediaResults([]);
       setPlaylistResults([]);
+      setAlbumResults([]);
       setGenrePlaylists([]);
       setArtistResults([]);
       setSelectedArtist(null);
@@ -100,11 +117,13 @@ const SearchPage = () => {
         ]);
         setMediaResults(result.media || []);
         setPlaylistResults(result.playlists || []);
+        setAlbumResults(result.albums || []);
         setGenrePlaylists(result.genrePlaylists || []);
         setArtistResults(artists || []);
       } catch {
         setMediaResults([]);
         setPlaylistResults([]);
+        setAlbumResults([]);
         setGenrePlaylists([]);
         setArtistResults([]);
       } finally {
@@ -454,6 +473,41 @@ const SearchPage = () => {
               </div>
             )}
 
+            {albumResults.length > 0 && (
+              <div>
+                <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Albums</h2>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {albumResults.map((album) => (
+                    <button
+                      key={album.albumId}
+                      type="button"
+                      onClick={() => navigate(`/album/${album.albumId}`)}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left hover:bg-zinc-800"
+                    >
+                      {album.coverImageUrl ? (
+                        <img 
+                          src={resolveAssetUrl(album.coverImageUrl)} 
+                          alt={album.title} 
+                          className="size-12 rounded-md object-cover" 
+                        />
+                      ) : (
+                        <div className="flex size-12 items-center justify-center rounded-md bg-zinc-800 text-zinc-400">
+                          <ListMusic className="size-6" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-white">{album.title}</div>
+                        <div className="truncate text-xs text-zinc-400">
+                          {album.trackCount} songs - {album.artistName || "Unknown Artist"}
+                        </div>
+                      </div>
+                      <Play className="size-4 text-zinc-400" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {filteredUsers.length > 0 && (
               <div>
                 <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Users</h2>
@@ -524,7 +578,7 @@ const SearchPage = () => {
               </div>
             )}
 
-            {!isSearching && mediaResults.length === 0 && playlistResults.length === 0 && genrePlaylists.length === 0 && artistResults.length === 0 && filteredUsers.length === 0 && (
+            {!isSearching && mediaResults.length === 0 && playlistResults.length === 0 && albumResults.length === 0 && genrePlaylists.length === 0 && artistResults.length === 0 && filteredUsers.length === 0 && (
               <p className="text-sm text-zinc-400">No results found.</p>
             )}
           </div>

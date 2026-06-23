@@ -15,9 +15,13 @@ public class MediaDto
     public Guid? ArtistId { get; set; }
     public string ArtistName { get; set; } = string.Empty;
     public Guid? AlbumId { get; set; }
+    public string? AlbumTitle { get; set; }
     public Guid? GenreId { get; set; }
     public Guid OwnerId { get; set; }
     public bool IsPublic { get; set; }
     public int ViewCount { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? VideoFilePath { get; set; }
+    public string? VideoMimeType { get; set; }
+    public long? VideoFileSize { get; set; }
 }

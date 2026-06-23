@@ -14,9 +14,13 @@ public class MediaItem
     public Guid? ArtistId { get; set; }
     public string ArtistName { get; set; } = string.Empty;
     public Guid? AlbumId { get; set; } 
+    public string? AlbumTitle { get; set; }
     public Guid? GenreId { get; set; }
     public Guid OwnerId { get; set; }
     public bool IsPublic { get; set; } = true; 
     public int ViewCount { get; set; } = 0; 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string? VideoFilePath { get; set; }
+    public string? VideoMimeType { get; set; }
+    public long? VideoFileSize { get; set; }
 }

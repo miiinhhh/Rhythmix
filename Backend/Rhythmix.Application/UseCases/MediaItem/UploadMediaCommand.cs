@@ -22,4 +22,8 @@ public sealed class UploadMediaCommand : IRequest<MediaDto>
 
     public Stream? CoverImageStream { get; init; }
     public string? CoverImageFileName { get; init; }
+    public Stream? VideoFileStream { get; init; }
+    public string? VideoFileName { get; init; }
+    public string? VideoContentType { get; init; }
+    public long? VideoFileLength { get; init; }
 }

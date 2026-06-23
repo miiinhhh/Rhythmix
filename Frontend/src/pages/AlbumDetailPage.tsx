@@ -11,50 +11,86 @@ import {
 import { useNavigate, useParams, useOutletContext } from "react-router-dom";
 import { albumService } from "../api/albumService";
 import { mediaService } from "../api/mediaService";
-import { type AlbumDetailDto } from "../types/api";
-import { type SongType } from "../utils/mediaMapping";
+import { type AlbumDetailDto, type MediaItemDto } from "../types/api";
+import { resolveArtistName, mapMediaToSong, type SongType } from "../utils/mediaMapping";
+import { resolveAssetUrl } from "../config/apiConfig";
+import AddSongAlbumModal from "../components/AddSongAlbumModal";
+import UpdateAlbumModal from "../components/UpdateAlbumModal";
+import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
+
+interface OutletContextType {
+  currentSongId: string | null;
+  setCurrentSongId: (id: string | null) => void;
+  isPlaying: boolean;
+  setIsPlaying: (playing: boolean) => void;
+  setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
+  onSetPlaylistQueue?: (id: string, tracks: SongType[]) => void;
+}
+
+const formatAlbumDuration = (seconds?: number) => {
+  if (!seconds || seconds < 0) return "0:00";
+
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
+const mapAlbumTrackToSong = (
+  track: MediaItemDto,
+  albumTitle?: string,
+): SongType => {
+  const song = mapMediaToSong(track, albumTitle || "Album");
+  return song;
+};
 
 const AlbumDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { currentSongId, setCurrentSongId, isPlaying, setIsPlaying } =
-    useOutletContext<any>();
+  const {
+    currentSongId,
+    setCurrentSongId,
+    isPlaying,
+    setIsPlaying,
+    setSongs,
+    onSetPlaylistQueue,
+  } = useOutletContext<OutletContextType>();
 
   const [albumInfo, setAlbumInfo] = useState<AlbumDetailDto | null>(null);
   const [albumSongs, setAlbumSongs] = useState<SongType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  const formatAlbumDuration = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   
   const loadAlbum = async () => {
     if (!id) return;
     setIsLoading(true);
     try {
       const album = await albumService.getById(id);
-      const mappedTracks = album.tracks.map((track) => ({
-        id: track.mediaId,
-        title: track.title,
-        artist: track.artistName || "Unknown Artist",
-        album: album.title,
-        duration: formatAlbumDuration(track.duration > 300 ? track.duration / 3 : track.duration),
-        isLiked: false,
-        url: mediaService.getMediaStream(track.mediaId),
-        posterUrl: track.thumbnailUrl,
-        mediaType: "audio",
-      }));
+      const mappedTracks = album.tracks.map((track) =>
+        mapAlbumTrackToSong(track, album.title),
+      );
       setAlbumInfo(album);
       setAlbumSongs(mappedTracks);
+      onSetPlaylistQueue?.(id, mappedTracks);
+      setSongs((prev) => {
+        const existingIds = new Set(prev.map((song) => song.id));
+        return [
+          ...prev,
+          ...mappedTracks.filter((song) => !existingIds.has(song.id)),
+        ];
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadAlbum();
+    loadAlbum().catch(() => {
+      setAlbumInfo(null);
+      setAlbumSongs([]);
+      setIsLoading(false);
+    });
   }, [id]);
 
   const handlePlaySong = (songId: string) => {
@@ -67,12 +103,28 @@ const AlbumDetailPage = () => {
   };
 
   const handleToggleAlbum = () => {
-    if (!currentSongId && albumSongs.length > 0) {
+    const isAlbumSongPlaying = albumSongs.some(
+      (song) => song.id === currentSongId,
+    );
+
+    if (!isAlbumSongPlaying && albumSongs.length > 0) {
       setCurrentSongId(albumSongs[0].id);
       setIsPlaying(true);
       return;
     }
     setIsPlaying(!isPlaying);
+  };
+
+  const handleDeleteAlbum = async () => {
+    if (!id) return;
+    try {
+      await albumService.delete(id);
+      navigate(-1);
+    } catch (error) {
+      console.error("Failed to delete album:", error);
+    } finally {
+      setIsDeleteConfirmOpen(false);
+    }
   };
 
   if (isLoading) return <div className="p-6 text-zinc-400">Loading...</div>;
@@ -88,16 +140,18 @@ const AlbumDetailPage = () => {
 
       {/* Header */}
       <div className="mb-8 flex items-end gap-6">
-        <div className="flex h-44 w-44 shrink-0 items-center justify-center rounded-lg bg-zinc-800 shadow-2xl overflow-hidden">
-          {albumInfo?.coverImageUrl ? (
-            <img
-              src={albumInfo.coverImageUrl}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <Disc className="size-16 text-zinc-400" />
-          )}
-        </div>
+            <div className="flex h-44 w-44 shrink-0 items-center justify-center rounded-lg bg-zinc-800 shadow-2xl overflow-hidden">
+              {albumInfo?.coverImageUrl ? (
+                <img
+                  src={resolveAssetUrl(albumInfo.coverImageUrl)}
+                  alt={albumInfo.title}
+                  className="h-full w-full object-cover"
+                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                />
+              ) : (
+                <Disc className="size-16 text-zinc-400" />
+              )}
+            </div>
         <div className="flex flex-col gap-1">
           <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
             Album
@@ -106,7 +160,7 @@ const AlbumDetailPage = () => {
             {albumInfo?.title}
           </h1>
           <p className="mt-1 text-sm text-zinc-400 font-medium">
-            {albumInfo?.description}
+            {albumSongs[0]?.artist} - {albumInfo?.description}
           </p>
         </div>
       </div>
@@ -125,13 +179,16 @@ const AlbumDetailPage = () => {
         </button>
 
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/60 px-4 py-2 text-sm font-semibold hover:bg-zinc-700">
+          <button onClick={() => setIsAddOpen(true)}
+            className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/60 px-4 py-2 text-sm font-semibold hover:bg-zinc-700">
             <Plus size={16} /> Add Song
           </button>
-          <button className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/60 px-4 py-2 text-sm font-semibold hover:bg-zinc-700">
+          <button onClick={() => setIsUpdateOpen(true)}
+            className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/60 px-4 py-2 text-sm font-semibold hover:bg-zinc-700">
             <Pencil size={16} /> Update Album
           </button>
-          <button className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/60 px-4 py-2 text-sm font-semibold hover:bg-zinc-700 hover:text-red-500">
+          <button onClick={() => setIsDeleteConfirmOpen(true)}
+            className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/60 px-4 py-2 text-sm font-semibold hover:bg-zinc-700 hover:text-red-500">
             <Trash2 size={16} /> Delete Album
           </button>
         </div>
@@ -170,6 +227,28 @@ const AlbumDetailPage = () => {
           );
         })}
       </div>
+      <AddSongAlbumModal 
+        isOpen={isAddOpen} 
+        onClose={() => setIsAddOpen(false)} 
+        onUploaded={loadAlbum}
+        albumId={id}
+        artistName={albumInfo?.tracks[0]?.artistName}
+      />
+      {albumInfo && (
+        <UpdateAlbumModal 
+          isOpen={isUpdateOpen} 
+          onClose={() => setIsUpdateOpen(false)} 
+          AlbumData={albumInfo}
+          onUpdateSuccess={loadAlbum}
+        />
+      )}
+      <ConfirmDeleteModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteAlbum}
+        itemTitle={albumInfo?.title || ""}
+        type="album"
+      />
     </div>
   );
 };
