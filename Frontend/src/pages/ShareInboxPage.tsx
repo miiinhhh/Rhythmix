@@ -271,7 +271,7 @@ const ShareInboxPage = () => {
       {/* Danh sách hiển thị tin nhắn/bài nhạc */}
       {isLoadingShares && (
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-400">
-          Dang tai danh sach chia se...
+          Loading sharing list...
         </div>
       )}
 
