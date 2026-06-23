@@ -35,27 +35,77 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
   const validate = () => {
     const next: Record<string, string> = {};
 
+    // ── NAME ──────────────────────────────────────────────
     if (mode === "register" && registerStep === "form" && name.trim().length < 2) {
       next.name = "Please enter your name.";
     }
 
-    if (registerStep === "form" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      next.email = "Enter a valid email address.";
+    // ── EMAIL ─────────────────────────────────────────────
+    if (registerStep === "form") {
+      const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(email)) {
+        next.email = "Enter a valid email address.";
+      } else {
+        const domain     = email.toLowerCase().split("@")[1] ?? "";
+        const tld        = domain.split(".").pop() ?? "";
+        const domainName = domain.split(".").slice(0, -1).join(".");
+
+        const knownProviders   = ["gmail", "yahoo", "hotmail", "outlook", "icloud"];
+        const validCountryTLDs = ["vn", "uk", "jp", "kr", "au", "de", "fr", "us", "ca", "sg", "id", "th", "my"];
+
+        const editDistance = (a: string, b: string): number => {
+          const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+            Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+          );
+          for (let i = 1; i <= a.length; i++)
+            for (let j = 1; j <= b.length; j++)
+              dp[i][j] = a[i-1] === b[j-1]
+                ? dp[i-1][j-1]
+                : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+          return dp[a.length][b.length];
+        };
+
+        const isExactProvider = knownProviders.includes(domainName);
+
+        // gmail.co → TLD sai
+        if (isExactProvider && tld.length === 2 && !validCountryTLDs.includes(tld)) {
+          next.email = "Enter a valid email address.";
+        }
+        // gmai.com / yahooo.com → tên provider gõ sai 1 ký tự
+        else if (!isExactProvider && knownProviders.some(p => editDistance(domainName, p) === 1)) {
+          next.email = "Enter a valid email address.";
+        }
+      }
     }
 
-    if (registerStep === "form" && password.length < 6) {
-      next.password = "Password must be at least 6 characters.";
+    // ── PASSWORD ──────────────────────────────────────────
+    if (registerStep === "form") {
+      if (mode === "register") {
+        if (password.length < 6) {
+          next.password = "Password must be at least 6 characters.";
+        } else if (!/[A-Z]/.test(password)) {
+          next.password = "Password must contain at least one uppercase letter.";
+        } else if (!/[0-9]/.test(password)) {
+          next.password = "Password must contain at least one number.";
+        } else if (!/[!@#$%^&*(),.?\":{}|<>_\-\[\]\\\/`~;'+]/.test(password)) {
+          next.password = "Password must contain at least one special character.";
+        }
+
+        // ── CONFIRM PASSWORD ──────────────────────────────────
+        if (next.password) {
+          next.confirmPassword = "Please fix your password above first.";
+        } else if (confirmPassword !== password) {
+          next.confirmPassword = "Passwords do not match.";
+        }
+      } else {
+        // login: only basic length check
+        if (password.length < 6) {
+          next.password = "Password must be at least 6 characters.";
+        }
+      }
     }
 
-    if (
-      mode === "register" &&
-      registerStep === "form" &&
-      confirmPassword !== password
-    ) {
-      next.confirmPassword = "Passwords do not match.";
-      next.auth = "Confirm password does not match password.";
-    }
-
+    // ── OTP ───────────────────────────────────────────────
     if (mode === "register" && registerStep === "otp" && otp.trim().length === 0) {
       next.otp = "Please enter OTP.";
     }
@@ -63,6 +113,8 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
     setErrors(next);
     return Object.keys(next).length === 0;
   };
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,6 +260,7 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
               placeholder="Your name"
             />
           )}
+
           {errors.auth && (
             <div className="mb-4 rounded-md bg-red-500/10 border border-red-500/20 p-2.5 text-center text-xs font-semibold text-red-400">
               {errors.auth}
@@ -259,6 +312,7 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
               )}
             </>
           )}
+
           {mode === "register" && registerStep === "otp" && (
             <Field
               id="auth-otp"
@@ -406,4 +460,3 @@ const PasswordField = ({
 };
 
 export default AuthModal;
-
