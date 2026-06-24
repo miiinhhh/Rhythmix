@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ImagePlus, ListMusic, Mic2, Play, Search } from "lucide-react";
+import { AudioLines, Disc3, Headphones, ImagePlus, ListMusic, Mic2, Music, Play, Radio, Search, } from "lucide-react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { artistService } from "../api/artistService";
 import { followService } from "../api/followService";
 import { searchService } from "../api/searchService";
 import { userService } from "../api/userService";
-import { genreService } from "../api/genreService";
-import type { ArtistDto, GenreDto, MediaItemDto, SearchAlbumDto, SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
+import type { ArtistDto, MediaItemDto, SearchAlbumDto, SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
 import { mapMediaToSong, resolveArtistName, type SongType } from "../utils/mediaMapping";
 import { API_BASE_URL } from "../config/apiConfig";
 
@@ -17,22 +16,43 @@ interface OutletContextType {
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
 }
 
-// Browse categories for Spotify-style colors
-const browseCategories: Record<string, string> = {
-  Pop: "#E13300",
-  Rock: "#503750",
-  Indie: "#1E3264",
-  Alternative: "#27856A",
-  Electronic: "#006450",
-  HipHop: "#E8115B",
-  Jazz: "#8D67AB",
-  Classical: "#509BF5",
-  RnB: "#503750",
-};
-
-const getGenreFallbackColor = (genreName: string): string => {
-  return browseCategories[genreName] || "#152238";
-};
+const browseCategories = [
+  {
+    label: "Pop",
+    subtitle: "Explore Pop",
+    icon: Music,
+    gradient: "from-pink-500 via-rose-500 to-purple-700",
+    accent: "bg-pink-400",
+  },
+  {
+    label: "Rock",
+    subtitle: "Genre mix",
+    icon: Disc3,
+    gradient: "from-red-600 via-orange-600 to-zinc-950",
+    accent: "bg-red-400",
+  },
+  {
+    label: "Indie",
+    subtitle: "Rhythmix playlist",
+    icon: Headphones,
+    gradient: "from-violet-500 via-indigo-600 to-slate-950",
+    accent: "bg-violet-400",
+  },
+  {
+    label: "Alternative",
+    subtitle: "Alternative mix",
+    icon: Radio,
+    gradient: "from-cyan-500 via-blue-600 to-zinc-950",
+    accent: "bg-cyan-400",
+  },
+  {
+    label: "Electronic",
+    subtitle: "Electronic hits",
+    icon: AudioLines,
+    gradient: "from-lime-400 via-emerald-600 to-zinc-950",
+    accent: "bg-lime-400",
+  },
+];
 
 
 const formatDuration = (seconds?: number) => {
@@ -45,8 +65,7 @@ const formatDuration = (seconds?: number) => {
 const resolveAssetUrl = (url?: string) => {
   if (!url) return undefined;
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) return url;
-  const normalizedUrl = url.startsWith("/") ? url : `/${url}`;
-  return `${API_BASE_URL}${encodeURI(normalizedUrl)}`;
+  return `${API_BASE_URL}${url}`;
 };
 
 const mapSearchMediaToSong = (media: SearchMediaDto): SongType => {
@@ -55,11 +74,15 @@ const mapSearchMediaToSong = (media: SearchMediaDto): SongType => {
 
   let albumName: string;
   if (!media.albumId) {
+    // Definitely a single
     albumName = "Single";
   } else {
+    // Has albumId, check for albumTitle
     if (media.albumTitle && media.albumTitle.trim() !== "") {
+      // Only use "Album [title]" if title is valid
       albumName = `Album ${media.albumTitle}`;
     } else {
+      // Fallback if no valid album title
       albumName = "Album Track";
     }
   }
@@ -82,7 +105,6 @@ const SearchPage = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<UserProfileDto[]>([]);
-  const [genres, setGenres] = useState<GenreDto[]>([]);
   const [mediaResults, setMediaResults] = useState<SearchMediaDto[]>([]);
   const [playlistResults, setPlaylistResults] = useState<SearchPlaylistDto[]>([]);
   const [albumResults, setAlbumResults] = useState<SearchAlbumDto[]>([]);
@@ -95,11 +117,10 @@ const SearchPage = () => {
   const [followedArtistIds, setFollowedArtistIds] = useState<Record<string, boolean>>({});
   const artistCoverInputRef = useRef<HTMLInputElement>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const { setCurrentSongId, setIsPlaying, setSongs } = useOutletContext<OutletContextType>();
+  const { setCurrentSongId, setIsPlaying, songs, setSongs } = useOutletContext<OutletContextType>();
 
   useEffect(() => {
     userService.getUsers().then(setUsers).catch(() => setUsers([]));
-    genreService.getAll().then(setGenres).catch(() => setGenres([]));
   }, []);
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -319,7 +340,7 @@ const SearchPage = () => {
                         key={artist.artistId}
                         onClick={() => void openArtist(artist)}
                         className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 hover:bg-zinc-800"
-                        style={coverUrl ? { backgroundImage: `linear-gradient(to right, rgba(24,24,27,.92), rgba(24,24,27,.72)), url("${coverUrl}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+                        style={coverUrl ? { backgroundImage: `linear-gradient(to right, rgba(24,24,27,.92), rgba(24,24,27,.72)), url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
                       >
                         {avatarUrl ? (
                           <img src={avatarUrl} alt={artist.name} className="size-12 rounded-full object-cover" />
@@ -340,11 +361,10 @@ const SearchPage = () => {
                             event.stopPropagation();
                             void toggleArtistFollow(artist.artistId);
                           }}
-                          className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
-                            followedArtistIds[artist.artistId]
+                          className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${followedArtistIds[artist.artistId]
                               ? "bg-zinc-700 text-white"
                               : "bg-white text-black hover:bg-zinc-200"
-                          }`}
+                            }`}
                         >
                           {followedArtistIds[artist.artistId] ? "Following" : "Follow"}
                         </button>
@@ -363,10 +383,10 @@ const SearchPage = () => {
                     style={
                       selectedArtist.coverImageUrl
                         ? {
-                            backgroundImage: `linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,.25)), url("${resolveAssetUrl(selectedArtist.coverImageUrl)}")`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }
+                          backgroundImage: `linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,.25)), url(${resolveAssetUrl(selectedArtist.coverImageUrl)})`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }
                         : undefined
                     }
                   >
@@ -403,9 +423,8 @@ const SearchPage = () => {
                       <button
                         type="button"
                         onClick={() => void toggleArtistFollow(selectedArtist.artistId)}
-                        className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                          followedArtistIds[selectedArtist.artistId] ? "bg-zinc-700 text-white" : "bg-green-500 text-black"
-                        }`}
+                        className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${followedArtistIds[selectedArtist.artistId] ? "bg-zinc-700 text-white" : "bg-green-500 text-black"
+                          }`}
                       >
                         {followedArtistIds[selectedArtist.artistId] ? "Following" : "Follow"}
                       </button>
@@ -459,36 +478,25 @@ const SearchPage = () => {
               <div>
                 <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Playlists</h2>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {playlistResults.map((playlist) => {
-                    const coverUrl = resolveAssetUrl(playlist.coverImageUrl || playlist.thumbnailUrl);
-                    return (
-                      <button
-                        key={playlist.playlistId}
-                        type="button"
-                        onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
-                        className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left hover:bg-zinc-800"
-                      >
-                        {coverUrl ? (
-                          <img 
-                            src={coverUrl} 
-                            alt={playlist.name} 
-                            className="size-12 rounded-md object-cover" 
-                          />
-                        ) : (
-                          <div className="flex size-12 items-center justify-center rounded-md bg-zinc-800 text-zinc-400">
-                            <ListMusic className="size-6" />
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-semibold text-white">{playlist.name}</div>
-                          <div className="truncate text-xs text-zinc-400">
-                            {playlist.trackCount} songs - {playlist.isPublic ? "Public" : "Private"}
-                          </div>
+                  {playlistResults.map((playlist) => (
+                    <button
+                      key={playlist.playlistId}
+                      type="button"
+                      onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left hover:bg-zinc-800"
+                    >
+                      <div className="flex size-12 items-center justify-center rounded-md bg-zinc-800 text-zinc-400">
+                        <ListMusic className="size-6" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-white">{playlist.name}</div>
+                        <div className="truncate text-xs text-zinc-400">
+                          {playlist.trackCount} songs - {playlist.isPublic ? "Public" : "Private"}
                         </div>
-                        <Play className="size-4 text-zinc-400" />
-                      </button>
-                    );
-                  })}                   
+                      </div>
+                      <Play className="size-4 text-zinc-400" />
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -505,10 +513,10 @@ const SearchPage = () => {
                       className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left hover:bg-zinc-800"
                     >
                       {album.coverImageUrl ? (
-                        <img 
-                          src={resolveAssetUrl(album.coverImageUrl)} 
-                          alt={album.title} 
-                          className="size-12 rounded-md object-cover" 
+                        <img
+                          src={resolveAssetUrl(album.coverImageUrl)}
+                          alt={album.title}
+                          className="size-12 rounded-md object-cover"
                         />
                       ) : (
                         <div className="flex size-12 items-center justify-center rounded-md bg-zinc-800 text-zinc-400">
@@ -561,7 +569,7 @@ const SearchPage = () => {
                 <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Songs</h2>
                 <div className="space-y-2">
                   {mediaResults.map((media) => {
-                    const song = mapSearchMediaToSong(media);
+                    const song = songs.find((item) => item.id === media.mediaId) || mapSearchMediaToSong(media);
                     return (
                       <div
                         key={media.mediaId}
@@ -580,11 +588,10 @@ const SearchPage = () => {
                                 event.stopPropagation();
                                 void toggleArtistFollow(media.artistId);
                               }}
-                              className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
-                                followedArtistIds[media.artistId]
+                              className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${followedArtistIds[media.artistId]
                                   ? "bg-zinc-800 text-white"
                                   : "bg-white text-black hover:bg-zinc-200"
-                              }`}
+                                }`}
                             >
                               {followedArtistIds[media.artistId] ? "Following" : "Follow Artist"}
                             </button>
@@ -604,28 +611,61 @@ const SearchPage = () => {
           </div>
         ) : (
           <div className="mt-8">
-            <h2 className="mb-4 text-xl font-bold tracking-tight text-white">Browse genres</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {genres.map((genre) => {
-                const coverUrl = resolveAssetUrl(genre.coverImageUrl);
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-white">
+                  Browse genres
+                </h2>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Pick a genre and start exploring Rhythmix.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6">
+              {browseCategories.map((cat) => {
+                const Icon = cat.icon;
+
                 return (
                   <button
-                    key={genre.genreId}
+                    key={cat.label}
                     type="button"
-                    onClick={() => setQuery(genre.name)}
-                    className="group relative flex aspect-[1.6/1] cursor-pointer items-start overflow-hidden rounded-lg p-4 text-left"
-                    style={{ 
-                      backgroundColor: getGenreFallbackColor(genre.name),
-                    }}
+                    onClick={() => setQuery(cat.label)}
+                    className="group rounded-xl bg-zinc-900/70 p-3 text-left transition-all duration-300 hover:bg-zinc-800/90 hover:shadow-xl hover:shadow-black/20"
                   >
-                    <span className="relative z-10 text-lg font-black text-white">{genre.name}</span>
-                    {coverUrl && (
-                      <img
-                        src={coverUrl}
-                        alt={genre.name}
-                        className="absolute -bottom-8 -right-8 w-48 h-44 object-cover shadow-[0_0_30px_rgba(0,0,0,0.6)] transition-transform duration-300 ease-out rotate-[25deg] group-hover:scale-110 group-hover:-translate-x-3 group-hover:-translate-y-3"
+                    <div className="relative aspect-square overflow-hidden rounded-lg bg-zinc-800">
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${cat.gradient} transition-transform duration-500 group-hover:scale-110`}
                       />
-                    )}
+
+                      <div className="absolute inset-0 opacity-25">
+                        <div className="absolute -right-8 -top-8 size-28 rounded-full border-[18px] border-white/40" />
+                        <div className="absolute right-8 top-8 size-14 rotate-45 rounded-xl border-[10px] border-white/30" />
+                        <div className="absolute bottom-5 left-5 h-16 w-2 rotate-45 rounded-full bg-white/30" />
+                        <div className="absolute bottom-9 left-10 h-10 w-2 rotate-45 rounded-full bg-white/20" />
+                      </div>
+
+                      <div className="absolute left-3 top-3 flex size-9 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm">
+                        <Icon className="size-5" />
+                      </div>
+
+                      <div
+                        className={`absolute bottom-3 left-3 h-1 w-10 rounded-full ${cat.accent}`}
+                      />
+
+                      <div className="absolute bottom-3 right-3 flex size-11 translate-y-3 items-center justify-center rounded-full bg-green-500 text-black opacity-0 shadow-lg shadow-black/30 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                        <Play className="ml-0.5 size-5 fill-current" />
+                      </div>
+                    </div>
+
+                    <div className="mt-3 min-w-0">
+                      <h3 className="truncate text-sm font-semibold text-white">
+                        {cat.label}
+                      </h3>
+                      <p className="mt-1 truncate text-xs text-zinc-400">
+                        {cat.subtitle}
+                      </p>
+                    </div>
                   </button>
                 );
               })}
