@@ -49,12 +49,23 @@ public sealed class GetPlaylistByIdQueryHandler : IRequestHandler<GetPlaylistByI
             Duration = mediaDict.ContainsKey(track.MediaId) ? mediaDict[track.MediaId].Duration : 0
         }).ToList();
 
+        // Lấy ảnh cover: dùng ảnh của playlist nếu có, nếu không dùng ảnh bài hát đầu tiên
+        string? coverImageUrl = playlist.CoverImageUrl;
+        if (string.IsNullOrEmpty(coverImageUrl) && tracks.Any())
+        {
+            var firstMediaId = tracks.First().MediaId;
+            if (mediaDict.TryGetValue(firstMediaId, out var firstMedia))
+            {
+                coverImageUrl = firstMedia.ThumbnailUrl;
+            }
+        }
+
         return new PlaylistDetailDto
         {
             PlaylistId = playlist.Id,
             Name = playlist.Name,
             Description = playlist.Description,
-            CoverImageUrl = playlist.CoverImageUrl,
+            CoverImageUrl = coverImageUrl,
             IsPublic = playlist.IsPublic,
             OwnerId = playlist.OwnerId,
             CreatedAt = playlist.CreatedAt,

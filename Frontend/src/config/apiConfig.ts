@@ -8,7 +8,8 @@ export const resolveAssetUrl = (url?: string): string => {
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
         return url;
     }
-    return `${API_BASE_URL}${url}`;
+    const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${API_BASE_URL}${encodeURI(normalizedUrl)}`;
 };
 
 // Export default cho tiện

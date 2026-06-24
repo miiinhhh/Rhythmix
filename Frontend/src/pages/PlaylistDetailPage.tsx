@@ -138,7 +138,6 @@ const PlaylistDetailPage = () => {
     if (!id) return;
     await playlistService.addTrack(id, song.id, playlistSongs.length);
     setPlaylistSongs((prev) => [...prev, song]);
-    setIsAddSongModalOpen(false);
   };
 
   const handleDeleteConfirm = async () => {
@@ -326,7 +325,6 @@ const PlaylistDetailPage = () => {
       <AddSongModal
         isOpen={isAddSongModalOpen}
         onClose={() => setIsAddSongModalOpen(false)}
-        allSongs={songs}
         currentPlaylistSongs={playlistSongs}
         onAddSongSuccess={handleAddSong}
       />

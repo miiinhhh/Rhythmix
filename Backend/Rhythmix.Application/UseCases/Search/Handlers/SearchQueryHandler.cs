@@ -8,10 +8,17 @@ namespace Rhythmix.Application.UseCases.Search.Handlers;
 public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResponse>
 {
     private readonly ISearchRepository _searchRepository;
+    private readonly IPlaylistTrackRepository _playlistTrackRepository;
+    private readonly IMediaRepository _mediaRepository;
 
-    public SearchQueryHandler(ISearchRepository searchRepository)
+    public SearchQueryHandler(
+        ISearchRepository searchRepository, 
+        IPlaylistTrackRepository playlistTrackRepository, 
+        IMediaRepository mediaRepository)
     {
         _searchRepository = searchRepository;
+        _playlistTrackRepository = playlistTrackRepository;
+        _mediaRepository = mediaRepository;
     }
 
     public async Task<SearchResponse> Handle(SearchQuery request, CancellationToken cancellationToken)
@@ -58,16 +65,24 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
             var (playlists, totalPlaylists) = await _searchRepository.SearchPlaylistAsync(
                 request.QueryText, request.Page, request.PageSize);
 
-            response.Playlists = playlists.Select(p => new SearchPlaylistDto
+            var playlistDtos = new List<SearchPlaylistDto>();
+            foreach (var playlist in playlists)
             {
-                PlaylistId = p.Id,
-                Name = p.Name,
-                Description = p.Description,
-                IsPublic = p.IsPublic,
-                OwnerId = p.OwnerId,
-                CreatedAt = p.CreatedAt,
-                TrackCount = p.TrackCount
-            }).ToList();
+                var coverUrl = await GetPlaylistCoverUrlAsync(playlist);
+                playlistDtos.Add(new SearchPlaylistDto
+                {
+                    PlaylistId = playlist.Id,
+                    Name = playlist.Name,
+                    Description = playlist.Description,
+                    IsPublic = playlist.IsPublic,
+                    OwnerId = playlist.OwnerId,
+                    CreatedAt = playlist.CreatedAt,
+                    TrackCount = playlist.TrackCount,
+                    CoverImageUrl = playlist.CoverImageUrl,
+                    ThumbnailUrl = coverUrl
+                });
+            }
+            response.Playlists = playlistDtos;
 
             if (request.SearchType == SearchType.All)
             {
@@ -149,11 +164,17 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
             .Select(MapMedia)
             .ToList();
 
+        // Lấy thumbnail của bài hát đầu tiên có thumbnail
+        var coverImageUrl = tracks
+            .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.ThumbnailUrl))
+            ?.ThumbnailUrl;
+
         return new SearchGenrePlaylistDto
         {
             GenreId = item.Genre.GenreId,
             Name = $"{item.Genre.Name} Mix",
             Description = item.Genre.Description ?? $"Playlist đề xuất theo thể loại {item.Genre.Name}",
+            CoverImageUrl = coverImageUrl,
             TrackCount = tracks.Count,
             Tracks = tracks
         };
@@ -189,16 +210,24 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
         var (playlists, totalPlaylists) = await _searchRepository.GetPublicPlaylistsAsync(
             request.Page, request.PageSize);
 
-        response.Playlists = playlists.Select(p => new SearchPlaylistDto
+        var playlistDtos = new List<SearchPlaylistDto>();
+        foreach (var playlist in playlists)
         {
-            PlaylistId = p.Id,
-            Name = p.Name,
-            Description = p.Description,
-            IsPublic = p.IsPublic,
-            OwnerId = p.OwnerId,
-            CreatedAt = p.CreatedAt,
-            TrackCount = p.TrackCount
-        }).ToList();
+            var coverUrl = await GetPlaylistCoverUrlAsync(playlist);
+            playlistDtos.Add(new SearchPlaylistDto
+            {
+                PlaylistId = playlist.Id,
+                Name = playlist.Name,
+                Description = playlist.Description,
+                IsPublic = playlist.IsPublic,
+                OwnerId = playlist.OwnerId,
+                CreatedAt = playlist.CreatedAt,
+                TrackCount = playlist.TrackCount,
+                CoverImageUrl = playlist.CoverImageUrl,
+                ThumbnailUrl = coverUrl
+            });
+        }
+        response.Playlists = playlistDtos;
 
         // Lấy albums mới nhất
         var (albums, totalAlbums) = await _searchRepository.GetPublicAlbumsAsync(
@@ -224,5 +253,26 @@ public sealed class SearchQueryHandler : IRequestHandler<SearchQuery, SearchResp
         };
 
         return response;
+    }
+
+    private async Task<string?> GetPlaylistCoverUrlAsync(Rhythmix.Domain.Entities.Playlist playlist)
+    {
+        // Nếu playlist đã có cover ảnh → dùng luôn
+        if (!string.IsNullOrEmpty(playlist.CoverImageUrl))
+        {
+            return playlist.CoverImageUrl;
+        }
+
+        // Nếu không, lấy tracks của playlist
+        var tracks = await _playlistTrackRepository.GetTracksAsync(playlist.Id);
+        var firstTrack = tracks.FirstOrDefault();
+        if (firstTrack == null)
+        {
+            return null;
+        }
+
+        // Lấy thông tin media item
+        var media = await _mediaRepository.GetByIdAsync(firstTrack.MediaId);
+        return media?.ThumbnailUrl;
     }
 }

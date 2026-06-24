@@ -115,11 +115,6 @@ public sealed class DapperSearchRepository : ISearchRepository
         IDbTransaction? transaction = null)
     {
 
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return Enumerable.Empty<(Genre Genre, IEnumerable<MediaItem> Tracks)>();
-        }
-
         const string sql = @"
             SELECT
                 g.GenreId,
@@ -145,17 +140,21 @@ public sealed class DapperSearchRepository : ISearchRepository
                 m.ViewCount,
                 m.CreatedAt
             FROM [Genres] g
-            INNER JOIN [MediaItemGenres] mig ON mig.GenreId = g.GenreId
-            INNER JOIN [MediaItems] m ON m.MediaId = mig.MediaId AND m.IsPublic = 1
+            INNER JOIN [MediaItems] m ON 
+                m.IsPublic = 1
+                AND (
+                    m.GenreId = g.GenreId 
+                    OR EXISTS (SELECT 1 FROM MediaItemGenres mig WHERE mig.GenreId = g.GenreId AND mig.MediaId = m.MediaId)
+                )
             LEFT JOIN [Artists] a ON a.ArtistId = m.ArtistId
             LEFT JOIN [Albums] al ON al.AlbumId = m.AlbumId
-            WHERE LOWER(g.Name) = LOWER(@ExactQuery)
+            WHERE (@ExactQuery IS NULL OR LOWER(g.Name) = LOWER(@ExactQuery))
             ORDER BY g.Name, m.ViewCount DESC, m.CreatedAt DESC";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
 
-        var exactQuery = query.Trim();
+        var exactQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
         var grouped = new Dictionary<Guid, (Genre Genre, List<MediaItem> Tracks)>();
 
         await connection.QueryAsync<Genre, MediaItem, Genre>(
@@ -208,6 +207,7 @@ public sealed class DapperSearchRepository : ISearchRepository
             p.PlaylistId AS Id,
             p.Name,
             p.Description,
+            p.CoverImageUrl,
             p.IsPublic,
             p.OwnerId,
             p.CreatedAt,
@@ -218,7 +218,7 @@ public sealed class DapperSearchRepository : ISearchRepository
             AND (p.Name LIKE @Query 
                  OR p.Description LIKE @Query
                  OR EXISTS (SELECT 1 FROM AspNetUsers u WHERE u.Id = p.OwnerId AND u.UserName LIKE @Query))
-        GROUP BY p.PlaylistId, p.Name, p.Description, p.IsPublic, p.OwnerId, p.CreatedAt
+        GROUP BY p.PlaylistId, p.Name, p.Description, p.CoverImageUrl, p.IsPublic, p.OwnerId, p.CreatedAt
         ORDER BY p.CreatedAt DESC
         OFFSET @Offset ROWS
         FETCH NEXT @PageSize ROWS ONLY";
@@ -255,6 +255,7 @@ public sealed class DapperSearchRepository : ISearchRepository
             p.PlaylistId AS Id, 
             p.Name, 
             p.Description, 
+            p.CoverImageUrl,
             p.IsPublic, 
             p.OwnerId, 
             p.CreatedAt,
@@ -262,7 +263,7 @@ public sealed class DapperSearchRepository : ISearchRepository
         FROM [Playlists] p
         LEFT JOIN [PlayListTrack] pt ON p.PlaylistId = pt.PlaylistId
         WHERE p.IsPublic = 1
-        GROUP BY p.PlaylistId, p.Name, p.Description, p.IsPublic, p.OwnerId, p.CreatedAt
+        GROUP BY p.PlaylistId, p.Name, p.Description, p.CoverImageUrl, p.IsPublic, p.OwnerId, p.CreatedAt
         ORDER BY p.CreatedAt DESC
         OFFSET @Offset ROWS
         FETCH NEXT @PageSize ROWS ONLY";

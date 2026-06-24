@@ -23,6 +23,7 @@ public sealed class SearchGenrePlaylistDto
     public Guid GenreId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string? CoverImageUrl { get; set; }
     public int TrackCount { get; set; }
     public List<SearchMediaDto> Tracks { get; set; } = new();
 }
@@ -36,6 +37,8 @@ public sealed class SearchPlaylistDto
     public Guid OwnerId { get; set; }
     public int TrackCount { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? CoverImageUrl { get; set; }
+    public string? ThumbnailUrl { get; set; }
 }
 
 public sealed class SearchAlbumDto

@@ -30,7 +30,8 @@ public class FileStorageService : IFileStorageService
             Directory.CreateDirectory(uploadDir);
         }
 
-        var safeFileName = $"{Guid.NewGuid()}_{Path.GetFileName(fileName)}";
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        var safeFileName = $"{Guid.NewGuid():N}{extension}";
         var filePath = Path.Combine(uploadDir, safeFileName);
 
         using var fileStreamOutput = new FileStream(filePath, FileMode.Create, FileAccess.Write);

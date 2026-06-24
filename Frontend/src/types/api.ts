@@ -76,6 +76,7 @@ export interface GenreDto {
   genreId: string;
   name: string;
   description?: string;
+  coverImageUrl?: string;
 }
 
 export interface ArtistDto {
@@ -260,6 +261,8 @@ export interface SearchPlaylistDto {
   ownerId: string;
   trackCount: number;
   createdAt: string;
+  coverImageUrl?: string;
+  thumbnailUrl?: string;
 }
 
 export interface SearchAlbumDto {
@@ -277,6 +280,7 @@ export interface SearchGenrePlaylistDto {
   genreId: string;
   name: string;
   description?: string;
+  coverImageUrl?: string;
   trackCount: number;
   tracks: SearchMediaDto[];
 }

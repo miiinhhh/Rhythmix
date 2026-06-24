@@ -5,7 +5,8 @@ import { artistService } from "../api/artistService";
 import { followService } from "../api/followService";
 import { searchService } from "../api/searchService";
 import { userService } from "../api/userService";
-import type { ArtistDto, MediaItemDto, SearchAlbumDto, SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
+import { genreService } from "../api/genreService";
+import type { ArtistDto, GenreDto, MediaItemDto, SearchAlbumDto, SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
 import { mapMediaToSong, resolveArtistName, type SongType } from "../utils/mediaMapping";
 import { API_BASE_URL } from "../config/apiConfig";
 
@@ -16,13 +17,22 @@ interface OutletContextType {
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
 }
 
-const browseCategories = [
-  { label: "Pop", color: "oklch(0.62 0.17 145)" },
-  { label: "Rock", color: "oklch(0.6 0.18 25)" },
-  { label: "Indie", color: "oklch(0.55 0.16 280)" },
-  { label: "Alternative", color: "oklch(0.6 0.15 200)" },
-  { label: "Electronic", color: "oklch(0.58 0.18 60)" },
-];
+// Browse categories for Spotify-style colors
+const browseCategories: Record<string, string> = {
+  Pop: "#E13300",
+  Rock: "#503750",
+  Indie: "#1E3264",
+  Alternative: "#27856A",
+  Electronic: "#006450",
+  HipHop: "#E8115B",
+  Jazz: "#8D67AB",
+  Classical: "#509BF5",
+  RnB: "#503750",
+};
+
+const getGenreFallbackColor = (genreName: string): string => {
+  return browseCategories[genreName] || "#152238";
+};
 
 
 const formatDuration = (seconds?: number) => {
@@ -35,7 +45,8 @@ const formatDuration = (seconds?: number) => {
 const resolveAssetUrl = (url?: string) => {
   if (!url) return undefined;
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) return url;
-  return `${API_BASE_URL}${url}`;
+  const normalizedUrl = url.startsWith("/") ? url : `/${url}`;
+  return `${API_BASE_URL}${encodeURI(normalizedUrl)}`;
 };
 
 const mapSearchMediaToSong = (media: SearchMediaDto): SongType => {
@@ -44,15 +55,11 @@ const mapSearchMediaToSong = (media: SearchMediaDto): SongType => {
 
   let albumName: string;
   if (!media.albumId) {
-    // Definitely a single
     albumName = "Single";
   } else {
-    // Has albumId, check for albumTitle
     if (media.albumTitle && media.albumTitle.trim() !== "") {
-      // Only use "Album [title]" if title is valid
       albumName = `Album ${media.albumTitle}`;
     } else {
-      // Fallback if no valid album title
       albumName = "Album Track";
     }
   }
@@ -75,6 +82,7 @@ const SearchPage = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<UserProfileDto[]>([]);
+  const [genres, setGenres] = useState<GenreDto[]>([]);
   const [mediaResults, setMediaResults] = useState<SearchMediaDto[]>([]);
   const [playlistResults, setPlaylistResults] = useState<SearchPlaylistDto[]>([]);
   const [albumResults, setAlbumResults] = useState<SearchAlbumDto[]>([]);
@@ -91,6 +99,7 @@ const SearchPage = () => {
 
   useEffect(() => {
     userService.getUsers().then(setUsers).catch(() => setUsers([]));
+    genreService.getAll().then(setGenres).catch(() => setGenres([]));
   }, []);
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -310,7 +319,7 @@ const SearchPage = () => {
                         key={artist.artistId}
                         onClick={() => void openArtist(artist)}
                         className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 hover:bg-zinc-800"
-                        style={coverUrl ? { backgroundImage: `linear-gradient(to right, rgba(24,24,27,.92), rgba(24,24,27,.72)), url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+                        style={coverUrl ? { backgroundImage: `linear-gradient(to right, rgba(24,24,27,.92), rgba(24,24,27,.72)), url("${coverUrl}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
                       >
                         {avatarUrl ? (
                           <img src={avatarUrl} alt={artist.name} className="size-12 rounded-full object-cover" />
@@ -354,7 +363,7 @@ const SearchPage = () => {
                     style={
                       selectedArtist.coverImageUrl
                         ? {
-                            backgroundImage: `linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,.25)), url(${resolveAssetUrl(selectedArtist.coverImageUrl)})`,
+                            backgroundImage: `linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,.25)), url("${resolveAssetUrl(selectedArtist.coverImageUrl)}")`,
                             backgroundSize: "cover",
                             backgroundPosition: "center",
                           }
@@ -450,25 +459,36 @@ const SearchPage = () => {
               <div>
                 <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Playlists</h2>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {playlistResults.map((playlist) => (
-                    <button
-                      key={playlist.playlistId}
-                      type="button"
-                      onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left hover:bg-zinc-800"
-                    >
-                      <div className="flex size-12 items-center justify-center rounded-md bg-zinc-800 text-zinc-400">
-                        <ListMusic className="size-6" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-white">{playlist.name}</div>
-                        <div className="truncate text-xs text-zinc-400">
-                          {playlist.trackCount} songs - {playlist.isPublic ? "Public" : "Private"}
+                  {playlistResults.map((playlist) => {
+                    const coverUrl = resolveAssetUrl(playlist.coverImageUrl || playlist.thumbnailUrl);
+                    return (
+                      <button
+                        key={playlist.playlistId}
+                        type="button"
+                        onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
+                        className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left hover:bg-zinc-800"
+                      >
+                        {coverUrl ? (
+                          <img 
+                            src={coverUrl} 
+                            alt={playlist.name} 
+                            className="size-12 rounded-md object-cover" 
+                          />
+                        ) : (
+                          <div className="flex size-12 items-center justify-center rounded-md bg-zinc-800 text-zinc-400">
+                            <ListMusic className="size-6" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold text-white">{playlist.name}</div>
+                          <div className="truncate text-xs text-zinc-400">
+                            {playlist.trackCount} songs - {playlist.isPublic ? "Public" : "Private"}
+                          </div>
                         </div>
-                      </div>
-                      <Play className="size-4 text-zinc-400" />
-                    </button>
-                  ))}
+                        <Play className="size-4 text-zinc-400" />
+                      </button>
+                    );
+                  })}                   
                 </div>
               </div>
             )}
@@ -541,7 +561,7 @@ const SearchPage = () => {
                 <h2 className="mb-3 text-lg font-bold tracking-tight text-white">Songs</h2>
                 <div className="space-y-2">
                   {mediaResults.map((media) => {
-                    const song = songs.find((item) => item.id === media.mediaId) || mapSearchMediaToSong(media);
+                    const song = mapSearchMediaToSong(media);
                     return (
                       <div
                         key={media.mediaId}
@@ -586,17 +606,29 @@ const SearchPage = () => {
           <div className="mt-8">
             <h2 className="mb-4 text-xl font-bold tracking-tight text-white">Browse genres</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {browseCategories.map((cat) => (
-                <button
-                  key={cat.label}
-                  type="button"
-                  onClick={() => setQuery(cat.label)}
-                  className="relative flex aspect-[1.6/1] cursor-pointer items-end overflow-hidden rounded-lg p-4 text-left transition-transform hover:scale-[1.02]"
-                  style={{ backgroundColor: cat.color }}
-                >
-                  <span className="text-base font-bold text-black">{cat.label}</span>
-                </button>
-              ))}
+              {genres.map((genre) => {
+                const coverUrl = resolveAssetUrl(genre.coverImageUrl);
+                return (
+                  <button
+                    key={genre.genreId}
+                    type="button"
+                    onClick={() => setQuery(genre.name)}
+                    className="group relative flex aspect-[1.6/1] cursor-pointer items-start overflow-hidden rounded-lg p-4 text-left"
+                    style={{ 
+                      backgroundColor: getGenreFallbackColor(genre.name),
+                    }}
+                  >
+                    <span className="relative z-10 text-lg font-black text-white">{genre.name}</span>
+                    {coverUrl && (
+                      <img
+                        src={coverUrl}
+                        alt={genre.name}
+                        className="absolute -bottom-8 -right-8 w-48 h-44 object-cover shadow-[0_0_30px_rgba(0,0,0,0.6)] transition-transform duration-300 ease-out rotate-[25deg] group-hover:scale-110 group-hover:-translate-x-3 group-hover:-translate-y-3"
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
