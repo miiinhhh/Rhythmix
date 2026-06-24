@@ -6,6 +6,10 @@ using Microsoft.IdentityModel.Tokens;
 using Rhythmix.Application;
 using Rhythmix.Infrastructure;
 using Rhythmix.Infrastructure.Hubs;
+using Rhythmix.Application.Common.Interfaces;
+using Rhythmix.Infrastructure.Services;
+using Microsoft.Extensions.Options;
+using Rhythmix.Infrastructure.Email;
 using Scalar.AspNetCore;
 
 namespace Rhythmix.API;
@@ -15,6 +19,8 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        builder.Services.AddMemoryCache();
 
         builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
         builder.Services.AddControllers();
@@ -42,6 +48,13 @@ public class Program
         });
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
+
+        builder.Services.Configure<EmailSettings>(
+            builder.Configuration.GetSection("EmailSettings")
+        );
+
+        builder.Services.AddScoped<IEmailService, EmailService>();
+
         builder.Services.AddSignalR();
         builder.Services.AddSwaggerGen();
 
@@ -64,13 +77,13 @@ public class Program
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer          = true,
-                    ValidateAudience        = true,
-                    ValidateIssuerSigningKey  = true,
-                    ValidIssuer             = jwtSettings.GetValue<string>("Issuer"),
-                    ValidAudience           = jwtSettings.GetValue<string>("Audience"),
-                    IssuerSigningKey        = signingKey,
-                    ClockSkew               = TimeSpan.FromMinutes(1)
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings.GetValue<string>("Issuer"),
+                    ValidAudience = jwtSettings.GetValue<string>("Audience"),
+                    IssuerSigningKey = signingKey,
+                    ClockSkew = TimeSpan.FromMinutes(1)
                 };
 
                 options.Events = new JwtBearerEvents
@@ -95,7 +108,7 @@ public class Program
         {
             options.AddDocumentTransformer((document, context, ct) =>
             {
-                document.Info.Title   = "Rhythmix API";
+                document.Info.Title = "Rhythmix API";
                 document.Info.Version = "v1";
                 document.Info.Description = "API cho hệ thống phát nhạc Rhythmix";
                 return Task.CompletedTask;
@@ -111,8 +124,8 @@ public class Program
             app.MapOpenApi();                     // endpoint: /openapi/v1.json
             app.MapScalarApiReference(options => // UI tại: /scalar/v1
             {
-                options.Title              = "Rhythmix API";
-                options.DefaultHttpClient  = new(ScalarTarget.JavaScript, ScalarClient.Fetch);
+                options.Title = "Rhythmix API";
+                options.DefaultHttpClient = new(ScalarTarget.JavaScript, ScalarClient.Fetch);
             });
         }
 

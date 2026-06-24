@@ -123,40 +123,25 @@ const ProfilePage = () => {
     };
   }, [targetId, isMyProfile, users]);
 
-  useEffect(() => {
-    if (!isMyProfile) return;
+  const refreshLikedTracks = async () => {
+    try {
+      const likedIds = await userService.getFavorites();
 
-    let cancelled = false;
+      setLikedTrackIds(likedIds);
 
-    const loadLikedTracks = async () => {
-      try {
-        const likedIds = await userService.getFavorites();
+      setSongs((prev) =>
+        prev.map((song) => ({
+          ...song,
+          isLiked: likedIds.includes(song.id),
+        }))
+      );
 
-        if (cancelled) return;
-
-        setLikedTrackIds(likedIds);
-
-        setSongs((prev) =>
-          prev.map((song) => ({
-            ...song,
-            isLiked: likedIds.includes(song.id),
-          }))
-        );
-      } catch (error) {
-        console.error("Load liked tracks failed:", error);
-
-        if (!cancelled) {
-          setLikedTrackIds([]);
-        }
-      }
-    };
-
-    void loadLikedTracks();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isMyProfile, setSongs]);
+      return likedIds;
+    } catch (error) {
+      console.error("Refresh liked tracks failed:", error);
+      return null;
+    }
+  };
 
 
   const [publicPlaylists, setPublicPlaylists] = useState<PlaylistDto[]>([]);
@@ -289,24 +274,21 @@ const ProfilePage = () => {
     try {
       await userService.toggleFavorite(songId);
 
-      setSongs((prev) =>
-        prev.map((song) =>
-          song.id === songId
-            ? { ...song, isLiked: !song.isLiked }
-            : song
-        )
-      );
+      const likedIds = await refreshLikedTracks();
+      if (!likedIds) return;
+
+      const nextIsLiked = likedIds.includes(songId);
 
       setRecentlyPlayed((prev) =>
         prev.map((item) =>
           item.song.id === songId
             ? {
-                ...item,
-                song: {
-                  ...item.song,
-                  isLiked: !item.song.isLiked,
-                },
-              }
+              ...item,
+              song: {
+                ...item.song,
+                isLiked: nextIsLiked,
+              },
+            }
             : item
         )
       );
@@ -487,9 +469,9 @@ const ProfilePage = () => {
         type === "followers"
           ? followersList
           : [
-              ...followingList.map((item) => ({ ...item, itemType: "user" })),
-              ...followingArtists.map((item) => ({ ...item, itemType: "artist" })),
-            ],
+            ...followingList.map((item) => ({ ...item, itemType: "user" })),
+            ...followingArtists.map((item) => ({ ...item, itemType: "artist" })),
+          ],
     });
   };
 
@@ -568,9 +550,8 @@ const ProfilePage = () => {
               <button
                 onClick={handleToggleFollow}
                 disabled={isFollowBusy}
-                className={`px-6 py-2 rounded-full text-xs font-bold ${
-                  isFollowing ? "bg-zinc-800 text-white" : "bg-white text-black"
-                }`}
+                className={`px-6 py-2 rounded-full text-xs font-bold ${isFollowing ? "bg-zinc-800 text-white" : "bg-white text-black"
+                  }`}
               >
                 {isFollowing ? "Đang theo dõi" : "Theo dõi"}
               </button>
@@ -586,20 +567,22 @@ const ProfilePage = () => {
             onClick={() => setActiveTab("public")}
             className={`rounded-full px-4 py-2 text-xs font-bold transition-colors ${
               activeTab === "public"
-                ? "bg-white text-black"
-                : "border border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800"
-            }`}
+              ? "bg-white text-black"
+              : "border border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800"
+              }`}
           >
             Public Playlists
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("liked")}
-            className={`rounded-full px-4 py-2 text-xs font-bold transition-colors ${
-              activeTab === "liked"
-                ? "bg-white text-black"
-                : "border border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800"
-            }`}
+            onClick={() => {
+              setActiveTab("liked");
+              void refreshLikedTracks();
+            }}
+            className={`rounded-full px-4 py-2 text-xs font-bold transition-colors ${activeTab === "liked"
+              ? "bg-white text-black"
+              : "border border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800"
+              }`}
           >
             Liked
           </button>
@@ -608,9 +591,9 @@ const ProfilePage = () => {
             onClick={() => setActiveTab("recent")}
             className={`rounded-full px-4 py-2 text-xs font-bold transition-colors ${
               activeTab === "recent"
-                ? "bg-white text-black"
-                : "border border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800"
-            }`}
+              ? "bg-white text-black"
+              : "border border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800"
+              }`}
           >
             Play History
           </button>
@@ -737,7 +720,7 @@ const ProfilePage = () => {
                         <div
                           className={`truncate text-sm font-semibold transition-colors ${
                             isCurrentSong ? "text-green-500" : "text-white"
-                          }`}
+                            }`}
                         >
                           {item.song.title}
                         </div>
@@ -761,9 +744,9 @@ const ProfilePage = () => {
                         <Heart
                           className={`size-4 transition-all duration-200 ${
                             item.song.isLiked
-                              ? "text-green-500 fill-green-500 scale-110"
-                              : ""
-                          }`}
+                            ? "text-green-500 fill-green-500 scale-110"
+                            : ""
+                            }`}
                         />
                       </button>
 

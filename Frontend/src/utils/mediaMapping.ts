@@ -46,7 +46,7 @@ export const resolveArtistName = (artistName?: string, ownerName?: string, title
   return "Unknown artist";
 };
 
-export const mapMediaToSong = (media: MediaItemDto, albumTitle?: string): SongType => {
+export const mapMediaToSong = (media: MediaItemDto, albumTitle?: string | number): SongType => {
   const mediaKind = (media.contentType || media.mimeType || media.mediaType || "")
     .toString()
     .toLowerCase()
@@ -71,7 +71,7 @@ export const mapMediaToSong = (media: MediaItemDto, albumTitle?: string): SongTy
     albumName = "Single";
   } else {
     // Has albumId, check for albumTitle
-    const potentialAlbumTitle = albumTitle || media.albumTitle;
+    const potentialAlbumTitle = typeof albumTitle === "string" ? albumTitle : media.albumTitle;
     if (potentialAlbumTitle && potentialAlbumTitle.trim() !== "") {
       // Only use "Album [title]" if title is valid
       albumName = `Album ${potentialAlbumTitle}`;

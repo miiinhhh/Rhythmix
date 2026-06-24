@@ -31,7 +31,7 @@ const LandingPage = () => {
                             <Music2 size={26} />
                         </div>
                         <h1 className="text-3xl font-bold">Rhythmix</h1>
-                    </div>  
+                    </div>
 
                     <h2 className="mb-6 text-4xl font-black leading-tight md:text-6xl">
                         Play any song, anytime, free.
@@ -50,7 +50,7 @@ const LandingPage = () => {
 
                     <button
                         type="button"
-                        onClick={() => navigate("/home")}
+                        onClick={() => navigate("/login")}
                         className="mb-8 w-72 rounded-full bg-white px-8 py-4 text-sm font-bold uppercase tracking-widest text-black transition hover:scale-105 hover:bg-zinc-200"
                     >
                         Log in
@@ -62,7 +62,7 @@ const LandingPage = () => {
 
                     <button
                         type="button"
-                        onClick={() => navigate("/home")}
+                        onClick={() => navigate("/signup")}
                         className="w-72 rounded-full bg-green-500 px-8 py-4 text-sm font-bold uppercase tracking-widest text-black transition hover:scale-105 hover:bg-green-400"
                     >
                         Sign Up

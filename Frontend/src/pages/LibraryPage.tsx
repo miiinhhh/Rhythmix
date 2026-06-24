@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Library, Music2, ListMusic, Play, Plus, Heart } from "lucide-react"; // Thêm ListMusic và Plus để làm nút Upload/Create
+import { Library, Music2, ListMusic, Play, Plus, Heart, Trash2, Check, X, LoaderCircle } from "lucide-react";
 import UploadMediaModal from "../components/UploadMediaModal";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import CreatePlaylistModal from "../components/CreatePlaylistModal";
@@ -33,10 +33,16 @@ const LibraryPage = () => {
   );
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteSuccess, setDeleteSuccess] = useState("");
   // Logic lọc dữ liệu dựa trên Tab đang chọn
   const { setCurrentSongId, setIsPlaying, songs, setSongs } =
     useOutletContext<OutletContextType>();
   const [myMedia, setMyMedia] = useState<SongType[]>([]);
+  const [deletableMedia, setDeletableMedia] = useState<SongType[]>([]);
   const [playlists, setPlaylists] = useState<PlaylistDto[]>([]);
   const [albums, setAlbums] = useState<AlbumDto[]>([]);
   const [, setFavoriteIds] = useState<string[]>([]);
@@ -46,6 +52,9 @@ const LibraryPage = () => {
     // Filter out media that's already in an album
     const singleMediaItems = mediaItems.filter(item => !item.albumId);
     const mappedSongs = singleMediaItems.map(mapMediaToSong);
+    setDeletableMedia(
+      mediaItems.map(mapMediaToSong).filter((song) => song.mediaType === "audio"),
+    );
     setMyMedia(mappedSongs);
     setSongs((prev) => {
       const existingIds = new Set(prev.map((song) => song.id));
@@ -92,11 +101,72 @@ const LibraryPage = () => {
     loadFavoriteIds().catch(() => setFavoriteIds([]));
   }, []);
 
+  useEffect(() => {
+    if (!deleteSuccess) return;
+
+    const timeoutId = window.setTimeout(() => setDeleteSuccess(""), 2000);
+    return () => window.clearTimeout(timeoutId);
+  }, [deleteSuccess]);
+
   const visibleMedia =
     activeTab === "playlists" || activeTab === "albums" ? [] : myMedia;
   const visiblePlaylists = activeTab === "albums" ? [] : playlists;
   const visibleAlbums = activeTab === "playlists" ? [] : albums;
   const likedCount = songs.filter((song) => song.isLiked).length;
+
+  const toggleMediaSelection = (mediaId: string) => {
+    setSelectedMediaIds((previous) =>
+      previous.includes(mediaId)
+        ? previous.filter((id) => id !== mediaId)
+        : [...previous, mediaId],
+    );
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleting) return;
+    setIsDeleteModalOpen(false);
+    setSelectedMediaIds([]);
+    setDeleteError("");
+  };
+
+  const deleteSelectedMedia = async () => {
+    if (selectedMediaIds.length === 0 || isDeleting) return;
+
+    setIsDeleting(true);
+    setDeleteError("");
+
+    const results = await Promise.allSettled(
+      selectedMediaIds.map((mediaId) => mediaService.deleteMedia(mediaId)),
+    );
+    const deletedIds = selectedMediaIds.filter(
+      (_, index) => results[index].status === "fulfilled",
+    );
+    const failedCount = selectedMediaIds.length - deletedIds.length;
+
+    if (deletedIds.length > 0) {
+      const deletedIdSet = new Set(deletedIds);
+      setMyMedia((previous) => previous.filter((song) => !deletedIdSet.has(song.id)));
+      setDeletableMedia((previous) => previous.filter((song) => !deletedIdSet.has(song.id)));
+      setSongs((previous) => previous.filter((song) => !deletedIdSet.has(song.id)));
+      await loadAlbums().catch(() => setAlbums([]));
+    }
+
+    setIsDeleting(false);
+
+    if (failedCount > 0) {
+      setSelectedMediaIds(selectedMediaIds.filter((id) => !deletedIds.includes(id)));
+      setDeleteError(`${failedCount} bài hát không thể xóa. Vui lòng thử lại.`);
+      return;
+    }
+
+    setIsDeleteModalOpen(false);
+    setSelectedMediaIds([]);
+    setDeleteSuccess(
+      deletedIds.length === 1
+        ? "Đã xóa bài hát thành công."
+        : `Đã xóa thành công ${deletedIds.length} bài hát.`,
+    );
+  };
 
   return (
     <div className="space-y-6 select-none">
@@ -157,6 +227,18 @@ const LibraryPage = () => {
           >
             <Plus className="size-4 stroke-3" />
             Create New Playlist
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedMediaIds([]);
+              setDeleteError("");
+              setIsDeleteModalOpen(true);
+            }}
+            className="flex items-center gap-2 rounded-full border border-red-500/70 px-4 py-2 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500 hover:text-white cursor-pointer"
+          >
+            <Trash2 className="size-4" />
+            Delete audio
           </button>
         </div>
       </div>
@@ -323,6 +405,93 @@ const LibraryPage = () => {
         onClose={() => setIsCreatePlaylistOpen(false)}
         onPlaylistCreated={loadPlaylists}
       />
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[80vh] w-full max-w-xl flex-col rounded-lg border border-zinc-800 bg-zinc-900 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 p-5">
+              <div>
+                <h2 className="text-lg font-bold text-white">Xóa audio</h2>
+                <p className="mt-1 text-sm text-zinc-400">Chọn các bài hát bạn muốn xóa vĩnh viễn.</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+                className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed"
+                aria-label="Đóng"
+                title="Đóng"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            {deleteError && (
+              <p className="mx-5 mt-4 rounded-md border border-red-900/60 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+                {deleteError}
+              </p>
+            )}
+
+            <div className="custom-scrollbar flex-1 space-y-2 overflow-y-auto p-5">
+              {deletableMedia.length > 0 ? (
+                deletableMedia.map((item) => {
+                  const isSelected = selectedMediaIds.includes(item.id);
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => toggleMediaSelection(item.id)}
+                      disabled={isDeleting}
+                      className={`flex w-full items-center gap-3 rounded-md border p-2 text-left transition disabled:cursor-not-allowed ${
+                        isSelected
+                          ? "border-green-500 bg-green-500/10"
+                          : "border-zinc-800 hover:bg-zinc-800"
+                      }`}
+                    >
+                      {item.posterUrl ? (
+                        <img src={item.posterUrl} alt="" className="size-12 rounded object-cover" />
+                      ) : (
+                        <div className="flex size-12 items-center justify-center rounded bg-zinc-800">
+                          <Music2 className="size-5 text-zinc-400" />
+                        </div>
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-white">{item.title}</span>
+                        <span className="block truncate text-xs text-zinc-400">{item.artist}</span>
+                      </span>
+                      <span className={`flex size-6 shrink-0 items-center justify-center rounded border ${
+                        isSelected ? "border-green-500 bg-green-500 text-black" : "border-zinc-600"
+                      }`}>
+                        {isSelected && <Check className="size-4 stroke-[3]" />}
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="py-10 text-center text-sm text-zinc-500">Bạn chưa có audio nào để xóa.</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between border-t border-zinc-800 p-5">
+              <span className="text-sm text-zinc-400">Đã chọn {selectedMediaIds.length} bài hát</span>
+              <button
+                type="button"
+                onClick={() => void deleteSelectedMedia()}
+                disabled={selectedMediaIds.length === 0 || isDeleting}
+                className="flex items-center gap-2 rounded-full bg-red-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDeleting && <LoaderCircle className="size-4 animate-spin" />}
+                Xóa đã chọn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteSuccess && (
+        <div className="fixed bottom-24 left-1/2 z-[110] -translate-x-1/2 rounded-full bg-green-500 px-4 py-2 text-sm font-semibold text-black shadow-lg">
+          {deleteSuccess}
+        </div>
+      )}
     </div>
   );
 };

@@ -10,9 +10,8 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams, useOutletContext } from "react-router-dom";
 import { albumService } from "../api/albumService";
-import { mediaService } from "../api/mediaService";
 import { type AlbumDetailDto, type MediaItemDto } from "../types/api";
-import { resolveArtistName, mapMediaToSong, type SongType } from "../utils/mediaMapping";
+import { mapMediaToSong, type SongType } from "../utils/mediaMapping";
 import { resolveAssetUrl } from "../config/apiConfig";
 import AddSongAlbumModal from "../components/AddSongAlbumModal";
 import UpdateAlbumModal from "../components/UpdateAlbumModal";
@@ -26,14 +25,6 @@ interface OutletContextType {
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
   onSetPlaylistQueue?: (id: string, tracks: SongType[]) => void;
 }
-
-const formatAlbumDuration = (seconds?: number) => {
-  if (!seconds || seconds < 0) return "0:00";
-
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-};
 
 const mapAlbumTrackToSong = (
   track: MediaItemDto,

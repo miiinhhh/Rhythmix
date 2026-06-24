@@ -1,6 +1,7 @@
 import {
   createBrowserRouter,
   RouterProvider,
+  useNavigate,
 } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
 
@@ -17,6 +18,24 @@ import LikedSongsPage from "./pages/LikedSongsPage";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LoadingProvider } from "./context/LoadingContext";
+import AuthModal from "./components/AuthModal";
+
+type AuthMode = "login" | "register";
+
+const AuthRoute = ({ initialMode }: { initialMode: AuthMode }) => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="min-h-screen bg-black">
+      <AuthModal
+        open={true}
+        initialMode={initialMode}
+        onClose={() => navigate("/")}
+        onAuthenticated={() => navigate("/home")}
+      />
+    </div>
+  );
+};
 
 // Tạo bộ định tuyến cấu hình đường dẫn URL
 const router = createBrowserRouter([
@@ -25,7 +44,14 @@ const router = createBrowserRouter([
     element: <LandingPage />,
   },
   {
-        // Dùng AppLayout làm khung bao bọc tất cả các trang
+    path: "/login",
+    element: <AuthRoute initialMode="login" />,
+  },
+  {
+    path: "/signup",
+    element: <AuthRoute initialMode="register" />,
+  },
+  {
     element: <AppLayout />,
     children: [
       { path: "/home", element: <HomePage /> },

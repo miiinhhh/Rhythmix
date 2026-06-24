@@ -1,19 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff, X, Library } from "lucide-react";
 import { authService } from "../api/authService";
 
 type Mode = "login" | "register";
+type RegisterStep = "form" | "otp";
 
 // Khai báo kiểu dữ liệu cho Props của AuthModal
 interface AuthModalProps {
   open: boolean;
   onClose: () => void;
   onAuthenticated: (name: string) => void;
+  initialMode?: Mode;
 }
 
 
-const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
-  const [mode, setMode] = useState<Mode>("login");
+const AuthModal = ({ open, onClose, onAuthenticated, initialMode = "login", }: AuthModalProps) => {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +24,21 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [registerStep, setRegisterStep] = useState<RegisterStep>("form");
+  const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setMode(initialMode);
+      setRegisterStep("form");
+      setErrors({});
+      setSuccessMessage(null);
+      setOtp("");
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+    }
+  }, [open, initialMode]);
 
 
   // Nếu state open = false thì không render gì cả
@@ -30,35 +47,124 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
   // Hàm kiểm tra lỗi Client-side (Validation) trước khi xử lý
   const validate = () => {
     const next: Record<string, string> = {};
-    if (mode === "register" && name.trim().length < 2) {
+
+    // ── NAME ──────────────────────────────────────────────
+    if (mode === "register" && registerStep === "form" && name.trim().length < 2) {
       next.name = "Please enter your name.";
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      next.email = "Enter a valid email address.";
+
+    // ── EMAIL ─────────────────────────────────────────────
+    if (registerStep === "form") {
+      const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(email)) {
+        next.email = "Enter a valid email address.";
+      } else {
+        const domain     = email.toLowerCase().split("@")[1] ?? "";
+        const tld        = domain.split(".").pop() ?? "";
+        const domainName = domain.split(".").slice(0, -1).join(".");
+
+        const knownProviders   = ["gmail", "yahoo", "hotmail", "outlook", "icloud"];
+        const validCountryTLDs = ["vn", "uk", "jp", "kr", "au", "de", "fr", "us", "ca", "sg", "id", "th", "my"];
+
+        const editDistance = (a: string, b: string): number => {
+          const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+            Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+          );
+          for (let i = 1; i <= a.length; i++)
+            for (let j = 1; j <= b.length; j++)
+              dp[i][j] = a[i-1] === b[j-1]
+                ? dp[i-1][j-1]
+                : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+          return dp[a.length][b.length];
+        };
+
+        const isExactProvider = knownProviders.includes(domainName);
+
+        // gmail.co → TLD sai
+        if (isExactProvider && tld.length === 2 && !validCountryTLDs.includes(tld)) {
+          next.email = "Enter a valid email address.";
+        }
+        // gmai.com / yahooo.com → tên provider gõ sai 1 ký tự
+        else if (!isExactProvider && knownProviders.some(p => editDistance(domainName, p) === 1)) {
+          next.email = "Enter a valid email address.";
+        }
+      }
     }
-    if (password.length < 6) {
-      next.password = "Password must be at least 6 characters.";
+
+    // ── PASSWORD ──────────────────────────────────────────
+    if (registerStep === "form") {
+      if (mode === "register") {
+        if (password.length < 6) {
+          next.password = "Password must be at least 6 characters.";
+        } else if (!/[A-Z]/.test(password)) {
+          next.password = "Password must contain at least one uppercase letter.";
+        } else if (!/[0-9]/.test(password)) {
+          next.password = "Password must contain at least one number.";
+        } else if (!/[!@#$%^&*(),.?\":{}|<>_\-\[\]\\\/`~;'+]/.test(password)) {
+          next.password = "Password must contain at least one special character.";
+        }
+
+        // ── CONFIRM PASSWORD ──────────────────────────────────
+        if (next.password) {
+          next.confirmPassword = "Please fix your password above first.";
+        } else if (confirmPassword !== password) {
+          next.confirmPassword = "Passwords do not match.";
+        }
+      } else {
+        // login: only basic length check
+        if (password.length < 6) {
+          next.password = "Password must be at least 6 characters.";
+        }
+      }
     }
-    if (mode === "register" && confirmPassword !== password) {
-      next.confirmPassword = "Passwords do not match.";
-      next.auth = "Confirm password does not match password.";
+
+    // ── OTP ───────────────────────────────────────────────
+    if (mode === "register" && registerStep === "otp" && otp.trim().length === 0) {
+      next.otp = "Please enter OTP.";
     }
+
     setErrors(next);
     return Object.keys(next).length === 0;
   };
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     try {
+      setLoading(true);
+
       if (mode === "login") {
         const result = await authService.login({ email, password });
         const userName = result?.userName ?? result?.user?.userName ?? name;
+
         onAuthenticated(userName);
         setErrors({});
-        onClose();
-      } else {
+        return;
+      }
+
+      // Bước 1: Register form -> gửi OTP
+      if (mode === "register" && registerStep === "form") {
+        await authService.sendRegisterOtp({
+          email,
+          userName: name,
+        });
+
+        setErrors({});
+        setSuccessMessage("OTP đã được gửi về email.");
+        setRegisterStep("otp");
+        return;
+      }
+
+      // Bước 2: Nhập OTP -> xác thực OTP -> tạo tài khoản
+      if (mode === "register" && registerStep === "otp") {
+        await authService.verifyRegisterOtp({
+          email,
+          otp,
+        });
+
         await authService.register({
           email,
           userName: name,
@@ -68,37 +174,50 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
         setErrors({});
         setSuccessMessage("Đăng ký thành công. Vui lòng đăng nhập.");
         setMode("login");
+        setRegisterStep("form");
         setConfirmPassword("");
+        setPassword("");
+        setOtp("");
       }
     } catch (error: any) {
       const rawMessage =
-        error?.response?.data?.message || error?.message || "Có lỗi xảy ra trong quá trình xác thực.";
+        error?.response?.data?.message ||
+        error?.message ||
+        "Có lỗi xảy ra trong quá trình xác thực.";
 
       // Chuẩn UX cho trường hợp đăng nhập sai thông tin.
       // Backend có thể trả message khác nhau, nên làm tolerant bằng cách match key.
       const normalized = String(rawMessage).toLowerCase();
-      const isInvalidLogin =
-        normalized.includes('invalid') ||
-        normalized.includes('incorrect') ||
-        normalized.includes('wrong') ||
-        normalized.includes('unauthorized') ||
-        normalized.includes('login');
 
-      const message = isInvalidLogin
-        ? "Thông tin đăng nhập không đúng. Vui lòng nhập lại." 
-        : rawMessage;
+      const isInvalidLogin =
+        normalized.includes("invalid") ||
+        normalized.includes("incorrect") ||
+        normalized.includes("wrong") ||
+        normalized.includes("unauthorized") ||
+        normalized.includes("login");
+
+      const message =
+        mode === "login" && isInvalidLogin
+          ? "Thông tin đăng nhập không đúng. Vui lòng nhập lại."
+          : rawMessage;
 
       setErrors({ auth: message });
+      setSuccessMessage(null);
+    } finally {
+      setLoading(false);
     }
   };
 
 
   const switchMode = (next: Mode) => {
     setMode(next);
-    setErrors({}); // Xóa sạch lỗi cũ khi chuyển qua lại giữa Login/Register
+    setRegisterStep("form");
+    setErrors({});
     setSuccessMessage(null);
     setConfirmPassword("");
+    setOtp("");
     setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
 
@@ -142,7 +261,7 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
 
         {/* Form nhập liệu */}
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          {mode === "register" && (
+          {mode === "register" && registerStep === "form" && (
             <Field
               id="auth-name"
               label="Name"
@@ -153,6 +272,7 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
               placeholder="Your name"
             />
           )}
+
           {errors.auth && (
             <div className="mb-4 rounded-md bg-red-500/10 border border-red-500/20 p-2.5 text-center text-xs font-semibold text-red-400">
               {errors.auth}
@@ -165,47 +285,71 @@ const AuthModal = ({ open, onClose, onAuthenticated }: AuthModalProps) => {
             </div>
           )}
 
-          <Field
+          {registerStep === "form" && (
+            <>
+              <Field
+                id="auth-email"
+                label="Email"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                error={errors.email}
+                placeholder="you@example.com"
+              />
 
-            id="auth-email"
-            label="Email"
-            type="email"
-            value={email}
-            onChange={setEmail}
-            error={errors.email}
-            placeholder="you@example.com"
-          />
+              <PasswordField
+                id="auth-password"
+                label="Password"
+                value={password}
+                onChange={setPassword}
+                error={errors.password}
+                placeholder="••••••••"
+                visible={showPassword}
+                onToggleVisibility={() => setShowPassword((current) => !current)}
+              />
 
-          <PasswordField
-            id="auth-password"
-            label="Password"
-            value={password}
-            onChange={setPassword}
-            error={errors.password}
-            placeholder="••••••••"
-            visible={showPassword}
-            onToggleVisibility={() => setShowPassword((current) => !current)}
-          />
+              {mode === "register" && (
+                <PasswordField
+                  id="auth-confirm-password"
+                  label="Confirm Password"
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  error={errors.confirmPassword}
+                  placeholder="Re-enter your password"
+                  visible={showConfirmPassword}
+                  onToggleVisibility={() =>
+                    setShowConfirmPassword(!showConfirmPassword)
+                  }
+                />
+              )}
+            </>
+          )}
 
-          {mode === "register" && (
-            <PasswordField
-              id="auth-confirm-password"
-              label="Confirm Password"
-              value={confirmPassword}
-              onChange={setConfirmPassword}
-              error={errors.confirmPassword}
-              placeholder="Re-enter your password"
-              visible={showConfirmPassword}
-              onToggleVisibility={() => setShowConfirmPassword(!showConfirmPassword)}
+          {mode === "register" && registerStep === "otp" && (
+            <Field
+              id="auth-otp"
+              label="OTP"
+              type="text"
+              value={otp}
+              onChange={(value) => setOtp(value.replace(/\D/g, ""))}
+              error={errors.otp}
+              placeholder="Enter OTP code"
             />
           )}
 
           {/* Nút bấm Submit kiểu Pill-shaped bo tròn màu xanh lá */}
           <button
             type="submit"
-            className="w-full cursor-pointer rounded-full bg-green-500 py-3 text-sm font-bold text-black transition-all hover:bg-green-400 active:scale-[0.98]"
+            disabled={loading}
+            className="w-full cursor-pointer rounded-full bg-green-500 py-3 text-sm font-bold text-black transition-all hover:bg-green-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {mode === "login" ? "Log In" : "Sign Up"}
+            {loading
+              ? "Please wait..."
+              : mode === "login"
+                ? "Log In"
+                : registerStep === "form"
+                  ? "Sign Up"
+                  : "Verify OTP"}
           </button>
         </form>
 
@@ -260,11 +404,10 @@ const Field = ({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-invalid={!!error}
-        className={`w-full rounded-md border bg-zinc-800/60 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 transition-all ${
-          error
-            ? "border-red-500/80 focus:ring-red-500/50"
-            : "border-zinc-700/60 focus:ring-green-500/50 focus:border-green-500"
-        }`}
+        className={`w-full rounded-md border bg-zinc-800/60 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 transition-all ${error
+          ? "border-red-500/80 focus:ring-red-500/50"
+          : "border-zinc-700/60 focus:ring-green-500/50 focus:border-green-500"
+          }`}
       />
       {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
     </div>
@@ -309,11 +452,10 @@ const PasswordField = ({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           aria-invalid={!!error}
-          className={`w-full rounded-md border bg-zinc-800/60 px-3 py-2 pr-10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 transition-all ${
-            error
-              ? "border-red-500/80 focus:ring-red-500/50"
-              : "border-zinc-700/60 focus:ring-green-500/50 focus:border-green-500"
-          }`}
+          className={`w-full rounded-md border bg-zinc-800/60 px-3 py-2 pr-10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 transition-all ${error
+            ? "border-red-500/80 focus:ring-red-500/50"
+            : "border-zinc-700/60 focus:ring-green-500/50 focus:border-green-500"
+            }`}
         />
         <button
           type="button"
@@ -330,4 +472,3 @@ const PasswordField = ({
 };
 
 export default AuthModal;
-
