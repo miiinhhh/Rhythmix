@@ -27,6 +27,8 @@ const AuthModal = ({ open, onClose, onAuthenticated, initialMode = "login", }: A
   const [registerStep, setRegisterStep] = useState<RegisterStep>("form");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -37,8 +39,22 @@ const AuthModal = ({ open, onClose, onAuthenticated, initialMode = "login", }: A
       setOtp("");
       setShowPassword(false);
       setShowConfirmPassword(false);
+      setResendCooldown(0);
+      setResendLoading(false);
     }
   }, [open, initialMode]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+
+    const timer = setTimeout(() => {
+      setResendCooldown((current) => current - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+
 
 
   // Nếu state open = false thì không render gì cả
@@ -59,11 +75,11 @@ const AuthModal = ({ open, onClose, onAuthenticated, initialMode = "login", }: A
       if (!emailRegex.test(email)) {
         next.email = "Enter a valid email address.";
       } else {
-        const domain     = email.toLowerCase().split("@")[1] ?? "";
-        const tld        = domain.split(".").pop() ?? "";
+        const domain = email.toLowerCase().split("@")[1] ?? "";
+        const tld = domain.split(".").pop() ?? "";
         const domainName = domain.split(".").slice(0, -1).join(".");
 
-        const knownProviders   = ["gmail", "yahoo", "hotmail", "outlook", "icloud"];
+        const knownProviders = ["gmail", "yahoo", "hotmail", "outlook", "icloud"];
         const validCountryTLDs = ["vn", "uk", "jp", "kr", "au", "de", "fr", "us", "ca", "sg", "id", "th", "my"];
 
         const editDistance = (a: string, b: string): number => {
@@ -72,9 +88,9 @@ const AuthModal = ({ open, onClose, onAuthenticated, initialMode = "login", }: A
           );
           for (let i = 1; i <= a.length; i++)
             for (let j = 1; j <= b.length; j++)
-              dp[i][j] = a[i-1] === b[j-1]
-                ? dp[i-1][j-1]
-                : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+              dp[i][j] = a[i - 1] === b[j - 1]
+                ? dp[i - 1][j - 1]
+                : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
           return dp[a.length][b.length];
         };
 
@@ -125,6 +141,34 @@ const AuthModal = ({ open, onClose, onAuthenticated, initialMode = "login", }: A
 
     setErrors(next);
     return Object.keys(next).length === 0;
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+
+    try {
+      setResendLoading(true);
+
+      await authService.sendRegisterOtp({
+        email,
+        userName: name,
+      });
+
+      setOtp("");
+      setErrors({});
+      setSuccessMessage("OTP mới đã được gửi về email.");
+      setResendCooldown(60);
+    } catch (error: any) {
+      const rawMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể gửi lại OTP. Vui lòng thử lại.";
+
+      setErrors({ auth: rawMessage });
+      setSuccessMessage(null);
+    } finally {
+      setResendLoading(false);
+    }
   };
 
 
@@ -326,15 +370,36 @@ const AuthModal = ({ open, onClose, onAuthenticated, initialMode = "login", }: A
           )}
 
           {mode === "register" && registerStep === "otp" && (
-            <Field
-              id="auth-otp"
-              label="OTP"
-              type="text"
-              value={otp}
-              onChange={(value) => setOtp(value.replace(/\D/g, ""))}
-              error={errors.otp}
-              placeholder="Enter OTP code"
-            />
+            <div className="space-y-3">
+              <Field
+                id="auth-otp"
+                label="OTP"
+                type="text"
+                value={otp}
+                onChange={(value) => setOtp(value.replace(/\D/g, ""))}
+                error={errors.otp}
+                placeholder="Enter OTP code"
+              />
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-zinc-400">
+                  Chưa nhận được mã?
+                </span>
+
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendLoading || resendCooldown > 0 || loading}
+                  className="font-semibold text-green-500 transition-colors hover:text-green-400 hover:underline disabled:cursor-not-allowed disabled:text-zinc-500 disabled:no-underline"
+                >
+                  {resendLoading
+                    ? "Đang gửi..."
+                    : resendCooldown > 0
+                      ? `Gửi lại sau ${resendCooldown}s`
+                      : "Gửi lại OTP"}
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Nút bấm Submit kiểu Pill-shaped bo tròn màu xanh lá */}
