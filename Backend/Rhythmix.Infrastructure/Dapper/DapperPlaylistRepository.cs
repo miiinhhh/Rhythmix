@@ -103,6 +103,7 @@ public sealed class DapperPlaylistRepository : IPlaylistRepository
 
     public async Task DeleteAsync(Guid id, IDbTransaction? transaction = null)
     {
+        const string deleteSharesSql = @"DELETE FROM [MediaShares] WHERE PlaylistId = @PlaylistId";
         const string deleteTracksSql = @"DELETE FROM [PlayListTrack] WHERE PlaylistId = @PlaylistId";
         const string deletePlaylistSql = @"DELETE FROM [Playlists] WHERE PlaylistId = @PlaylistId";
 
@@ -112,6 +113,7 @@ public sealed class DapperPlaylistRepository : IPlaylistRepository
 
         try
         {
+            await connection.ExecuteAsync(deleteSharesSql, new { PlaylistId = id }, localTransaction);
             await connection.ExecuteAsync(deleteTracksSql, new { PlaylistId = id }, localTransaction);
             await connection.ExecuteAsync(deletePlaylistSql, new { PlaylistId = id }, localTransaction);
 
@@ -224,6 +226,7 @@ public sealed class DapperPlaylistRepository : IPlaylistRepository
 
     public async Task<bool> DeletePlaylistAsync(Guid playlistId, IDbTransaction? transaction = null)
     {
+        const string deleteSharesSql = @"DELETE FROM [MediaShares] WHERE PlaylistId = @PlaylistId";
         const string deleteTracksSql = @"DELETE FROM [PlayListTrack] WHERE PlaylistId = @PlaylistId";
         const string deletePlaylistSql = @"DELETE FROM [Playlists] WHERE PlaylistId = @PlaylistId";
 
@@ -233,6 +236,7 @@ public sealed class DapperPlaylistRepository : IPlaylistRepository
 
         try
         {
+            await connection.ExecuteAsync(deleteSharesSql, new { PlaylistId = playlistId }, localTransaction);
             await connection.ExecuteAsync(deleteTracksSql, new { PlaylistId = playlistId }, localTransaction);
             var rowsAffected = await connection.ExecuteAsync(deletePlaylistSql, new { PlaylistId = playlistId }, localTransaction);
 

@@ -146,10 +146,30 @@ public sealed class DapperMediaRepository : IMediaRepository
 
     public async Task DeleteAsync(Guid mediaId, IDbTransaction? transaction = null)
     {
-        const string sql = "DELETE FROM [MediaItems] WHERE MediaId = @MediaId";
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        await connection.ExecuteAsync(sql, new { MediaId = mediaId }, transaction);
+        await using var deleteTransaction = await connection.BeginTransactionAsync();
+
+        try
+        {
+            var parameters = new { MediaId = mediaId };
+
+            // Older database scripts do not consistently declare cascade deletes.
+            // Remove every media-dependent record before deleting the media item.
+            await connection.ExecuteAsync("DELETE FROM [MediaShares] WHERE MediaId = @MediaId", parameters, deleteTransaction);
+            await connection.ExecuteAsync("DELETE FROM [Favorites] WHERE MediaId = @MediaId", parameters, deleteTransaction);
+            await connection.ExecuteAsync("DELETE FROM [PlayHistories] WHERE MediaId = @MediaId", parameters, deleteTransaction);
+            await connection.ExecuteAsync("DELETE FROM [PlayListTrack] WHERE MediaId = @MediaId", parameters, deleteTransaction);
+            await connection.ExecuteAsync("DELETE FROM [MediaItemGenres] WHERE MediaId = @MediaId", parameters, deleteTransaction);
+            await connection.ExecuteAsync("DELETE FROM [MediaItems] WHERE MediaId = @MediaId", parameters, deleteTransaction);
+
+            await deleteTransaction.CommitAsync();
+        }
+        catch
+        {
+            await deleteTransaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<bool> ExistsAsync(Guid mediaId, IDbTransaction? transaction = null)

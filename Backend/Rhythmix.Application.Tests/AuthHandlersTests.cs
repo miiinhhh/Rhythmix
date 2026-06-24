@@ -21,7 +21,7 @@ public sealed class AuthHandlersTests
 
         var result = await handler.Handle(new RegisterCommand
         {
-            Email = "newuser@example.com",
+            Email = "newuser@gmail.com",
             UserName = "newuser",
             Password = "12345678",
             DisplayName = "New User",
@@ -29,11 +29,11 @@ public sealed class AuthHandlersTests
             AvatarUrl = "/uploads/avatar.png"
         }, CancellationToken.None);
 
-        var savedUser = await repository.GetByEmailAsync("newuser@example.com");
+        var savedUser = await repository.GetByEmailAsync("newuser@gmail.com");
 
         Assert.NotNull(savedUser);
         Assert.Equal(result.Id, savedUser.Id);
-        Assert.Equal("newuser@example.com", result.Email);
+        Assert.Equal("newuser@gmail.com", result.Email);
         Assert.Equal("newuser", result.UserName);
         Assert.Equal("New User", result.DisplayName);
         Assert.Equal("Music lover", result.Bio);
@@ -49,7 +49,7 @@ public sealed class AuthHandlersTests
         var repository = new FakeUserRepository(new User
         {
             Id = Guid.NewGuid(),
-            Email = "taken@example.com",
+            Email = "taken@gmail.com",
             UserName = "taken",
             DisplayName = "Taken",
             PasswordHash = PasswordHasher.Hash("12345678"),
@@ -59,7 +59,7 @@ public sealed class AuthHandlersTests
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(new RegisterCommand
         {
-            Email = "taken@example.com",
+            Email = "taken@gmail.com",
             UserName = "another",
             Password = "12345678"
         }, CancellationToken.None));
@@ -77,6 +77,28 @@ public sealed class AuthHandlersTests
         var results = Validate(request);
 
         Assert.Contains(results, result => result.MemberNames.Contains(nameof(RegisterRequest.Email)));
+    }
+
+    [Fact]
+    public void RegisterRequest_IsInvalid_WhenEmailIsNotGmail()
+    {
+        var request = CreateValidRegisterRequest();
+        request.Email = "user@yahoo.com";
+
+        var results = Validate(request);
+
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(RegisterRequest.Email)));
+    }
+
+    [Fact]
+    public void RegisterRequest_IsInvalid_WhenUserNameIsTooShort()
+    {
+        var request = CreateValidRegisterRequest();
+        request.UserName = "abc";
+
+        var results = Validate(request);
+
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(RegisterRequest.UserName)));
     }
 
     [Fact]
@@ -99,6 +121,27 @@ public sealed class AuthHandlersTests
         var results = Validate(request);
 
         Assert.Contains(results, result => result.MemberNames.Contains(nameof(RegisterRequest.Password)));
+    }
+
+    [Theory]
+    [InlineData("password1")]
+    [InlineData("PASSWORD")]
+    public void RegisterRequest_IsInvalid_WhenPasswordDoesNotContainUppercaseAndNumber(string password)
+    {
+        var request = CreateValidRegisterRequest();
+        request.Password = password;
+
+        var results = Validate(request);
+
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(RegisterRequest.Password)));
+    }
+
+    [Fact]
+    public void RegisterRequest_IsValid_WhenAllRegistrationRulesAreMet()
+    {
+        var results = Validate(CreateValidRegisterRequest());
+
+        Assert.Empty(results);
     }
 
     [Fact]
@@ -172,6 +215,36 @@ public sealed class AuthHandlersTests
         Assert.Null(result);
     }
 
+    [Fact]
+    public void LoginRequest_IsInvalid_WhenEmailFormatIsInvalid()
+    {
+        var request = CreateValidLoginRequest();
+        request.Email = "invalid-email";
+
+        var results = Validate(request);
+
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(LoginRequest.Email)));
+    }
+
+    [Fact]
+    public void LoginRequest_IsInvalid_WhenPasswordIsTooShort()
+    {
+        var request = CreateValidLoginRequest();
+        request.Password = "12345";
+
+        var results = Validate(request);
+
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(LoginRequest.Password)));
+    }
+
+    [Fact]
+    public void LoginRequest_IsValid_WhenEmailAndPasswordMeetValidationRules()
+    {
+        var results = Validate(CreateValidLoginRequest());
+
+        Assert.Empty(results);
+    }
+
     private sealed class FakeJwtTokenGenerator : IJwtTokenGenerator
     {
         public string GenerateToken(User user) => $"test-token-{user.Id}";
@@ -187,7 +260,23 @@ public sealed class AuthHandlersTests
         };
     }
 
+    private static LoginRequest CreateValidLoginRequest()
+    {
+        return new LoginRequest
+        {
+            Email = "user@gmail.com",
+            Password = "123456"
+        };
+    }
+
     private static List<ValidationResult> Validate(RegisterRequest request)
+    {
+        var results = new List<ValidationResult>();
+        Validator.TryValidateObject(request, new ValidationContext(request), results, validateAllProperties: true);
+        return results;
+    }
+
+    private static List<ValidationResult> Validate(LoginRequest request)
     {
         var results = new List<ValidationResult>();
         Validator.TryValidateObject(request, new ValidationContext(request), results, validateAllProperties: true);

@@ -18,6 +18,25 @@ export const authService = {
     return data;
   },
 
+  // Bước 1: Gửi OTP về email khi đăng ký
+  sendRegisterOtp: async (payload: {
+    email: string;
+    userName: string;
+  }) => {
+    const res = await apiClient.post('/auth/register/send-otp', payload);
+    return res.data?.data ?? res.data;
+  },
+
+  // Bước 2: Xác thực OTP
+  verifyRegisterOtp: async (payload: {
+    email: string;
+    otp: string;
+  }) => {
+    const res = await apiClient.post('/auth/register/verify-otp', payload);
+    return res.data?.data ?? res.data;
+  },
+
+  // Bước 3: Sau khi OTP đúng thì tạo tài khoản
   register: async (payload: {
     email: string;
     userName: string;

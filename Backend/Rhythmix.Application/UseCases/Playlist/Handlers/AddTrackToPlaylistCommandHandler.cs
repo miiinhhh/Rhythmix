@@ -29,6 +29,10 @@ public sealed class AddTrackToPlaylistCommandHandler : IRequestHandler<AddTrackT
         if (playlist.OwnerId != request.UserId)
             throw new UnauthorizedAccessException("Only playlist owner can add tracks");
 
+        var media = await _mediaRepository.GetByIdAsync(request.MediaId);
+        if (media == null)
+            throw new InvalidOperationException("Media not found");
+
         var exists = await _playlistTrackRepository.ExistsAsync(request.PlaylistId, request.MediaId);
         if (exists)
             throw new InvalidOperationException("Track already exists in this playlist");
@@ -38,10 +42,6 @@ public sealed class AddTrackToPlaylistCommandHandler : IRequestHandler<AddTrackT
             request.MediaId, 
             -1 // ← Tự động tính SortOrder
         );
-
-        var media = await _mediaRepository.GetByIdAsync(request.MediaId);
-        if (media == null)
-            throw new InvalidOperationException("Media not found");
 
         return new PlaylistTrackDto
         {

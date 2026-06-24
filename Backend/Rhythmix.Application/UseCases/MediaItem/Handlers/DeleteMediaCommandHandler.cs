@@ -25,11 +25,11 @@ public sealed class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaComma
             return false;
         }
 
-        // Delete file from disk
-        await _fileStorageService.DeleteFileAsync(media.FilePath);
-
         // Delete from database
         await _mediaRepository.DeleteAsync(request.MediaId);
+
+        // Delete the file only after the database transaction succeeds.
+        await _fileStorageService.DeleteFileAsync(media.FilePath);
 
         return true;
     }
