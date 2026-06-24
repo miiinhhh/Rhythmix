@@ -65,7 +65,6 @@ const PlaylistDetailPage = () => {
     setCurrentSongId,
     isPlaying,
     setIsPlaying,
-    songs,
     setSongs,
     onShareSuccess,
     onSetPlaylistQueue,

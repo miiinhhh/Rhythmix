@@ -174,21 +174,21 @@
 /* The application was originally styled dark-first. These tokens keep existing
    component classes legible when the root theme switches to light. */
 html:not(.dark) [class~="bg-zinc-950"] {
-  background-color: #f4f4f5 !important;
+  background-color: #e2e8f0 !important;
 }
 
 html:not(.dark) [class~="bg-zinc-900"],
 html:not(.dark) [class~="bg-zinc-900/70"],
 html:not(.dark) [class~="bg-zinc-900/60"],
 html:not(.dark) [class~="bg-zinc-900/50"] {
-  background-color: #ffffff !important;
+  background-color: #f1f5f9 !important;
 }
 
 html:not(.dark) [class~="bg-zinc-800"],
 html:not(.dark) [class~="bg-zinc-800/80"],
 html:not(.dark) [class~="bg-zinc-800/70"],
 html:not(.dark) [class~="bg-zinc-800/60"] {
-  background-color: #e4e4e7 !important;
+  background-color: #e2e8f0 !important;
 }
 
 html:not(.dark) [class~="text-white"] {
@@ -206,12 +206,12 @@ html:not(.dark) [class~="text-zinc-500"] {
 
 html:not(.dark) [class~="border-zinc-800"],
 html:not(.dark) [class~="border-zinc-700"] {
-  border-color: #d4d4d8 !important;
+  border-color: #cbd5e1 !important;
 }
 
 html:not(.dark) .hover\:bg-zinc-800:hover,
 html:not(.dark) .hover\:bg-zinc-800\/50:hover,
 html:not(.dark) .hover\:bg-zinc-800\/60:hover,
 html:not(.dark) .hover\:bg-zinc-900:hover {
-  background-color: #d4d4d8 !important;
+  background-color: #cbd5e1 !important;
 }

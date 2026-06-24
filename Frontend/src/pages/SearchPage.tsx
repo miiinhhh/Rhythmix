@@ -95,7 +95,7 @@ const SearchPage = () => {
   const [followedArtistIds, setFollowedArtistIds] = useState<Record<string, boolean>>({});
   const artistCoverInputRef = useRef<HTMLInputElement>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const { setCurrentSongId, setIsPlaying, songs, setSongs } = useOutletContext<OutletContextType>();
+  const { setCurrentSongId, setIsPlaying, setSongs } = useOutletContext<OutletContextType>();
 
   useEffect(() => {
     userService.getUsers().then(setUsers).catch(() => setUsers([]));

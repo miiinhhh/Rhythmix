@@ -28,19 +28,19 @@ const SideBar = ({ onOpenAuth }: { onOpenAuth: () => void }) => {
   const getLinkStyle = ({ isActive }: { isActive: boolean }) =>
     `flex w-full items-center gap-4 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
       isActive
-        ? "bg-gray-200 dark:bg-zinc-800 text-black dark:text-white font-semibold"
-        : "text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-800/50"
+        ? "bg-slate-300 dark:bg-zinc-800 text-slate-950 dark:text-white font-semibold"
+        : "text-slate-600 dark:text-zinc-400 hover:text-slate-950 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-zinc-800/50"
     }`;
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col gap-2 p-2 bg-white dark:bg-black h-full select-none">
+    <aside className="flex w-64 shrink-0 flex-col gap-2 p-2 bg-slate-200 dark:bg-black h-full select-none">
       {/* Hộp 1: Logo & Menu chính */}
-      <div className="rounded-lg bg-gray-50 dark:bg-zinc-900 p-4">
+      <div className="rounded-lg bg-slate-100 dark:bg-zinc-900 p-4">
         <div className="mb-4 flex items-center gap-2 px-2 pt-1">
           <div className="flex size-8 items-center justify-center rounded-full bg-green-500 text-black">
             <Library className="size-4" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-black dark:text-white">TuneVault</span>
+          <span className="text-lg font-bold tracking-tight text-slate-950 dark:text-white">Rhythmix</span>
         </div>
 
         <nav className="flex flex-col gap-1">
@@ -54,7 +54,7 @@ const SideBar = ({ onOpenAuth }: { onOpenAuth: () => void }) => {
       </div>
 
       {/* Hộp 2: Menu phụ */}
-      <div className="flex flex-1 flex-col justify-between rounded-lg bg-gray-50 dark:bg-zinc-900 p-3">
+      <div className="flex flex-1 flex-col justify-between rounded-lg bg-slate-100 dark:bg-zinc-900 p-3">
         <nav className="flex flex-col gap-1">
           {secondaryNav.map(({ path, label, icon: Icon }) => (
             <NavLink key={path} to={path} className={getLinkStyle as any}>
@@ -74,10 +74,10 @@ const SideBar = ({ onOpenAuth }: { onOpenAuth: () => void }) => {
         </nav>
 
         {/* Hộp 3: Theme toggle */}
-        <div className="border-t border-gray-200 dark:border-zinc-800/40 pt-4 px-2 space-y-2">
+        <div className="border-t border-slate-300 dark:border-zinc-800/40 pt-4 px-2 space-y-2">
           <button
             onClick={toggleTheme}
-            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-gray-200 dark:bg-zinc-800 hover:bg-gray-300 dark:hover:bg-zinc-700 py-2 px-3 text-sm font-medium text-gray-800 dark:text-zinc-300 transition-colors"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-slate-300 dark:bg-zinc-800 hover:bg-slate-400 dark:hover:bg-zinc-700 py-2 px-3 text-sm font-medium text-slate-800 dark:text-zinc-300 transition-colors"
             title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
             type="button"
           >
