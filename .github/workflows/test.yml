@@ -3,13 +3,11 @@ name: Test Project
 on:
   push:
     branches:
-      - main
       - ThanhThai
 
   pull_request:
     branches:
-      - main
-      - develop
+      - ThanhThai
   
 jobs:
   backend:
@@ -22,10 +20,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0
 
@@ -49,10 +47,10 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
