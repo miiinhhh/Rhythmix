@@ -189,11 +189,11 @@ const RightSideBar = ({
 
   return (
     <aside
-      className={`absolute bottom-0 right-2 top-2 z-30 hidden w-[360px] overflow-y-auto rounded-lg bg-white text-zinc-950 shadow-2xl transition-[transform,opacity] duration-300 ease-out will-change-transform dark:bg-zinc-900 dark:text-white xl:block ${
+      className={`absolute bottom-0 right-2 top-2 z-30 w-[360px] overflow-y-auto rounded-lg bg-white text-zinc-950 shadow-2xl transition-[transform,opacity] duration-300 ease-out will-change-transform dark:bg-zinc-900 dark:text-white ${
         isOpen
-        ? "translate-x-0 opacity-100"
-        : "pointer-events-none translate-x-[calc(100%+1rem)] opacity-0"
-        }`}
+          ? "translate-x-0 opacity-100"
+          : "pointer-events-none translate-x-[calc(100%+1rem)] opacity-0"
+      }`}
       aria-hidden={!isOpen}
     >
       <div className="space-y-5 p-4">
@@ -376,12 +376,14 @@ const RightSideBar = ({
                   <p className="text-zinc-400">Main artist</p>
                 </div>
 
-                <div>
-                  <p className="font-medium text-white">
-                    {currentTrack.album || "Single"}
-                  </p>
-                  <p className="text-zinc-400">Album</p>
-                </div>
+                {currentTrack.album && currentTrack.album !== "Single" && (
+                  <div>
+                    <p className="font-medium text-white">
+                      {currentTrack.album.replace(/^Album /, '')}
+                    </p>
+                    <p className="text-zinc-400">Album</p>
+                  </div>
+                )}
               </div>
             </section>
           </>

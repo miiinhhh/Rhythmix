@@ -6,7 +6,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import AuthModal from "../components/AuthModal";
 import VideoPlayerModal from "../components/VideoPlayerModal";
 import QueueSidebar from "../components/QueueSidebar";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Menu, X } from "lucide-react";
 import { mediaService, signalRService } from "../api";
 import {
   useNotifications,
@@ -49,6 +49,7 @@ const AppLayout = () => {
   );
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [songs, setSongs] = useState<SongType[]>([]);
   const [currentSongId, setCurrentSongId] = useState<string | null>(null);
@@ -336,13 +337,43 @@ const AppLayout = () => {
 
       {canShowAppShell && (
         <>
-          <div className="relative flex min-h-0 flex-1 gap-2 overflow-hidden p-2 pb-0">
-            <SideBar
-              onOpenAuth={() => {
-                setIsAuthenticated(false);
-                setIsAuthModalOpen(true);
-              }}
+          {/* Overlay đóng sidebar */}
+          {isSidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-40 xl:hidden"
+              onClick={() => setIsSidebarOpen(false)}
             />
+          )}
+          
+          <div className="relative flex min-h-0 flex-1 gap-2 overflow-hidden p-2 pb-0">
+            {/* Sidebar trái */}
+            <div className={`
+              fixed left-0 top-0 bottom-0 z-50 transform transition-transform duration-300
+              xl:relative xl:translate-x-0 xl:z-auto
+              ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+            `}>
+              <SideBar
+                onOpenAuth={() => {
+                  setIsAuthenticated(false);
+                  setIsAuthModalOpen(true);
+                }}
+              />
+              {/* Nút đóng sidebar */}
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="absolute top-2 right-2 p-2 xl:hidden text-white bg-zinc-800 rounded-full"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            {/* Nút mở sidebar */}
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="fixed top-2 left-2 z-30 xl:hidden p-2 bg-zinc-800 rounded-full text-white shadow-lg"
+            >
+              <Menu size={20} />
+            </button>
 
             <main className="min-w-0 flex-1 overflow-y-auto rounded-lg bg-white p-6 shadow-sm transition-colors duration-200 dark:bg-zinc-900 dark:shadow-none">
               <div key={location.key} className="route-enter min-h-full">
@@ -390,7 +421,7 @@ const AppLayout = () => {
               <button
                 type="button"
                 onClick={() => setIsNowPlayingSidebarOpen(true)}
-                className="absolute right-2 top-1/2 hidden size-10 -translate-y-1/2 items-center justify-center rounded-l-lg border border-r-0 border-zinc-700 bg-zinc-800 text-zinc-300 shadow-lg transition hover:bg-zinc-700 hover:text-white xl:flex"
+                className="absolute right-2 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-l-lg border border-r-0 border-zinc-700 bg-zinc-800 text-zinc-300 shadow-lg transition hover:bg-zinc-700 hover:text-white"
                 aria-label="Mở thông tin bài hát"
                 title="Mở thông tin bài hát"
               >

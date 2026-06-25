@@ -232,8 +232,21 @@ useEffect(() => {
     setIsShareModalOpen(true);
   };
 
+  const handleMobilePlayerBarClick = (
+    event: React.MouseEvent<HTMLElement>,
+  ) => {
+    if (!currentTrack) return;
+    if (window.matchMedia("(min-width: 768px)").matches) return;
+    if ((event.target as HTMLElement).closest("button, input")) return;
+
+    onOpenVideo();
+  };
+
   return (
-    <footer className="flex h-20 shrink-0 items-center justify-between gap-4 border-t border-zinc-200 bg-white px-4 text-zinc-950 transition-colors duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white">
+    <footer
+      onClick={handleMobilePlayerBarClick}
+      className="relative flex h-20 shrink-0 items-center justify-between gap-2 border-t border-zinc-200 bg-white px-3 pt-0.5 text-zinc-950 transition-colors duration-200 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white md:gap-4 md:px-4"
+    >
       {/* THẺ AUDIO NGẦM (Không hiển thị ra màn hình nhưng làm nhiệm vụ phát nhạc) */}
       {isVideoTrack ? (
         <video
@@ -276,8 +289,8 @@ useEffect(() => {
       )}
 
       {/* Now playing */}
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-800">
+      <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
+        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-800 md:size-14">
           {currentTrack?.posterUrl && !isPosterUnavailable ? (
             <img
               src={currentTrack.posterUrl}
@@ -289,7 +302,7 @@ useEffect(() => {
             <Music2 className="size-6 text-zinc-400" />
           )}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-white">
             {currentTrack ? currentTrack.title : "Chưa chọn bài hát"}
           </p>
@@ -316,7 +329,7 @@ useEffect(() => {
               console.error("Toggle favorite failed:", err);
             }
           }}
-          className="ml-2 hidden text-zinc-400 transition-colors hover:text-white sm:block cursor-pointer"
+          className="text-zinc-400 transition-colors hover:text-white cursor-pointer"
           aria-label={currentTrack?.isLiked ? "Unlike" : "Like"}
         >
           {/* Tui thêm tí hiệu ứng scale-110 cho tim to lên xíu khi được Like nhìn cho đã mắt */}
@@ -337,11 +350,32 @@ useEffect(() => {
         >
           <Share2 className="size-4" />
         </button>
+        <button
+          type="button"
+          onClick={() => onToggleQueueSidebar?.()}
+          className="text-zinc-400 transition-colors hover:text-white cursor-pointer md:hidden"
+          aria-label="Open queue"
+        >
+          <ListMusic className="size-4" />
+        </button>
+        <button
+          type="button"
+          onClick={handlePlayPause}
+          className="flex items-center justify-center transition-transform hover:scale-105 cursor-pointer md:hidden"
+          aria-label={isPlaying ? "Pause" : "Play"}
+        >
+          {isPlaying ? (
+            <Pause className="size-6 fill-white text-white" />
+          ) : (
+            <Play className="size-6 fill-white text-white ml-0.5" />
+          )}
+        </button>
       </div>
 
       {/* Controls */}
-      <div className="flex max-w-md flex-1 flex-col items-center gap-2">
-        <div className="flex items-center gap-4">
+      <div className="hidden max-w-md flex-1 flex-col items-center gap-2 md:flex">
+        {/* Desktop/tablet controls with progress */}
+        <div className="hidden md:flex items-center gap-4">
           <button
             type="button"
             onClick={onPrevious}
@@ -349,13 +383,11 @@ useEffect(() => {
           >
             <SkipBack className="size-5 fill-current" />
           </button>
-          {/* NÚT PLAY/PAUSE THÔNG MINH ĐƯỢC THAY THẾ KHÚC NÀY */}
           <button
             type="button"
-            onClick={handlePlayPause} // THÊM SỰ KIỆN CLICK
+            onClick={handlePlayPause}
             className="flex size-8 items-center justify-center rounded-full bg-white text-black transition-transform hover:scale-105 cursor-pointer"
           >
-            {/* THÊM ĐIỀU KIỆN ĐỔI ICON Ở ĐÂY */}
             {isPlaying ? (
               <Pause className="size-4 fill-black text-black" />
             ) : (
@@ -370,28 +402,39 @@ useEffect(() => {
             <SkipForward className="size-5 fill-current" />
           </button>
         </div>
-
-        {/* Progress Timeline Slider UI */}
-        <div className="flex w-full items-center gap-2">
+        {/* Desktop/tablet progress bar with time */}
+        <div className="hidden md:flex w-full items-center gap-2">
           <span className="text-xs text-zinc-400 tabular-nums">
             {formatTime(currentTime)}
           </span>
-          {/* Thanh trượt thật giúp người dùng kéo để SEEK (Tua nhạc) */}
           <input
             type="range"
             min={0}
             max={duration || 0}
             value={currentTime}
-            onChange={handleSeek} // Kéo tới đâu chạy hàm Seek tới đó
+            onChange={handleSeek}
             className="h-1 flex-1 accent-green-500 bg-zinc-700 rounded-full cursor-pointer appearance-none"
             style={{
               background: `linear-gradient(to right, #22c55e ${calculateProgressPercent()}%, #3f3f46 ${calculateProgressPercent()}%)`,
             }}
           />
-          {/* Hiển thị tổng thời lượng thật của bài hát */}
           <span className="text-xs text-zinc-400 tabular-nums">
             {formatTime(duration)}
           </span>
+        </div>
+        {/* Mobile play/pause only */}
+        <div className="flex md:hidden items-center justify-center">
+          <button
+            type="button"
+            onClick={handlePlayPause}
+            className="flex items-center justify-center transition-transform hover:scale-105 cursor-pointer"
+          >
+            {isPlaying ? (
+              <Pause className="size-6 fill-white text-white" />
+            ) : (
+              <Play className="size-6 fill-white text-white ml-0.5" />
+            )}
+          </button>
         </div>
       </div>
 
@@ -408,7 +451,7 @@ useEffect(() => {
           type="button"
           disabled={!currentTrack}
           onClick={() => onToggleNowPlayingSidebar?.()}
-          className={`hidden text-zinc-400 transition-colors hover:text-white cursor-pointer xl:block ${
+          className={`text-zinc-400 transition-colors hover:text-white cursor-pointer ${
             !currentTrack ? "cursor-not-allowed opacity-30 hover:text-zinc-400" : ""
           }`}
           aria-label={isNowPlayingSidebarOpen ? "Đóng thông tin bài hát" : "Mở thông tin bài hát"}
@@ -420,20 +463,22 @@ useEffect(() => {
             <PanelRightOpen className="size-4" />
           )}
         </button>
-        {/* Volume UI */}
-        <Volume2 className="size-4 text-zinc-400" />
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volume}
-          onChange={handleVolumeChange}
-          className="h-1 w-24 accent-green-500 bg-zinc-700 rounded-full cursor-pointer appearance-none"
-          style={{
-            background: `linear-gradient(to right, #22c55e ${volume * 100}%, #3f3f46 ${volume * 100}%)`,
-          }}
-        />
+        {/* Volume UI - ẩn trên mobile để tiết kiệm diện tích */}
+        <div className="hidden md:flex items-center gap-2">
+          <Volume2 className="size-4 text-zinc-400" />
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={handleVolumeChange}
+            className="h-1 w-24 accent-green-500 bg-zinc-700 rounded-full cursor-pointer appearance-none"
+            style={{
+              background: `linear-gradient(to right, #22c55e ${volume * 100}%, #3f3f46 ${volume * 100}%)`,
+            }}
+          />
+        </div>
         <button
           type="button"
           onClick={onOpenVideo} // Click phát là gọi hàm mở Fullscreen trên file cha
@@ -443,6 +488,21 @@ useEffect(() => {
           <Maximize2 className="size-4" />
         </button>
       </div>
+      {/* Mobile: Thin progress bar at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 md:hidden">
+        <input
+          type="range"
+          min={0}
+          max={duration || 0}
+          value={currentTime}
+          onChange={handleSeek}
+          className="mobile-player-progress h-0.5 w-full cursor-pointer appearance-none bg-zinc-700"
+          style={{
+            background: `linear-gradient(to right, #22c55e ${calculateProgressPercent()}%, #3f3f46 ${calculateProgressPercent()}%)`,
+          }}
+        />
+      </div>
+
       {/* 🟢 Render ShareModal tại đây */}
       {currentTrack && (
         <ShareModal

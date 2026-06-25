@@ -165,6 +165,32 @@
   animation: route-enter 180ms ease-out both;
 }
 
+.mobile-player-progress {
+  display: block;
+}
+
+.mobile-player-progress::-webkit-slider-runnable-track {
+  height: 2px;
+}
+
+.mobile-player-progress::-webkit-slider-thumb {
+  width: 0;
+  height: 0;
+  appearance: none;
+  border: 0;
+}
+
+.mobile-player-progress::-moz-range-track {
+  height: 2px;
+  border: 0;
+}
+
+.mobile-player-progress::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  border: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .route-enter {
     animation: none;

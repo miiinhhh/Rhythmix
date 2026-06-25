@@ -183,65 +183,68 @@ const LibraryPage = () => {
       </div>
 
       {/* Thanh bấm chuyển đổi các Tab (All / Playlists / Albums) và cụm nút hành động */}
-      <div className="flex items-center justify-between">
-        {/* Cụm bên trái: Các Tab bộ lọc (Giữ nguyên của bạn) */}
-        <div className="flex gap-2">
-          {libraryTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
-                  isActive
-                    ? "bg-green-500 text-black"
-                    : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
-                }`}
-              >
-                <Icon className="size-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+          {/* Cụm bên trái: Các Tab bộ lọc */}
+          <div className="flex gap-2">
+            {libraryTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                    isActive
+                      ? "bg-green-500 text-black"
+                      : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+                  }`}
+                >
+                  <Icon className="size-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-        {/* 🌟 CỤM BÊN PHẢI: Bọc 2 nút Upload và Create vào đây để tụi nó đứng sát nhau */}
-        <div className="flex items-center gap-3">
-          {/* Nút Upload Music */}
-          <button
-            type="button"
-            onClick={() => setIsUploadOpen(true)}
-            className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-transform hover:scale-105 cursor-pointer active:scale-95"
-          >
-            <Plus className="size-4 stroke-3" />
-            Upload Music in Album
-          </button>
+          {/* Cụm nút hành động */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Nút Upload Music */}
+            <button
+              type="button"
+              onClick={() => setIsUploadOpen(true)}
+              className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-transform hover:scale-105 cursor-pointer active:scale-95"
+            >
+              <Plus className="size-4 stroke-3" />
+              <span className="xl:hidden">Upload Music</span>
+              <span className="hidden xl:inline">Upload Music in Album</span>
+            </button>
 
-          {/* Nút Create New Playlist */}
-          <button
-            type="button"
-            onClick={() => setIsCreatePlaylistOpen(true)}
-            className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-transform hover:scale-105 cursor-pointer active:scale-95"
-          >
-            <Plus className="size-4 stroke-3" />
-            Create New Playlist
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedMediaIds([]);
-              setDeleteError("");
-              setIsDeleteModalOpen(true);
-            }}
-            className="flex items-center gap-2 rounded-full border border-red-500/70 px-4 py-2 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500 hover:text-white cursor-pointer"
-          >
-            <Trash2 className="size-4" />
-            Delete audio
-          </button>
+            {/* Nút Create New Playlist */}
+            <button
+              type="button"
+              onClick={() => setIsCreatePlaylistOpen(true)}
+              className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition-transform hover:scale-105 cursor-pointer active:scale-95"
+            >
+              <Plus className="size-4 stroke-3" />
+              <span className="xl:hidden">New Playlist</span>
+              <span className="hidden xl:inline">Create New Playlist</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedMediaIds([]);
+                setDeleteError("");
+                setIsDeleteModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-full border border-red-500/70 px-4 py-2 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500 hover:text-white cursor-pointer"
+            >
+              <Trash2 className="size-4" />
+              <span className="xl:hidden">Delete</span>
+              <span className="hidden xl:inline">Delete audio</span>
+            </button>
+          </div>
         </div>
-      </div>
 
       {/* Lưới hiển thị danh sách các mục trong thư viện */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

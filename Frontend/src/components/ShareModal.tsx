@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, Search, Send, X } from "lucide-react";
 import { shareService } from "../api/shareService";
 import { userService } from "../api/userService";
@@ -80,9 +81,9 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-4">
+      <div className="my-auto w-full max-w-sm space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-2xl sm:p-5">
         <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
           <div>
             <h3 className="text-sm font-bold text-white">
@@ -116,7 +117,7 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
           />
         </div>
 
-        <div className="custom-scrollbar max-h-60 space-y-2 overflow-y-auto pr-1">
+        <div className="custom-scrollbar max-h-[45dvh] space-y-2 overflow-y-auto pr-1 sm:max-h-60">
           {filteredUsers.map((user) => {
             const currentRecordKey = `${user.id}-${itemToShare.type}`;
             const hasSent = sentRecords.includes(currentRecordKey);
@@ -167,7 +168,8 @@ const ShareModal = ({ isOpen, onClose, itemToShare, onShareSuccess }: ShareModal
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
