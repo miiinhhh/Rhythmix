@@ -386,7 +386,7 @@ useEffect(() => {
             >
               <ListPlus className="size-5" />
             </button>
-            <div className="flex items-center gap-2 group/vol">
+            <div className="hidden md:flex items-center gap-2 group/vol">
               <Volume2 className="size-5" />
               <input
                 type="range"

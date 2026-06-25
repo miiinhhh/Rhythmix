@@ -1,4 +1,4 @@
-﻿import { X } from "lucide-react";
+﻿﻿import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { albumService } from "../api/albumService";
 import { artistService } from "../api/artistService";
@@ -283,18 +283,18 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-6 backdrop-blur-sm">
-      <div className="relative w-full max-w-7xl rounded-2xl border border-zinc-800 bg-zinc-950 p-10 shadow-2xl">
-        <button type="button" onClick={onClose} className="absolute right-6 top-6 rounded-full p-2 text-zinc-400 hover:bg-zinc-900 hover:text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
+        <button type="button" onClick={onClose} className="absolute right-4 top-4 rounded-full p-2 text-zinc-400 hover:bg-zinc-900 hover:text-white">
           <X className="size-6" />
         </button>
 
-        <div className="mb-10">
-          <h2 className="text-3xl font-bold tracking-tight text-white">Tải nhạc mới</h2>
-          <p className="mt-1.5 text-base text-zinc-400">Xuất bản tác phẩm âm nhạc của bạn lên hệ thống</p>
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold tracking-tight text-white">Tải nhạc mới</h2>
+          <p className="mt-1.5 text-sm text-zinc-400">Xuất bản tác phẩm âm nhạc của bạn lên hệ thống</p>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate className="grid grid-cols-1 gap-8 md:grid-cols-3">
+        <form onSubmit={handleSubmit} noValidate className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-6">
             <p className="border-b border-zinc-900 pb-2 text-sm font-bold uppercase tracking-widest text-green-500">1. Thông tin cơ bản</p>
 
@@ -519,9 +519,9 @@ const ChooseArtistPopup = ({
   if (!open) return null;
 
   return (
-    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/70 p-6 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
-        <div className="mb-5 flex items-center justify-between">
+    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-black text-white">Chọn nghệ sĩ</h3>
             <p className="mt-1 text-xs text-zinc-400">Tìm nghệ sĩ đã có trong hệ thống để gắn với bài hát.</p>
@@ -535,7 +535,7 @@ const ChooseArtistPopup = ({
           <button
             type="button"
             onClick={onChooseUnknown}
-            className="flex w-full items-center justify-between rounded-lg border border-zinc-700 bg-zinc-900 px-3.5 py-2.5 text-left text-sm font-medium text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-800"
+            className="flex w-full items-center justify-between rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-left text-sm font-medium text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-800"
           >
             <span>Không rõ nghệ sĩ</span>
             <span className="text-xs text-zinc-400">Không gắn nghệ sĩ</span>
@@ -547,10 +547,10 @@ const ChooseArtistPopup = ({
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Nhập tên nghệ sĩ..."
             autoFocus
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-700"
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-700"
           />
 
-          <div className="max-h-72 space-y-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-1.5">
+          <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-1.5">
             {searching ? (
               <p className="px-3 py-2 text-xs text-zinc-500">Đang tìm nghệ sĩ...</p>
             ) : artists.length > 0 ? (
@@ -624,9 +624,9 @@ const ChooseAlbumPopup = ({
   if (!open) return null;
 
   return (
-    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/70 p-6 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
-        <div className="mb-5 flex items-center justify-between">
+    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-black text-white">Chọn album</h3>
             <p className="mt-1 text-xs text-zinc-400">Tìm album có sẵn, để single, hoặc tạo album mới.</p>
@@ -643,10 +643,10 @@ const ChooseAlbumPopup = ({
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Tìm album..."
             autoFocus
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-700"
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-700"
           />
 
-          <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-1.5">
+          <div className="max-h-44 space-y-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-1.5">
             <button
               type="button"
               onClick={onClear}
@@ -688,7 +688,7 @@ const ChooseAlbumPopup = ({
                 value={newTitle}
                 onChange={(event) => onTitleChange(event.target.value)}
                 placeholder="Tên album mới... *"
-                className={`w-full rounded-lg border bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none ${titleError ? "border-red-500" : "border-zinc-800 focus:border-zinc-700"}`}
+                className={`w-full rounded-lg border bg-zinc-950 px-3 py-2.5 text-sm text-white outline-none ${titleError ? "border-red-500" : "border-zinc-800 focus:border-zinc-700"}`}
               />
               {titleError && <p className="text-xs font-medium text-red-500">{titleError}</p>}
               <textarea
@@ -696,7 +696,7 @@ const ChooseAlbumPopup = ({
                 value={newDescription}
                 onChange={(event) => onDescriptionChange(event.target.value)}
                 placeholder="Mô tả ngắn..."
-                className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none focus:border-zinc-700"
+                className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm text-white outline-none focus:border-zinc-700"
               />
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
@@ -707,7 +707,7 @@ const ChooseAlbumPopup = ({
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={(event) => onCoverImageChange(event.target.files?.[0] || null)}
-                  className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white"
+                  className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white"
                 />
 
                 {newCoverImage && (
@@ -767,9 +767,9 @@ const ChooseGenrePopup = ({
   if (!open) return null;
 
   return (
-    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/70 p-6 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
-        <div className="mb-5 flex items-center justify-between">
+    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-950 p-4 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-black text-white">Chọn thể loại</h3>
             <p className="mt-1 text-xs text-zinc-400">Tìm thể loại có sẵn hoặc tạo thể loại mới.</p>
@@ -786,10 +786,10 @@ const ChooseGenrePopup = ({
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Tìm thể loại..."
             autoFocus
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-700"
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-zinc-700"
           />
 
-          <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-1.5">
+          <div className="max-h-44 space-y-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-1.5">
             <button
               type="button"
               onClick={onClear}
@@ -829,7 +829,7 @@ const ChooseGenrePopup = ({
                 value={name}
                 onChange={(event) => onNameChange(event.target.value)}
                 placeholder="Tên thể loại mới... *"
-                className={`w-full rounded-lg border bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none ${error ? "border-red-500" : "border-zinc-800 focus:border-zinc-700"}`}
+                className={`w-full rounded-lg border bg-zinc-950 px-3 py-2.5 text-sm text-white outline-none ${error ? "border-red-500" : "border-zinc-800 focus:border-zinc-700"}`}
               />
               {error && <p className="text-xs font-medium text-red-500">{error}</p>}
               <textarea
@@ -837,7 +837,7 @@ const ChooseGenrePopup = ({
                 value={description}
                 onChange={(event) => onDescriptionChange(event.target.value)}
                 placeholder="Mô tả ngắn..."
-                className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none focus:border-zinc-700"
+                className="w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm text-white outline-none focus:border-zinc-700"
               />
               <button type="button" onClick={onSubmit} disabled={saving} className="w-full rounded-lg bg-green-500 py-2.5 text-sm font-bold text-black hover:bg-green-400 disabled:opacity-60">
                 {saving ? "Đang tạo..." : "Tạo thể loại"}
