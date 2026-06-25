@@ -1,0 +1,63 @@
+name: Test Project
+
+on:
+  push:
+    branches:
+      - main
+      - ThanhThai
+
+  pull_request:
+    branches:
+      - main
+      - develop
+  
+jobs:
+  backend:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.0.x'
+      
+      - name: Restore packages
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet restore 
+      
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build
+
+  frontend:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install packages
+        run: npm install
+
+      - name: Build frontend
+        run: npm run build
+        
