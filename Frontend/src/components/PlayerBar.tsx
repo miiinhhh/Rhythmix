@@ -302,54 +302,59 @@ useEffect(() => {
             <Music2 className="size-6 text-zinc-400" />
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-white">
-            {currentTrack ? currentTrack.title : "Chưa chọn bài hát"}
-          </p>
-          <p className="truncate text-xs text-zinc-400">
-            {currentTrack ? currentTrack.artist : "Không có ca sĩ"}
-          </p>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          {/* Tên bài hát & Ca sĩ */}
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-white">
+              {currentTrack ? currentTrack.title : "Chưa chọn bài hát"}
+            </p>
+            <p className="truncate text-xs text-zinc-400">
+              {currentTrack ? currentTrack.artist : "Không có ca sĩ"}
+            </p>
+          </div>
+
+          {/* Cụm icon chức năng đi liền ngay sau chữ */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Nút Like (Trái tim) */}
+            <button
+              type="button"
+              onClick={async () => {
+                if (!currentTrack) return;
+                try {
+                  await userService.toggleFavorite(currentTrack.id);
+                  setSongs((prev) =>
+                    prev.map((song) =>
+                      song.id === currentTrack.id
+                        ? { ...song, isLiked: !song.isLiked }
+                        : song,
+                    ),
+                  );
+                } catch (err) {
+                  console.error("Toggle favorite failed:", err);
+                }
+              }}
+              className="text-zinc-400 transition-colors hover:text-white cursor-pointer"
+              aria-label={currentTrack?.isLiked ? "Unlike" : "Like"}
+            >
+              <Heart
+                className={`size-4 transition-all duration-200 ${currentTrack?.isLiked ? "text-green-500 fill-green-500 scale-110" : ""}`}
+              />
+            </button>
+
+            {/* Nút Share */}
+            <button
+              type="button"
+              disabled={!currentTrack}
+              onClick={handleShareClick}
+              className={`text-zinc-400 transition-colors hover:text-white cursor-pointer ${
+                !currentTrack ? "opacity-30 cursor-not-allowed hover:text-zinc-400" : ""
+              }`}
+              aria-label="Share"
+            >
+              <Share2 className="size-4" />
+            </button>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={async () => {
-            if (!currentTrack) return;
-
-            try {
-              await userService.toggleFavorite(currentTrack.id);
-
-              setSongs((prev) =>
-                prev.map((song) =>
-                  song.id === currentTrack.id
-                    ? { ...song, isLiked: !song.isLiked }
-                    : song,
-                ),
-              );
-            } catch (err) {
-              console.error("Toggle favorite failed:", err);
-            }
-          }}
-          className="text-zinc-400 transition-colors hover:text-white cursor-pointer"
-          aria-label={currentTrack?.isLiked ? "Unlike" : "Like"}
-        >
-          {/* Tui thêm tí hiệu ứng scale-110 cho tim to lên xíu khi được Like nhìn cho đã mắt */}
-          <Heart
-            className={`size-4 transition-all duration-200 ${currentTrack?.isLiked ? "text-green-500 fill-green-500 scale-110" : ""}`}
-          />
-        </button>
-        <button
-          type="button"
-          disabled={!currentTrack} // Nếu chưa phát bài nào thì không cho bấm
-          onClick={handleShareClick}
-          className={`text-zinc-400 transition-colors hover:text-white cursor-pointer ${
-            !currentTrack
-              ? "opacity-30 cursor-not-allowed hover:text-zinc-400"
-              : ""
-          }`}
-          aria-label="Share"
-        >
-          <Share2 className="size-4" />
-        </button>
         <button
           type="button"
           onClick={() => onToggleQueueSidebar?.()}
