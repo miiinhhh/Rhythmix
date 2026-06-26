@@ -17,7 +17,7 @@ namespace Rhythmix.API;
 
 public class Program
 {
-    public static async Task Main(string[] args)  // 👈 ĐÃ SỬA
+    public static async Task Main(string[] args)  
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +33,7 @@ public class Program
         });
         builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
         {
-            o.MultipartBodyLengthLimit = 50_000_000;
+            o.MultipartBodyLengthLimit = 500_000_000;
         });
         builder.Services.AddMemoryCache();  
 
