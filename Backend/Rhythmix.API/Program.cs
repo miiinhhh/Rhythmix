@@ -27,8 +27,15 @@ public class Program
         .Get<string[]>() ?? Array.Empty<string>();
 
         builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
-        builder.Services.AddControllers();
-        builder.Services.AddMemoryCache();
+        builder.Services.AddControllers(options =>
+        {
+            options.MaxModelBindingCollectionSize = int.MaxValue;
+        });
+        builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
+        {
+            o.MultipartBodyLengthLimit = 50_000_000;
+        });
+        builder.Services.AddMemoryCache();  
 
         builder.Services.Configure<ApiBehaviorOptions>(options =>
         {
@@ -121,10 +128,6 @@ public class Program
         });
 
         var app = builder.Build();
-
-        // ================================================================
-        // 🎯 KIỂM TRA KẾT NỐI DATABASE (ĐÃ SỬA LỖI)
-        // ================================================================
         
         using (var scope = app.Services.CreateScope())
         {
@@ -134,26 +137,25 @@ public class Program
             try
             {
                 var connectionString = configuration.GetConnectionString("DefaultConnection");
-                logger.LogInformation("🔄 Attempting to connect to database...");
-                logger.LogInformation("📡 Connection string: {ConnectionString}", 
+                logger.LogInformation("Attempting to connect to database...");
+                logger.LogInformation("Connection string: {ConnectionString}", 
                     connectionString?.Replace("Password=", "Password=***") ?? "null");
                 
                 using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();  // 👈 ĐÃ CÓ THỂ DÙNG await VÌ Main LÀ async
+                await connection.OpenAsync(); 
                 
-                logger.LogInformation("✅ Database connection successful!");
+                logger.LogInformation("Database connection successful!");
                 logger.LogInformation("   Server: {Server}", connection.DataSource);
                 logger.LogInformation("   Database: {Database}", connection.Database);
                 logger.LogInformation("   State: {State}", connection.State);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "❌ Database connection failed!");
+                logger.LogError(ex, "Database connection failed!");
                 logger.LogError("   Error: {Message}", ex.Message);
             }
         }
 
-        // ================================================================
 
         if (app.Environment.IsDevelopment())
         {
