@@ -11,5 +11,7 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       # Override connection string from appsettings.json
       - ConnectionStrings__DefaultConnection=Server=rhythmixdb.cwxwqoskaiay.us-east-1.rds.amazonaws.com,1433;Database=RhythmixDb;User Id=admin;Password=root1234;TrustServerCertificate=True;MultipleActiveResultSets=true
-volumes:
-  sqlserver_data:
+      - OpenRouter__ApiKey=${OPENROUTER_API_KEY} 
+    volumes:
+      - ./uploads:/app/wwwroot/uploads
+    restart: unless-stopped
