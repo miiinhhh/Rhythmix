@@ -34,7 +34,7 @@ export const mediaService = {
 
   // Stream phần video đi kèm (nếu có)
   getMediaVideoStream: (mediaId: string) => {
-    return `http://localhost:5269/api/media/${mediaId}/stream?type=video`;
+    return `${API_BASE_URL}/api/media/${mediaId}/stream?type=video`;
   },
 
   // Get discovery/recommended media
