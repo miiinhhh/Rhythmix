@@ -159,7 +159,7 @@ const SearchPage = () => {
       console.log("DEFAULT:", defaultBrowseCategories.map(x => x.label));
       console.log("API:", res?.map(x => x.name));
 
-      const apiGenres = (res || []).map((g: any, index: number) => {
+      const apiGenres = (res || []).map((g: any) => {
         const color = gradientPresets[hashColor(g.name) % gradientPresets.length];
 
         return {
