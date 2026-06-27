@@ -165,7 +165,12 @@ const AddSongAlbumModal = ({ isOpen, onClose, onUploaded, albumId, artistName }:
         name,
         description: newGenreDesc.trim() || undefined,
       });
-      setMyGenres((current) => [created, ...current]);
+      setMyGenres((current) => {
+        const exists = current.some((g) => g.genreId === created.genreId);
+        if (exists) return current;
+
+        return [...current, created];
+      });
       setSelectedGenreIds((current) => [...new Set([...current, created.genreId])]);
       setGenreSearchTerm(created.name);
       setNewGenreName("");
@@ -274,9 +279,8 @@ const AddSongAlbumModal = ({ isOpen, onClose, onUploaded, albumId, artistName }:
                   <button
                     type="button"
                     onClick={() => setIsChoosingArtist(true)}
-                    className={`w-full rounded-lg border bg-zinc-900 px-4 py-3 text-left text-sm outline-none transition hover:border-zinc-700 ${
-                      errors.artist ? "border-red-500" : "border-zinc-800"
-                    }`}
+                    className={`w-full rounded-lg border bg-zinc-900 px-4 py-3 text-left text-sm outline-none transition hover:border-zinc-700 ${errors.artist ? "border-red-500" : "border-zinc-800"
+                      }`}
                   >
                     {artist || isUnknownArtist ? (
                       <span className="flex items-center justify-between gap-3 text-white">
@@ -479,9 +483,8 @@ const ChooseArtistPopup = ({
                   key={item.artistId}
                   type="button"
                   onClick={() => onChoose(item)}
-                  className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${
-                    selectedArtistId === item.artistId ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
-                  }`}
+                  className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${selectedArtistId === item.artistId ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
+                    }`}
                 >
                   <span className="truncate font-medium">{item.name}</span>
                   {selectedArtistId === item.artistId && <span className="text-xs font-bold">Đã chọn</span>}
@@ -565,9 +568,8 @@ const ChooseGenrePopup = ({
             <button
               type="button"
               onClick={onClear}
-              className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${
-                selectedGenreIds.length === 0 ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
-              }`}
+              className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${selectedGenreIds.length === 0 ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
+                }`}
             >
               <span className="truncate font-medium">Không chọn thể loại</span>
               {selectedGenreIds.length === 0 && <span className="text-xs font-bold">Đã chọn</span>}
@@ -576,12 +578,11 @@ const ChooseGenrePopup = ({
             {genres.length > 0 ? (
               genres.map((item) => (
                 <button
-                key={item.genreId}
-                type="button"
-                onClick={() => onToggle(item)}
-                className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${
-                  selectedGenreIds.includes(item.genreId) ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
-                }`}
+                  key={item.genreId}
+                  type="button"
+                  onClick={() => onToggle(item)}
+                  className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition ${selectedGenreIds.includes(item.genreId) ? "bg-green-500 text-black" : "text-zinc-200 hover:bg-zinc-900 hover:text-white"
+                    }`}
                 >
                   <span className="truncate font-medium">{item.name}</span>
                   {selectedGenreIds.includes(item.genreId) && <span className="text-xs font-bold">Đã chọn</span>}

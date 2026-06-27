@@ -1,4 +1,4 @@
-﻿﻿import { X } from "lucide-react";
+﻿﻿﻿﻿﻿﻿import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { albumService } from "../api/albumService";
 import { artistService } from "../api/artistService";
@@ -210,7 +210,12 @@ const UploadMediaModal = ({ isOpen, onClose, onUploaded }: UploadMediaModalProps
         name,
         description: newGenreDesc.trim() || undefined,
       });
-      setMyGenres((current) => [created, ...current]);
+      setMyGenres((current) => {
+        const exists = current.some((g) => g.genreId === created.genreId);
+        if (exists) return current;
+
+        return [...current, created];
+      });
       setSelectedGenreIds((current) => [...new Set([...current, created.genreId])]);
       setGenreSearchTerm(created.name);
       setNewGenreName("");

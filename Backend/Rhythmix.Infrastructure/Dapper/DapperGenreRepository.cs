@@ -20,7 +20,7 @@ public sealed class DapperGenreRepository : IGenreRepository
         const string sql = @"
             SELECT GenreId, Name, Description, CreatedAt
             FROM [Genres]
-            ORDER BY Name";
+            ORDER BY CreatedAt ASC";
 
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();

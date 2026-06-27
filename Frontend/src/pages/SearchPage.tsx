@@ -3,6 +3,7 @@ import { AudioLines, Disc3, Headphones, ImagePlus, ListMusic, Mic2, Music, Play,
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { artistService } from "../api/artistService";
 import { followService } from "../api/followService";
+import { genreService } from "../api/genreService";
 import { searchService } from "../api/searchService";
 import { userService } from "../api/userService";
 import type { ArtistDto, MediaItemDto, SearchAlbumDto, SearchGenrePlaylistDto, SearchMediaDto, SearchPlaylistDto, UserProfileDto } from "../types/api";
@@ -16,7 +17,7 @@ interface OutletContextType {
   setSongs: React.Dispatch<React.SetStateAction<SongType[]>>;
 }
 
-const browseCategories = [
+const defaultBrowseCategories = [
   {
     label: "Pop",
     subtitle: "Explore Pop",
@@ -53,6 +54,22 @@ const browseCategories = [
     accent: "bg-lime-400",
   },
 ];
+const gradientPresets = [
+  { gradient: "from-pink-500 via-rose-500 to-purple-700", accent: "bg-pink-400" },
+  { gradient: "from-red-600 via-orange-600 to-yellow-500", accent: "bg-orange-400" },
+  { gradient: "from-violet-500 via-indigo-600 to-slate-950", accent: "bg-violet-400" },
+  { gradient: "from-cyan-500 via-blue-600 to-zinc-950", accent: "bg-cyan-400" },
+  { gradient: "from-emerald-500 via-green-600 to-zinc-900", accent: "bg-emerald-400" },
+  { gradient: "from-amber-500 via-yellow-600 to-orange-700", accent: "bg-amber-400" },
+];
+
+const hashColor = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
+};
 
 
 const formatDuration = (seconds?: number) => {
@@ -104,6 +121,7 @@ const mapSearchMediaToSong = (media: SearchMediaDto): SongType => {
 const SearchPage = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [browseCategories, setBrowseCategories] = useState(defaultBrowseCategories);
   const [users, setUsers] = useState<UserProfileDto[]>([]);
   const [mediaResults, setMediaResults] = useState<SearchMediaDto[]>([]);
   const [playlistResults, setPlaylistResults] = useState<SearchPlaylistDto[]>([]);
@@ -117,11 +135,54 @@ const SearchPage = () => {
   const [followedArtistIds, setFollowedArtistIds] = useState<Record<string, boolean>>({});
   const artistCoverInputRef = useRef<HTMLInputElement>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const { setCurrentSongId, setIsPlaying, songs, setSongs} = useOutletContext<OutletContextType>();
+  const { setCurrentSongId, setIsPlaying, songs, setSongs } = useOutletContext<OutletContextType>();
 
   useEffect(() => {
     userService.getUsers().then(setUsers).catch(() => setUsers([]));
   }, []);
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+
+    loadGenres();
+  }, []);
+
+  const loadGenres = async () => {
+    try {
+      const res = await genreService.getAll();
+
+      console.log("API ORDER:", res);
+
+
+      console.log("DEFAULT:", defaultBrowseCategories.map(x => x.label));
+      console.log("API:", res?.map(x => x.name));
+
+      const apiGenres = (res || []).map((g: any, index: number) => {
+        const color = gradientPresets[hashColor(g.name) % gradientPresets.length];
+
+        return {
+          label: g.name,
+          subtitle: g.description || "Explore genre",
+          icon: Music,
+          gradient: color.gradient,
+          accent: color.accent,
+        };
+      });
+
+      const base = defaultBrowseCategories.map(x => ({ ...x }));
+
+      const next = [...base, ...apiGenres];
+
+      console.log("FINAL ORDER:", next.map(x => x.label));
+
+      setBrowseCategories(next);
+    } catch (err) {
+      console.error(err);
+      setBrowseCategories(defaultBrowseCategories.map(x => ({ ...x })));
+    }
+  };
 
   const normalizedQuery = query.trim().toLowerCase();
   const hasQuery = normalizedQuery.length > 0;
@@ -362,8 +423,8 @@ const SearchPage = () => {
                             void toggleArtistFollow(artist.artistId);
                           }}
                           className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${followedArtistIds[artist.artistId]
-                              ? "bg-zinc-700 text-white"
-                              : "bg-white text-black hover:bg-zinc-200"
+                            ? "bg-zinc-700 text-white"
+                            : "bg-white text-black hover:bg-zinc-200"
                             }`}
                         >
                           {followedArtistIds[artist.artistId] ? "Following" : "Follow"}
@@ -483,18 +544,46 @@ const SearchPage = () => {
                       key={playlist.playlistId}
                       type="button"
                       onClick={() => navigate(`/playlist/${playlist.playlistId}`)}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-left hover:bg-zinc-800"
+                      className="relative flex cursor-pointer items-center gap-3 overflow-hidden rounded-lg border border-zinc-800 p-4 text-left transition hover:scale-[1.01]"
+                      style={
+                        playlist.coverImageUrl
+                          ? {
+                            backgroundImage: `linear-gradient(to right, rgba(24,24,27,.92), rgba(24,24,27,.72)), url(${resolveAssetUrl(playlist.coverImageUrl)})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }
+                          : undefined
+                      }
                     >
-                      <div className="flex size-12 items-center justify-center rounded-md bg-zinc-800 text-zinc-400">
-                        <ListMusic className="size-6" />
+                      {/* overlay tối để chữ dễ đọc */}
+                      <div className="absolute inset-0 bg-black/60" />
+
+                      {/* thumbnail (chỉ thay icon, KHÔNG đổi background card) */}
+                      <div className="relative z-10 size-12 overflow-hidden rounded-md bg-zinc-800">
+                        {playlist.coverImageUrl ? (
+                          <img
+                            src={resolveAssetUrl(playlist.coverImageUrl)}
+                            alt={playlist.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-zinc-400">
+                            <ListMusic className="size-6" />
+                          </div>
+                        )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-white">{playlist.name}</div>
-                        <div className="truncate text-xs text-zinc-400">
+
+                      {/* text */}
+                      <div className="relative z-10 min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-white">
+                          {playlist.name}
+                        </div>
+                        <div className="truncate text-xs text-zinc-300">
                           {playlist.trackCount} songs - {playlist.isPublic ? "Public" : "Private"}
                         </div>
                       </div>
-                      <Play className="size-4 text-zinc-400" />
+
+                      <Play className="relative z-10 size-4 text-white/80" />
                     </button>
                   ))}
                 </div>
@@ -589,8 +678,8 @@ const SearchPage = () => {
                                 void toggleArtistFollow(media.artistId);
                               }}
                               className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${followedArtistIds[media.artistId]
-                                  ? "bg-zinc-800 text-white"
-                                  : "bg-white text-black hover:bg-zinc-200"
+                                ? "bg-zinc-800 text-white"
+                                : "bg-white text-black hover:bg-zinc-200"
                                 }`}
                             >
                               {followedArtistIds[media.artistId] ? "Following" : "Follow Artist"}
@@ -628,7 +717,7 @@ const SearchPage = () => {
 
                 return (
                   <button
-                    key={cat.label}
+                    key={`genre-${cat.label}`}
                     type="button"
                     onClick={() => setQuery(cat.label)}
                     className="group rounded-xl bg-zinc-900/70 p-3 text-left transition-all duration-300 hover:bg-zinc-800/90 hover:shadow-xl hover:shadow-black/20"
