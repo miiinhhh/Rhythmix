@@ -3,11 +3,11 @@ name: Test Project
 on:
   push:
     branches:
-      - ThanhThai
+      - main
 
   pull_request:
     branches:
-      - ThanhThai
+      - main
   
 jobs:
   backend:
