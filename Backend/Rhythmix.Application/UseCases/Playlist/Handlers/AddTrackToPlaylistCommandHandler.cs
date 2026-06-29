@@ -40,7 +40,7 @@ public sealed class AddTrackToPlaylistCommandHandler : IRequestHandler<AddTrackT
         var actualSortOrder = await _playlistTrackRepository.AddTrackAsync(
             request.PlaylistId, 
             request.MediaId, 
-            -1 // ← Tự động tính SortOrder
+            -1 
         );
 
         return new PlaylistTrackDto

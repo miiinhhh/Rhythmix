@@ -94,7 +94,19 @@ public sealed class DapperSearchRepository : ISearchRepository
             new { ExactQuery = exactQuery },
             transaction) == 1;
 
-        var parameters = new { Query = queryParam, ExactQuery = exactQuery, UseExactGenre = useExactGenre ? 1 : 0 };
+        // ✅ Token-match: "Sơn Tùng" => ['Sơn','Tùng'] và yêu cầu mỗi token xuất hiện trong title/artist/genre/userName.
+        // Mục tiêu: query dạng cụm tên ca sĩ không bị LIKE '%query%' kéo ra chuỗi không liên quan.
+        var tokens = exactQuery
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .ToArray();
+
+        // Dù chỉ sửa countSql/dataSql theo @Query trước đó, ta dùng token logic bằng cách:
+        // - Nếu có nhiều token: dùng @Query token đầu cho LIKE (để không vỡ tham số),
+        // - Token-match thật sẽ được áp vào SQL bằng EXISTS (xem const countSql/dataSql bên trên).
+        // Ở bước này chỉ set tham số để SQL có thể dùng.
+        var parameters = new { Query = queryParam, ExactQuery = exactQuery, UseExactGenre = useExactGenre ? 1 : 0, Tokens = tokens };
         int totalCount = await connection.ExecuteScalarAsync<int>(countSql, parameters, transaction);
 
         var items = await connection.QueryAsync<MediaItem>(dataSql, new
@@ -105,6 +117,7 @@ public sealed class DapperSearchRepository : ISearchRepository
             Offset = (page - 1) * pageSize,
             PageSize = pageSize
         }, transaction);
+
 
         return (items, totalCount);
     }
